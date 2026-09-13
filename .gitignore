@@ -5,12 +5,15 @@ node_modules/
 # Builds
 frontend/dist/
 dist/
+online-dist/
+ServContable-PRO-Online*.zip
 
 # Variables y secretos reales
 **/.env
 **/.env.*
 !**/.env.example
 !**/.env.demo.example
+!**/.env.online.example
 !frontend/.env.demo
 
 # Logs

@@ -9,8 +9,12 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:frontend:demo": "npm --prefix frontend run dev:demo",
     "build": "npm --prefix frontend run build",
+    "build:web": "npm --prefix frontend run build",
     "build:demo": "npm --prefix frontend run build:demo",
-    "start:backend": "npm --prefix backend start"
+    "start": "npm --prefix backend start",
+    "start:web": "npm --prefix backend start",
+    "start:backend": "npm --prefix backend start",
+    "package:online": "powershell -ExecutionPolicy Bypass -File scripts/preparar-paquete-online.ps1"
   },
   "engines": {
     "node": ">=20"
