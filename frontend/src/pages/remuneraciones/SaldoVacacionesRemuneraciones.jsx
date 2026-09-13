@@ -9,8 +9,13 @@ import {
   obtenerHistorialVacacionesTrabajador,
 } from "../../services/saldoVacacionesService";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  piePaginasPDFClasico,
+  tablaPDFClasica,
+} from "../../utils/documentTheme";
 
 export default function SaldoVacacionesRemuneraciones() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -201,24 +206,19 @@ export default function SaldoVacacionesRemuneraciones() {
   }
 
   function exportarPDF() {
-    const doc = new jsPDF("l", "mm", "letter");
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
 
     const margenX = 10;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
+    const yInicio = encabezadoPDFClasico(doc, {
+      titulo: "Control de Saldo de Vacaciones",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      periodo,
+      margenX,
+    });
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("Control de Saldo de Vacaciones", margenX, 14);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(`Empresa: ${empresaActiva?.razon_social || ""}`, margenX, 21);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 26);
-    doc.text(`Periodo: ${periodo}`, anchoPagina - 55, 21);
-
-    autoTable(doc, {
-      startY: 34,
+    tablaPDFClasica(doc, {
+      startY: yInicio + 1,
       head: [
         [
           "RUT",
@@ -253,41 +253,30 @@ export default function SaldoVacacionesRemuneraciones() {
           "",
         ],
       ],
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
         fontSize: 7,
-        cellPadding: 1.8,
+        cellPadding: 1.35,
       },
-      headStyles: {
-        fillColor: [224, 242, 254],
-        textColor: [15, 76, 129],
-        fontStyle: "bold",
+      columnStyles: {
+        3: { halign: "right" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+        6: { halign: "right" },
       },
       didParseCell(data) {
-        if (data.row.raw?.[0] === "TOTALES") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [248, 250, 252];
-          data.cell.styles.textColor = [15, 76, 129];
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "TOTALES");
 
         if (data.row.raw?.[7] === "Saldo negativo") {
-          data.cell.styles.textColor = [185, 28, 28];
           data.cell.styles.fontStyle = "bold";
         }
       },
     });
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(120);
-      doc.text(`Pagina ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 7, {
-        align: "center",
-      });
-    }
+    piePaginasPDFClasico(doc, {
+      texto: "Control de Saldo de Vacaciones",
+      margenX,
+    });
 
     doc.save(`Saldo_Vacaciones_${periodo}.pdf`);
   }

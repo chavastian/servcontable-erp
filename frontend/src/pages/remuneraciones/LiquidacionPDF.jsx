@@ -4,8 +4,17 @@ import { listarLiquidaciones } from "../../services/liquidacionesService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
 import { listarHaberesDescuentos } from "../../services/haberesDescuentosService";
 import PeriodoMesSelector from "../../components/PeriodoMesSelector";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  DOCUMENT_THEME,
+  asegurarEspacioPDF,
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  escribirParrafoPDF,
+  paginaPDF,
+  piePaginasPDFClasico,
+  seccionPDFClasica,
+  tablaPDFClasica,
+} from "../../utils/documentTheme";
 
 export default function LiquidacionPDF() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -88,7 +97,7 @@ export default function LiquidacionPDF() {
         haberes_no_imponibles: agruparConceptos(lista, "HABER_NO_IMPONIBLE"),
         descuentos_variables: agruparConceptos(lista, "DESCUENTO"),
       });
-    } catch (err) {
+    } catch {
       setDetalleConceptos({
         haberes_no_imponibles: [],
         descuentos_variables: [],
@@ -154,23 +163,17 @@ export default function LiquidacionPDF() {
     }
 
     const item = liquidacionSeleccionada;
-    const doc = new jsPDF("p", "mm", "letter");
-
-    const colorTexto = [17, 24, 39];
-    const colorBorde = [212, 220, 231];
-    const colorBarra = [185, 202, 231];
-    const colorSubtitulo = [237, 242, 248];
-    const colorTotal = [190, 204, 232];
+    const doc = crearPDFClasico({ orientation: "p", format: "a4" });
 
     const margenX = 12;
-    const anchoPagina = doc.internal.pageSize.getWidth();
+    const { ancho: anchoPagina } = paginaPDF(doc);
     const anchoUtil = anchoPagina - margenX * 2;
-    const colGap = 6;
-    const colAncho = (anchoUtil - colGap) / 2;
-    const col1 = margenX;
-    const col2 = margenX + colAncho + colGap;
 
     const monto = (valor) => `$ ${numero(valor).toLocaleString("es-CL")}`;
+    const textoPlano = (valor, defecto = "-") => {
+      const texto = String(valor ?? "").replace(/\s+/g, " ").trim();
+      return texto || defecto;
+    };
 
     const mesTexto = (() => {
       const texto = String(periodo || "");
@@ -286,202 +289,267 @@ export default function LiquidacionPDF() {
       otrosDescuentos.push(["Sin descuentos variables", "$ 0"]);
     }
 
-    const totalDescuentosLegales = descuentosLegales.reduce(
-      (acc, [, valor]) => acc + numero(String(valor).replace(/[^0-9]/g, "")),
-      0
-    );
-    const totalOtrosDescuentos = numero(item.variables_descuentos);
+    const totalDescuentosLegales =
+      numero(item.descuento_afp) +
+      numero(item.descuento_salud) +
+      numero(item.descuento_afc) +
+      numero(item.impuesto_unico) +
+      numero(item.descuento_ausencias);
+    const totalOtrosDescuentos =
+      detalleConceptos.descuentos_variables.length > 0
+        ? detalleConceptos.descuentos_variables.reduce(
+            (acc, detalle) => acc + numero(detalle.monto),
+            0
+          )
+        : numero(item.variables_descuentos);
 
-    let y = 16;
+    let y = encabezadoPDFClasico(doc, {
+      titulo: "Liquidación de Sueldo",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      periodo: mesTexto,
+      margenX,
+    });
 
-    doc.setTextColor(...colorTexto);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    doc.text("Liquidación de Sueldo", margenX, y);
-
-    doc.setDrawColor(...colorBorde);
-    doc.rect(anchoPagina - margenX - 26, y - 5, 26, 5, "S");
-
-    y += 8;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Empleador:", margenX, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      `${empresaActiva?.razon_social || ""} (${empresaActiva?.rut || ""})`,
-      margenX + 22,
-      y
-    );
-
-    y += 5;
-    doc.setFont("helvetica", "bold");
-    doc.text("Mes:", margenX, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(mesTexto, margenX + 10, y);
-
-    y += 13;
-
-    const escribirDato = (x, yPos, etiqueta, valor) => {
-      doc.setFont("helvetica", "bold");
-      doc.text(`${etiqueta}:`, x, yPos);
-      const ancho = doc.getTextWidth(`${etiqueta}:`) + 1.5;
-      doc.setFont("helvetica", "normal");
-      doc.text(String(valor || "-"), x + ancho, yPos);
+    const asegurarEspacio = (altoNecesario) => {
+      const nuevoY = asegurarEspacioPDF(doc, y, altoNecesario, 18);
+      if (nuevoY !== y) {
+        y = nuevoY;
+      }
     };
 
-    const colInfo1 = margenX;
-    const colInfo2 = margenX + 62;
-    const colInfo3 = margenX + 124;
+    const dibujarTablaDetalle = (titulo, total, filas) => {
+      asegurarEspacio(26);
+      tablaPDFClasica(doc, {
+        startY: y,
+        margin: { left: margenX, right: margenX },
+        head: [[titulo, total]],
+        body: filas,
+        styles: {
+          fontSize: 8.2,
+          cellPadding: 1.7,
+        },
+        columnStyles: {
+          0: { cellWidth: anchoUtil - 42 },
+          1: { cellWidth: 42, halign: "right", fontStyle: "bold" },
+        },
+        didParseCell: (data) => {
+          if (data.section === "head" && data.column.index === 1) {
+            data.cell.styles.halign = "right";
+          }
+        },
+      });
+      y = doc.lastAutoTable.finalY + 4;
+    };
 
-    escribirDato(colInfo1, y, "Sr(a)", nombreTrabajador(item));
-    escribirDato(colInfo2, y, "Tipo Contrato", item.tipo_contrato || "-");
-    escribirDato(colInfo3, y, "Previsión", previsionTexto || "-");
+    const filaEncabezado = (titulo, total) => [
+      {
+        content: titulo,
+        styles: {
+          fontStyle: "bold",
+          lineWidth: DOCUMENT_THEME.line.strong,
+        },
+      },
+      {
+        content: total,
+        styles: {
+          fontStyle: "bold",
+          halign: "right",
+          lineWidth: DOCUMENT_THEME.line.strong,
+        },
+      },
+    ];
 
-    y += 5.2;
-    escribirDato(colInfo1, y, "RUT", item.rut || "-");
-    escribirDato(colInfo2, y, "Inicio Contrato", fechaCL(item.fecha_ingreso));
-    escribirDato(colInfo3, y, "Salud", item.salud || "-");
+    const filaTotal = (titulo, total) => [
+      {
+        content: titulo,
+        styles: {
+          fontStyle: "bold",
+          lineWidth: DOCUMENT_THEME.line.strong,
+        },
+      },
+      {
+        content: total,
+        styles: {
+          fontStyle: "bold",
+          halign: "right",
+          lineWidth: DOCUMENT_THEME.line.strong,
+        },
+      },
+    ];
 
-    y += 5.2;
-    escribirDato(colInfo1, y, "Cargo", item.cargo || "-");
-    escribirDato(colInfo2, y, "Días Trabajados", `${numero(item.dias_trabajados)} días`);
-    escribirDato(colInfo3, y, "UF", ufTexto);
+    const dibujarTablaColumna = (x, ancho, filas) => {
+      tablaPDFClasica(doc, {
+        startY: y,
+        margin: { left: x, right: anchoPagina - x - ancho },
+        body: filas,
+        styles: {
+          fontSize: 7.7,
+          cellPadding: 1.45,
+          overflow: "linebreak",
+          valign: "top",
+        },
+        columnStyles: {
+          0: { cellWidth: ancho - 33 },
+          1: { cellWidth: 33, halign: "right", fontStyle: "bold" },
+        },
+      });
 
-    y += 8;
-    escribirDato(
-      colInfo1,
-      y,
-      "Sueldo Base",
-      monto(item.sueldo_proporcional || item.sueldo_base)
-    );
+      return doc.lastAutoTable.finalY;
+    };
 
-    y += 7;
+    y = seccionPDFClasica(doc, "Información general", y, { margenX });
 
-    const estiloBase = {
-      theme: "grid",
+    tablaPDFClasica(doc, {
+      startY: y,
+      margin: { left: margenX, right: margenX },
+      body: [
+        ["Trabajador", textoPlano(nombreTrabajador(item)), "RUT", textoPlano(item.rut)],
+        ["Cargo", textoPlano(item.cargo), "Contrato", textoPlano(item.tipo_contrato)],
+        [
+          "Inicio contrato",
+          textoPlano(fechaCL(item.fecha_ingreso)),
+          "Días trabajados",
+          `${numero(item.dias_trabajados)} días`,
+        ],
+        ["Previsión", textoPlano(previsionTexto), "Salud", textoPlano(item.salud)],
+        [
+          "UF",
+          ufTexto,
+          "Sueldo base",
+          monto(item.sueldo_proporcional || item.sueldo_base),
+        ],
+      ],
       styles: {
-        fontSize: 9,
-        cellPadding: 2,
-        textColor: colorTexto,
-        lineWidth: 0.2,
-        lineColor: colorBorde,
+        fontSize: 7.8,
+        cellPadding: 1.55,
+        overflow: "linebreak",
+        valign: "top",
       },
       columnStyles: {
-        0: { cellWidth: colAncho - 30 },
-        1: { cellWidth: 30, halign: "right" },
+        0: { cellWidth: 32, fontStyle: "bold" },
+        1: { cellWidth: 74 },
+        2: { cellWidth: 33, fontStyle: "bold" },
+        3: { cellWidth: anchoUtil - 32 - 74 - 33 },
       },
-    };
+    });
 
-    autoTable(doc, {
-      ...estiloBase,
+    y = doc.lastAutoTable.finalY + 6;
+
+    asegurarEspacio(22);
+    tablaPDFClasica(doc, {
       startY: y,
-      margin: { left: col1, right: anchoPagina - col1 - colAncho },
-      body: [["HABERES IMPONIBLES", monto(item.total_haberes_imponibles)]],
-      bodyStyles: {
-        fillColor: colorSubtitulo,
+      margin: { left: margenX, right: margenX },
+      body: [
+        [
+          "TOTAL HABERES",
+          monto(item.total_haberes),
+          "TOTAL DESCUENTOS",
+          monto(item.total_descuentos),
+          "LIQUIDO A PAGAR",
+          monto(item.liquido_pagar),
+        ],
+      ],
+      styles: {
+        fontSize: 8.2,
+        cellPadding: 1.8,
         fontStyle: "bold",
+        lineWidth: DOCUMENT_THEME.line.strong,
+      },
+      columnStyles: {
+        0: { cellWidth: 31 },
+        1: { cellWidth: 28, halign: "right" },
+        2: { cellWidth: 39 },
+        3: { cellWidth: 28, halign: "right" },
+        4: { cellWidth: 34 },
+        5: { cellWidth: anchoUtil - 160, halign: "right" },
       },
     });
+    y = doc.lastAutoTable.finalY + 6;
 
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col1, right: anchoPagina - col1 - colAncho },
-      body: haberesImponibles,
+    const filasHaberes = [
+      filaEncabezado("HABERES IMPONIBLES", monto(item.total_haberes_imponibles)),
+      ...haberesImponibles,
+      filaEncabezado(
+        "HABERES NO IMPONIBLES",
+        monto(item.total_haberes_no_imponibles)
+      ),
+      ...haberesNoImponibles,
+      filaTotal("TOTAL HABERES", monto(item.total_haberes)),
+    ];
+    const filasDescuentos = [
+      filaEncabezado("DESCUENTOS LEGALES", monto(totalDescuentosLegales)),
+      ...descuentosLegales,
+      filaEncabezado("OTROS DESCUENTOS", monto(totalOtrosDescuentos)),
+      ...otrosDescuentos,
+      filaTotal("TOTAL DESCUENTOS", monto(item.total_descuentos)),
+    ];
+    const conceptosDetalle = [
+      ...haberesImponibles,
+      ...haberesNoImponibles,
+      ...descuentosLegales,
+      ...otrosDescuentos,
+    ].map(([concepto]) => String(concepto || ""));
+    const usarColumnasDetalle =
+      haberesImponibles.length + haberesNoImponibles.length <= 7 &&
+      descuentosLegales.length + otrosDescuentos.length <= 7 &&
+      conceptosDetalle.every((concepto) => concepto.length <= 55);
+
+    y = seccionPDFClasica(doc, "Detalle de haberes y descuentos", y, {
+      margenX,
     });
 
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col1, right: anchoPagina - col1 - colAncho },
-      body: [["HABERES NO IMPONIBLES", monto(item.total_haberes_no_imponibles)]],
-      bodyStyles: {
-        fillColor: colorSubtitulo,
-        fontStyle: "bold",
-      },
-    });
+    if (usarColumnasDetalle) {
+      const espacioColumnas = Math.max(
+        filasHaberes.length,
+        filasDescuentos.length
+      ) * 6.5;
+      asegurarEspacio(espacioColumnas + 6);
+      const anchoColumna = (anchoUtil - 6) / 2;
+      const finalHaberes = dibujarTablaColumna(
+        margenX,
+        anchoColumna,
+        filasHaberes
+      );
+      const finalDescuentos = dibujarTablaColumna(
+        margenX + anchoColumna + 6,
+        anchoColumna,
+        filasDescuentos
+      );
 
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col1, right: anchoPagina - col1 - colAncho },
-      body: haberesNoImponibles,
-    });
+      y = Math.max(finalHaberes, finalDescuentos) + 4;
+    } else {
+      dibujarTablaDetalle(
+        "HABERES IMPONIBLES",
+        monto(item.total_haberes_imponibles),
+        haberesImponibles
+      );
+      dibujarTablaDetalle(
+        "HABERES NO IMPONIBLES",
+        monto(item.total_haberes_no_imponibles),
+        haberesNoImponibles
+      );
+      dibujarTablaDetalle(
+        "DESCUENTOS LEGALES",
+        monto(totalDescuentosLegales),
+        descuentosLegales
+      );
+      dibujarTablaDetalle(
+        "OTROS DESCUENTOS",
+        monto(totalOtrosDescuentos),
+        otrosDescuentos
+      );
+    }
 
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col1, right: anchoPagina - col1 - colAncho },
-      body: [["TOTAL HABERES", monto(item.total_haberes)]],
-      bodyStyles: {
-        fillColor: colorTotal,
-        fontStyle: "bold",
-      },
-    });
-
-    const leftFinal = doc.lastAutoTable.finalY;
-
-    autoTable(doc, {
-      ...estiloBase,
+    asegurarEspacio(22);
+    tablaPDFClasica(doc, {
       startY: y,
-      margin: { left: col2, right: anchoPagina - col2 - colAncho },
-      body: [["DESCUENTOS LEGALES", monto(totalDescuentosLegales)]],
-      bodyStyles: {
-        fillColor: colorSubtitulo,
-        fontStyle: "bold",
-      },
-    });
-
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col2, right: anchoPagina - col2 - colAncho },
-      body: descuentosLegales,
-    });
-
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col2, right: anchoPagina - col2 - colAncho },
-      body: [["OTROS DESCUENTOS", monto(totalOtrosDescuentos)]],
-      bodyStyles: {
-        fillColor: colorSubtitulo,
-        fontStyle: "bold",
-      },
-    });
-
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col2, right: anchoPagina - col2 - colAncho },
-      body: otrosDescuentos,
-    });
-
-    autoTable(doc, {
-      ...estiloBase,
-      startY: doc.lastAutoTable.finalY,
-      margin: { left: col2, right: anchoPagina - col2 - colAncho },
-      body: [["TOTAL DESCUENTOS", monto(item.total_descuentos)]],
-      bodyStyles: {
-        fillColor: colorTotal,
-        fontStyle: "bold",
-      },
-    });
-
-    const rightFinal = doc.lastAutoTable.finalY;
-    y = Math.max(leftFinal, rightFinal);
-
-    autoTable(doc, {
-      theme: "grid",
-      startY: y + 1,
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 8.5,
-        cellPadding: 2,
-        textColor: colorTexto,
-        lineWidth: 0.2,
-        lineColor: colorBorde,
+        fontSize: 8,
+        cellPadding: 1.7,
         fontStyle: "bold",
+        overflow: "linebreak",
       },
       body: [
         [
@@ -497,47 +565,56 @@ export default function LiquidacionPDF() {
       },
     });
 
-    autoTable(doc, {
-      theme: "grid",
-      startY: doc.lastAutoTable.finalY,
+    y = doc.lastAutoTable.finalY + 3;
+    asegurarEspacio(18);
+
+    tablaPDFClasica(doc, {
+      startY: y,
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 11,
-        cellPadding: 2.8,
-        textColor: [7, 38, 90],
-        lineWidth: 0.2,
-        lineColor: colorBorde,
+        fontSize: 11.5,
+        cellPadding: 3,
+        lineWidth: DOCUMENT_THEME.line.strong,
         fontStyle: "bold",
       },
       body: [[`LÍQUIDO A RECIBIR: ${monto(item.liquido_pagar)}`]],
-      bodyStyles: {
-        fillColor: colorBarra,
-      },
       columnStyles: {
         0: { halign: "center" },
       },
     });
 
-    y = doc.lastAutoTable.finalY + 14;
+    y = doc.lastAutoTable.finalY + 11;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.7);
-    doc.setTextColor(...colorTexto);
-    doc.text(
+    const textoCertificado =
       `Certifico que he recibido de ${empresaActiva?.razon_social || ""} (${empresaActiva?.rut || ""}) ` +
-        "a mi entera satisfacción el saldo indicado en la presente Liquidación y no " +
-        "tengo cargo ni cobro posterior que hacer.",
-      margenX + 2,
-      y,
-      { maxWidth: anchoUtil - 4 }
-    );
+      "a mi entera satisfacción el saldo indicado en la presente liquidación y no tengo cargo ni cobro posterior que hacer.";
+    const certificadoLineas = doc.splitTextToSize(textoCertificado, anchoUtil - 4);
+    asegurarEspacio(certificadoLineas.length * 4.5 + 34);
 
-    y += 36;
-    doc.setDrawColor(80, 80, 80);
-    doc.line(margenX + 16, y, margenX + 78, y);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text("FIRMA CONFORME", margenX + 47, y + 6, { align: "center" });
+    doc.setFont(DOCUMENT_THEME.font, "normal");
+    doc.setFontSize(8.8);
+    doc.setTextColor(...DOCUMENT_THEME.color.black);
+    y = escribirParrafoPDF(doc, textoCertificado, y, {
+      x: margenX + 2,
+      ancho: anchoUtil - 4,
+      lineHeight: 4.2,
+    });
+
+    y += 18;
+    doc.setDrawColor(...DOCUMENT_THEME.color.black);
+    doc.setLineWidth(DOCUMENT_THEME.line.normal);
+    doc.line(margenX + anchoUtil / 2 - 35, y, margenX + anchoUtil / 2 + 35, y);
+    doc.setFont(DOCUMENT_THEME.font, "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...DOCUMENT_THEME.color.black);
+    doc.text("FIRMA CONFORME", margenX + anchoUtil / 2, y + 6, {
+      align: "center",
+    });
+
+    piePaginasPDFClasico(doc, {
+      texto: "ServContable PRO - Liquidación de sueldo",
+      margenX,
+    });
 
     const marcaTiempo = new Date()
       .toISOString()

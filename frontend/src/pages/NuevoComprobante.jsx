@@ -13,6 +13,7 @@ import {
   obtenerAnioActivo,
   obtenerFechaTrabajoHoyISO,
 } from "../services/periodoTrabajoService";
+import { imprimirComprobantePDF } from "../utils/comprobantePdf";
 
 function detalleVacio() {
   return {
@@ -40,6 +41,7 @@ export default function NuevoComprobante() {
   const [detalleVisibleId, setDetalleVisibleId] = useState(null);
   const [detalleComprobante, setDetalleComprobante] = useState([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [imprimiendoComprobanteId, setImprimiendoComprobanteId] = useState(null);
 
   const [cabecera, setCabecera] = useState({
     fecha: obtenerFechaHoy(),
@@ -340,6 +342,35 @@ export default function NuevoComprobante() {
     }
   }
 
+  async function imprimirComprobante(id) {
+    try {
+      setMensaje("");
+      setError("");
+      setImprimiendoComprobanteId(id);
+
+      const data = await obtenerComprobante(id);
+      const detallesBackend = Array.isArray(data.detalles)
+        ? data.detalles
+        : Array.isArray(data.detalle)
+        ? data.detalle
+        : [];
+
+      const impresionIniciada = imprimirComprobantePDF({
+        empresa: empresaActiva,
+        comprobante: data.comprobante,
+        detalles: detallesBackend,
+      });
+
+      if (!impresionIniciada) {
+        setError("Ya hay una impresión en curso. Cierra la ventana actual antes de imprimir otra vez.");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setImprimiendoComprobanteId(null);
+    }
+  }
+
   async function verDetalleComprobante(id) {
     try {
       setMensaje("");
@@ -623,7 +654,7 @@ export default function NuevoComprobante() {
             <col />
             <col style={{ width: "130px" }} />
             <col style={{ width: "130px" }} />
-            <col style={{ width: "160px" }} />
+            <col style={{ width: "200px" }} />
           </colgroup>
 
           <thead>
@@ -676,6 +707,21 @@ export default function NuevoComprobante() {
                           aria-label="Editar asiento"
                         >
                           {"\u270E"}
+                        </button>
+
+                        <button
+                          type="button"
+                          style={
+                            imprimiendoComprobanteId === comp.id
+                              ? botonAccionDeshabilitado
+                              : botonImprimir
+                          }
+                          onClick={() => imprimirComprobante(comp.id)}
+                          disabled={imprimiendoComprobanteId === comp.id}
+                          title="Imprimir comprobante"
+                          aria-label="Imprimir comprobante"
+                        >
+                          {"\u2399"}
                         </button>
 
                         <button
@@ -830,12 +876,6 @@ const tablaBoxEdicion = {
   width: "100%",
 };
 
-const tabla = {
-  width: "100%",
-  minWidth: "1250px",
-  borderCollapse: "collapse",
-};
-
 const tablaEdicion = {
   width: "100%",
   tableLayout: "fixed",
@@ -854,11 +894,6 @@ const th = {
   background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
   color: "#0369a1",
   whiteSpace: "nowrap",
-};
-
-const thNumero = {
-  ...th,
-  textAlign: "right",
 };
 
 const thMonto = {
@@ -929,17 +964,6 @@ const inputTabla = {
   border: "1px solid #a9d8ef",
   borderRadius: "8px",
   boxSizing: "border-box",
-};
-
-const inputCuenta = {
-  ...inputTabla,
-  minWidth: "300px",
-};
-
-const inputTablaNumero = {
-  ...inputTabla,
-  minWidth: "120px",
-  textAlign: "right",
 };
 
 const inputTablaCompacto = {
@@ -1058,6 +1082,30 @@ const botonEditar = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+};
+
+const botonImprimir = {
+  background: "linear-gradient(135deg, #0f766e, #14b8a6)",
+  color: "white",
+  border: "none",
+  borderRadius: "9px",
+  width: "32px",
+  height: "32px",
+  padding: 0,
+  cursor: "pointer",
+  fontWeight: "bold",
+  fontSize: "15px",
+  lineHeight: 1,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const botonAccionDeshabilitado = {
+  ...botonImprimir,
+  background: "#94a3b8",
+  cursor: "not-allowed",
+  opacity: 0.7,
 };
 
 const botonEliminarAsiento = {

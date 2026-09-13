@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { cerrarSesion } from "../services/authService";
 import ModuloHero from "../components/ModuloHero";
 
@@ -28,7 +28,6 @@ import DashboardContable from "./contabilidad/DashboardContable";
 import AnalisisCuentas from "./AnalisisCuentas";
 import AuditoriaSistema from "./AuditoriaSistema";
 import UsuariosSistema from "./UsuariosSistema";
-import SolicitudesWeb from "./SolicitudesWeb";
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "administrador_sistema"];
 const ROLES_ADMIN_CLIENTE = ["admin_cliente", "cliente_admin"];
@@ -135,10 +134,6 @@ const HEROES_CONTABLE = {
     titulo: "Usuarios y accesos",
     descripcion: "Administra clientes, permisos y accesos al sistema.",
   },
-  solicitudesWeb: {
-    titulo: "Solicitudes Web",
-    descripcion: "Revisa solicitudes, contrataciones y pagos recibidos desde la web.",
-  },
 };
 
 const HEROES_REMUNERACIONES = {
@@ -186,9 +181,13 @@ const HEROES_REMUNERACIONES = {
     titulo: "Saldo vacaciones",
     descripcion: "Calcula saldos disponibles y usados por trabajador.",
   },
-  remConfiguracion: {
-    titulo: "Configuración",
-    descripcion: "Define parámetros previsionales, AFP, mutual y cuentas contables.",
+  remConfiguracionPrevisional: {
+    titulo: "Configuración previsional",
+    descripcion: "Importa indicadores Previred y configura topes, AFP, AFC, salud y asignación familiar.",
+  },
+  remConfiguracionContable: {
+    titulo: "Configuración contable",
+    descripcion: "Define las cuentas contables usadas por remuneraciones.",
   },
 };
 
@@ -227,7 +226,11 @@ export default function PanelPrincipal({
     moduloActivo === "remuneraciones"
       ? HEROES_REMUNERACIONES[vistaActiva] || HEROES_CONTABLE[vistaActiva]
       : HEROES_CONTABLE[vistaActiva];
-  const vistasConHeroPropio = ["remConfiguracion"];
+  const vistasConHeroPropio = [
+    "remConfiguracion",
+    "remConfiguracionPrevisional",
+    "remConfiguracionContable",
+  ];
   const mostrarHeroPanel = Boolean(heroActual) && !vistasConHeroPropio.includes(vistaActiva);
 
   function irVista(vista) {
@@ -334,7 +337,8 @@ export default function PanelPrincipal({
         { id: "remFiniquitos", label: "Finiquitos" },
         { id: "remVacacionesAusencias", label: "Vacaciones y Ausencias" },
         { id: "remSaldoVacaciones", label: "Saldo vacaciones" },
-        { id: "remConfiguracion", label: "Configuración" },
+        { id: "remConfiguracionPrevisional", label: "Config. previsional" },
+        { id: "remConfiguracionContable", label: "Config. contable" },
       ],
     },
   ];
@@ -342,7 +346,6 @@ export default function PanelPrincipal({
   const menuAdministracion = {
     grupo: "Administración",
     items: [
-      { id: "solicitudesWeb", label: "Solicitudes Web" },
       { id: "usuariosSistema", label: "Usuarios y accesos" },
     ],
   };
@@ -483,9 +486,6 @@ export default function PanelPrincipal({
             {vistaActiva === "usuariosSistema" && usuarioPuedeGestionarUsuarios && (
               <UsuariosSistema />
             )}
-            {vistaActiva === "solicitudesWeb" && usuarioPuedeGestionarUsuarios && (
-              <SolicitudesWeb />
-            )}
             {vistaActiva === "comprobantes" && <Comprobantes />}
             {vistaActiva === "libroDiario" && <LibroDiario />}
             {vistaActiva === "libroMayor" && <LibroMayor />}
@@ -518,6 +518,12 @@ export default function PanelPrincipal({
             {vistaActiva === "remPagos" && <Remuneraciones vistaInicial="pagos" />}
             {vistaActiva === "remPrevired" && <Remuneraciones vistaInicial="previred" />}
             {vistaActiva === "remConfiguracion" && <Remuneraciones vistaInicial="configuracion" />}
+            {vistaActiva === "remConfiguracionPrevisional" && (
+              <Remuneraciones vistaInicial="configuracionPrevisional" />
+            )}
+            {vistaActiva === "remConfiguracionContable" && (
+              <Remuneraciones vistaInicial="configuracionContable" />
+            )}
             {vistaActiva === "remFiniquitos" && <Remuneraciones vistaInicial="finiquitos" />}
             {vistaActiva === "remVacacionesAusencias" && <Remuneraciones vistaInicial="vacacionesAusencias" />}
             {vistaActiva === "remSaldoVacaciones" && <Remuneraciones vistaInicial="saldoVacaciones" />}
@@ -800,4 +806,3 @@ const demoBadge = {
   fontSize: "11px",
   letterSpacing: "0.06em",
 };
-

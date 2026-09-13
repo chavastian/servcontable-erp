@@ -5,9 +5,6 @@ import PanelPrincipal from "./pages/PanelPrincipal";
 import SelectorModulo from "./pages/SelectorModulo";
 import SelectorEmpresaModulo from "./pages/SelectorEmpresaModulo";
 import SelectorEjercicio from "./pages/SelectorEjercicio";
-import SolicitudesWeb from "./pages/SolicitudesWeb";
-import RenovarSuscripcion from "./pages/RenovarSuscripcion";
-import Inicio from "./pages/Inicio";
 
 import {
   cerrarSesion,
@@ -16,22 +13,6 @@ import {
   obtenerUsuarioActual,
 } from "./services/authService";
 
-
-function esRutaPublicaComercial() {
-  const host = window.location.hostname.toLowerCase();
-  const ruta = window.location.pathname.replace(/\/+$/, "") || "/";
-  const hostPublico = host === "servcontablepro.cl" || host === "www.servcontablepro.cl";
-  const rutaComercial = ["/contratar", "/pago-exitoso", "/pago-pendiente", "/pago-error"].includes(ruta);
-
-  return hostPublico || rutaComercial;
-}
-function suscripcionVencida(usuarioSesion) {
-  return (
-    usuarioSesion &&
-    usuarioSesion.demo !== true &&
-    usuarioSesion.suscripcion?.vencida === true
-  );
-}
 
 function leerSessionStorageJSON(clave) {
   try {
@@ -44,8 +25,6 @@ function leerSessionStorageJSON(clave) {
 }
 
 function App() {
-  const rutaPublicaComercial = esRutaPublicaComercial();
-
   const [usuario, setUsuario] = useState(obtenerUsuarioActual());
 
   const [moduloActivo, setModuloActivo] = useState(
@@ -142,16 +121,6 @@ function App() {
     setVista("selectorEjercicio");
   }
 
-  function abrirSolicitudesWeb() {
-    setVista("solicitudesWeb");
-  }
-
-  function actualizarUsuarioSesion(usuarioActualizado) {
-    if (usuarioActualizado) {
-      setUsuario(usuarioActualizado);
-    }
-  }
-
   function cerrarSesionVisual() {
     cerrarSesion();
 
@@ -164,7 +133,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (rutaPublicaComercial || !usuario) return undefined;
+    if (!usuario) return undefined;
 
     let activo = true;
 
@@ -183,11 +152,7 @@ function App() {
     return () => {
       activo = false;
     };
-  }, [rutaPublicaComercial, usuario?.id]);
-
-  if (rutaPublicaComercial) {
-    return <Inicio />;
-  }
+  }, [usuario?.id]);
 
   if (vista === "registro") {
     return <Registro irALogin={() => setVista("login")} />;
@@ -196,18 +161,7 @@ function App() {
   if (!usuario) {
     return (
       <Login
-        irARegistro={() => setVista("registro")}
         loginCorrecto={loginCorrecto}
-      />
-    );
-  }
-
-  if (suscripcionVencida(usuario)) {
-    return (
-      <RenovarSuscripcion
-        usuario={usuario}
-        alCerrarSesion={cerrarSesionVisual}
-        alSesionActualizada={actualizarUsuarioSesion}
       />
     );
   }
@@ -248,14 +202,6 @@ function App() {
     );
   }
 
-  if (vista === "solicitudesWeb") {
-    return (
-      <SolicitudesWeb
-        volverAlPanel={() => setVista("panel")}
-      />
-    );
-  }
-
   return (
     <PanelPrincipal
       usuario={usuario}
@@ -266,7 +212,6 @@ function App() {
       cambiarEjercicio={cambiarEjercicio}
       volverASeleccionModulo={volverASeleccionModulo}
       alCerrarSesion={cerrarSesionVisual}
-      abrirSolicitudesWeb={abrirSolicitudesWeb}
     />
   );
 }

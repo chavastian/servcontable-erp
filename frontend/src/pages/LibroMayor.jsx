@@ -3,9 +3,15 @@ import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
 import { obtenerLibroMayor } from "../services/libroMayorService";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  paginaPDF,
+  piePaginasPDFClasico,
+  seccionPDFClasica,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 
 export default function LibroMayor() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -27,12 +33,6 @@ export default function LibroMayor() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (empresaActiva) {
-      cargarCuentas();
-    }
-  }, []);
-
   async function cargarCuentas() {
     try {
       setError("");
@@ -42,6 +42,12 @@ export default function LibroMayor() {
       setError(err.message);
     }
   }
+
+  useEffect(() => {
+    if (empresaActiva) {
+      cargarCuentas();
+    }
+  }, []);
 
   async function buscarLibroMayor() {
     try {
@@ -206,39 +212,19 @@ export default function LibroMayor() {
   }
 
   function exportarPDF() {
-    const doc = new jsPDF("p", "mm", "letter");
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-    const colorPrimario = [15, 76, 129];
-    const colorTexto = [30, 41, 59];
+    const { ancho: anchoPagina, alto: altoPagina } = paginaPDF(doc);
 
     function dibujarEncabezado() {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(...colorTexto);
-      doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-      doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-      doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-      doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-      doc.text(
-        `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-        anchoPagina - margenX,
-        22,
-        { align: "right" }
-      );
-
-      doc.setTextColor(...colorPrimario);
-      doc.setFontSize(15);
-      doc.text("Libro Mayor", anchoPagina / 2, 19, { align: "center" });
-
-      doc.setDrawColor(...colorPrimario);
-      doc.setLineWidth(0.6);
-      doc.line(margenX, 27, anchoPagina - margenX, 27);
-
-      return 31;
+      return encabezadoPDFClasico(doc, {
+        titulo: "Libro Mayor",
+        empresa: empresaActiva?.razon_social,
+        rut: empresaActiva?.rut,
+        fechaDesde,
+        fechaHasta,
+        margenX,
+      });
     }
 
     let y = dibujarEncabezado();
@@ -249,19 +235,15 @@ export default function LibroMayor() {
         y = dibujarEncabezado();
       }
 
-      doc.setFillColor(187, 210, 228);
-      doc.rect(margenX, y - 2.5, anchoPagina - margenX * 2, 6.5, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.2);
-      doc.setTextColor(...colorPrimario);
-      doc.text(
+      y = seccionPDFClasica(
+        doc,
         `${grupo.cuenta_codigo || ""} - ${grupo.cuenta_nombre || ""}`,
-        margenX + 2,
-        y + 1.5
+        y,
+        { margenX }
       );
 
-      y += 8;
-      doc.setFontSize(8.3);
+      doc.setFont("courier", "bold");
+      doc.setFontSize(8.2);
       doc.text(`Naturaleza: ${grupo.cuenta_naturaleza || ""}`, margenX + 2, y);
 
       doc.text(`Debe: ${formato(grupo.total_debe)}`, anchoPagina - margenX, y, {
@@ -276,7 +258,7 @@ export default function LibroMayor() {
         align: "right",
       });
 
-      autoTable(doc, {
+      tablaPDFClasica(doc, {
         startY: y + 2,
         head: [["Fecha", "Tipo", "N°", "Glosa", "Debe", "Haber", "Saldo"]],
         body: grupo.movimientos.map((item) => [
@@ -291,46 +273,24 @@ export default function LibroMayor() {
         theme: "grid",
         margin: { left: margenX, right: margenX },
         styles: {
-          fontSize: 6.3,
-          cellPadding: 1.2,
-          textColor: colorTexto,
-          lineColor: [190, 204, 219],
-          lineWidth: 0.2,
-        },
-        headStyles: {
-          fillColor: colorPrimario,
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-        },
-        alternateRowStyles: {
-          fillColor: [249, 252, 255],
+          fontSize: 6.2,
+          cellPadding: 1.05,
         },
         columnStyles: {
-          0: { cellWidth: 15 },
-          1: { cellWidth: 14 },
-          2: { cellWidth: 10, halign: "center" },
-          3: { cellWidth: 84 },
-          4: { cellWidth: 22, halign: "right" },
-          5: { cellWidth: 22, halign: "right" },
-          6: { cellWidth: 22, halign: "right" },
+          0: { cellWidth: 19 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 11, halign: "center" },
+          3: { cellWidth: 142 },
+          4: { cellWidth: 27, halign: "right" },
+          5: { cellWidth: 27, halign: "right" },
+          6: { cellWidth: 27, halign: "right" },
         },
       });
 
       y = doc.lastAutoTable.finalY + 7;
     });
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
-
+    piePaginasPDFClasico(doc, { texto: "Libro Mayor", margenX });
     doc.save(`Libro_Mayor_${fechaDesde}_${fechaHasta}.pdf`);
   }
 

@@ -4,8 +4,15 @@ import { listarLiquidaciones } from "../../services/liquidacionesService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
 import PeriodoMesSelector from "../../components/PeriodoMesSelector";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  paginaPDF,
+  piePaginasPDFClasico,
+  seccionPDFClasica,
+  tablaPDFClasica,
+} from "../../utils/documentTheme";
 
 export default function LibroRemuneraciones() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -231,41 +238,19 @@ export default function LibroRemuneraciones() {
   }
 
   function exportarPDF() {
-    const doc = new jsPDF("l", "mm", "letter");
-
-    const colorPrimario = [10, 44, 95];
-    const colorSecundario = [226, 239, 250];
-    const colorTexto = [40, 40, 40];
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 10;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...colorTexto);
-
-    doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 12);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 17);
-
-    doc.text(`Período: ${periodo}`, anchoPagina - 60, 12);
-    doc.text(
-      `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-      anchoPagina - 60,
-      17
-    );
-
-    doc.setFontSize(15);
-    doc.setTextColor(...colorPrimario);
-    doc.text("Libro de Remuneraciones", anchoPagina / 2, 28, {
-      align: "center",
+    const { ancho: anchoPagina, alto: altoPagina } = paginaPDF(doc);
+    const yInicio = encabezadoPDFClasico(doc, {
+      titulo: "Libro de Remuneraciones",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      periodo,
+      margenX,
     });
 
-    doc.setDrawColor(...colorPrimario);
-    doc.line(margenX, 32, anchoPagina - margenX, 32);
-
-    autoTable(doc, {
-      startY: 38,
+    tablaPDFClasica(doc, {
+      startY: yInicio + 1,
       head: [
         [
           "RUT",
@@ -309,17 +294,10 @@ export default function LibroRemuneraciones() {
           "",
         ],
       ],
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.8,
-        cellPadding: 1.6,
-        textColor: colorTexto,
-      },
-      headStyles: {
-        fillColor: colorSecundario,
-        textColor: colorPrimario,
-        fontStyle: "bold",
+        fontSize: 6.4,
+        cellPadding: 1.2,
       },
       columnStyles: {
         0: { cellWidth: 22 },
@@ -335,24 +313,16 @@ export default function LibroRemuneraciones() {
         10: { cellWidth: 18 },
       },
       didParseCell: function (data) {
-        if (data.row.raw?.[0] === "TOTAL") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [245, 247, 250];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "TOTAL");
       },
     });
 
     let y = doc.lastAutoTable.finalY + 10;
 
     if (y < altoPagina - 45) {
-      doc.setFontSize(10);
-      doc.setTextColor(...colorPrimario);
-      doc.text("Resumen del período", margenX, y);
+      y = seccionPDFClasica(doc, "Resumen del período", y, { margenX });
 
-      y += 5;
-
-      autoTable(doc, {
+      tablaPDFClasica(doc, {
         startY: y,
         head: [["Concepto", "Monto"]],
         body: [
@@ -377,17 +347,10 @@ export default function LibroRemuneraciones() {
             numero(totales.costo_empresa).toLocaleString("es-CL"),
           ],
         ],
-        theme: "grid",
         margin: { left: margenX, right: anchoPagina - 120 },
         styles: {
           fontSize: 8,
           cellPadding: 2,
-          textColor: colorTexto,
-        },
-        headStyles: {
-          fillColor: colorSecundario,
-          textColor: colorPrimario,
-          fontStyle: "bold",
         },
         columnStyles: {
           1: { halign: "right" },
@@ -395,16 +358,7 @@ export default function LibroRemuneraciones() {
       });
     }
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(120);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 7, {
-        align: "center",
-      });
-    }
+    piePaginasPDFClasico(doc, { texto: "Libro de Remuneraciones", margenX });
 
     doc.save(`Libro_Remuneraciones_${periodo}.pdf`);
   }

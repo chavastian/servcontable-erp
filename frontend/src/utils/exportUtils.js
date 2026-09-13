@@ -1,6 +1,10 @@
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  piePaginasPDFClasico,
+  tablaPDFClasica,
+} from "./documentTheme";
 
 export function exportarExcel(nombreArchivo, filas) {
   const hoja = XLSX.utils.json_to_sheet(filas);
@@ -12,27 +16,24 @@ export function exportarExcel(nombreArchivo, filas) {
 }
 
 export function exportarPDF(nombreArchivo, titulo, columnas, filas) {
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "pt",
-    format: "a4",
+  const doc = crearPDFClasico({ orientation: "l", format: "a4" });
+  const margenX = 8;
+  const y = encabezadoPDFClasico(doc, {
+    titulo,
+    margenX,
   });
 
-  doc.setFontSize(14);
-  doc.text(titulo, 40, 35);
-
-  autoTable(doc, {
-    startY: 55,
+  tablaPDFClasica(doc, {
+    startY: y,
     head: [columnas],
     body: filas,
+    margin: { left: margenX, right: margenX },
     styles: {
-      fontSize: 8,
-      cellPadding: 4,
-    },
-    headStyles: {
-      fillColor: [15, 76, 129],
+      fontSize: 7,
+      cellPadding: 1.4,
     },
   });
 
+  piePaginasPDFClasico(doc, { texto: titulo, margenX });
   doc.save(`${nombreArchivo}.pdf`);
 }

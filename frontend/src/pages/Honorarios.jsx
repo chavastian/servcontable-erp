@@ -7,8 +7,13 @@ import {
   contabilizarHonorario,
 } from "../services/honorariosService";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  piePaginasPDFClasico,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 import {
   obtenerFechaTrabajoHoyISO,
   obtenerRangoAnualTrabajo,
@@ -261,40 +266,16 @@ export default function Honorarios() {
   }
 
   function exportarPDF() {
-    const doc = new jsPDF("p", "mm", "letter");
-
-    const colorPrimario = [15, 76, 129];
-    const colorTexto = [30, 41, 59];
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...colorTexto);
-
-    doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-    doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-    doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-    doc.text(
-      `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-      anchoPagina - margenX,
-      22,
-      { align: "right" }
-    );
-
-    doc.setTextColor(...colorPrimario);
-    doc.setFontSize(15);
-    doc.text("Libro de Retenciones - Honorarios", anchoPagina / 2, 19, {
-      align: "center",
+    const yInicio = encabezadoPDFClasico(doc, {
+      titulo: "Libro de Retenciones - Honorarios",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      fechaDesde,
+      fechaHasta,
+      margenX,
     });
-
-    doc.setDrawColor(...colorPrimario);
-    doc.setLineWidth(0.6);
-    doc.line(margenX, 27, anchoPagina - margenX, 27);
 
     const body = honorarios.map((item, index) => [
       index + 1,
@@ -322,8 +303,8 @@ export default function Honorarios() {
       Number(totales.liquido || 0).toLocaleString("es-CL"),
     ]);
 
-    autoTable(doc, {
-      startY: 31,
+    tablaPDFClasica(doc, {
+      startY: yInicio + 1,
       head: [
         [
           "Nro",
@@ -339,22 +320,10 @@ export default function Honorarios() {
         ],
       ],
       body,
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.25,
-        cellPadding: 1.2,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
+        fontSize: 6.2,
+        cellPadding: 1.05,
       },
       columnStyles: {
         0: { cellWidth: 9 },
@@ -369,24 +338,14 @@ export default function Honorarios() {
         9: { cellWidth: 18, halign: "right" },
       },
       didParseCell(data) {
-        if (data.row.raw?.[0] === "Total") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [235, 242, 248];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "Total");
       },
     });
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
+    piePaginasPDFClasico(doc, {
+      texto: "Libro de Retenciones - Honorarios",
+      margenX,
+    });
 
     doc.save(`Libro_Retenciones_Honorarios_${fechaDesde}_${fechaHasta}.pdf`);
   }

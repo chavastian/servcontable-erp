@@ -9,9 +9,16 @@ import {
   listarPagosCobros,
 } from "../services/pagosCobrosService";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  paginaPDF,
+  piePaginasPDFClasico,
+  seccionPDFClasica,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 
 export default function CuentasPendientes({ irVista }) {
   const empresaActiva = obtenerEmpresaActiva();
@@ -239,50 +246,22 @@ export default function CuentasPendientes({ irVista }) {
   }
 
   function exportarPDF() {
-    const doc = new jsPDF("p", "mm", "letter");
-
-    const colorPrimario = [15, 76, 129];
-    const colorTexto = [30, 41, 59];
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...colorTexto);
-    doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-    doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-    doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-    doc.text(
-      `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-      anchoPagina - margenX,
-      22,
-      { align: "right" }
-    );
-
-    doc.setTextColor(...colorPrimario);
-    doc.setFontSize(15);
-    doc.text("Cuentas por Cobrar y por Pagar", anchoPagina / 2, 19, {
-      align: "center",
+    const { alto: altoPagina } = paginaPDF(doc);
+    let y = encabezadoPDFClasico(doc, {
+      titulo: "Cuentas por Cobrar y por Pagar",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      fechaDesde,
+      fechaHasta,
+      margenX,
     });
 
-    doc.setDrawColor(...colorPrimario);
-    doc.setLineWidth(0.6);
-    doc.line(margenX, 27, anchoPagina - margenX, 27);
+    y = seccionPDFClasica(doc, "Cuentas por Cobrar", y, { margenX });
 
-    let y = 31;
-
-    doc.setFillColor(187, 210, 228);
-    doc.rect(margenX, y - 2.5, anchoPagina - margenX * 2, 6.5, "F");
-    doc.setFontSize(9.5);
-    doc.setTextColor(...colorPrimario);
-    doc.text("Cuentas por Cobrar", margenX + 2, y + 1.5);
-
-    autoTable(doc, {
-      startY: y + 5,
+    tablaPDFClasica(doc, {
+      startY: y,
       head: [["Fecha", "Tipo", "Folio", "RUT", "Cliente", "Total", "Cobrado", "Saldo", "%"]],
       body: [
         ...porCobrar.map((item) => [
@@ -308,40 +287,24 @@ export default function CuentasPendientes({ irVista }) {
           "",
         ],
       ],
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.3,
-        cellPadding: 1.25,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
+        fontSize: 6.4,
+        cellPadding: 1.1,
       },
       columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 14 },
-        2: { cellWidth: 10 },
-        3: { cellWidth: 18 },
-        4: { cellWidth: 45 },
-        5: { cellWidth: 20, halign: "right" },
-        6: { cellWidth: 20, halign: "right" },
-        7: { cellWidth: 20, halign: "right" },
-        8: { cellWidth: 10, halign: "right" },
+        0: { cellWidth: 21 },
+        1: { cellWidth: 24 },
+        2: { cellWidth: 17 },
+        3: { cellWidth: 26 },
+        4: { cellWidth: 82 },
+        5: { cellWidth: 27, halign: "right" },
+        6: { cellWidth: 27, halign: "right" },
+        7: { cellWidth: 27, halign: "right" },
+        8: { cellWidth: 13, halign: "right" },
       },
       didParseCell(data) {
-        if (data.row.raw?.[0] === "TOTAL") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [235, 242, 248];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "TOTAL");
       },
     });
 
@@ -349,39 +312,20 @@ export default function CuentasPendientes({ irVista }) {
 
     if (y > altoPagina - 45) {
       doc.addPage();
-      y = 31;
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(...colorTexto);
-      doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-      doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-      doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-      doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-      doc.text(
-        `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-        anchoPagina - margenX,
-        22,
-        { align: "right" }
-      );
-      doc.setTextColor(...colorPrimario);
-      doc.setFontSize(15);
-      doc.text("Cuentas por Cobrar y por Pagar", anchoPagina / 2, 19, {
-        align: "center",
+      y = encabezadoPDFClasico(doc, {
+        titulo: "Cuentas por Cobrar y por Pagar",
+        empresa: empresaActiva?.razon_social,
+        rut: empresaActiva?.rut,
+        fechaDesde,
+        fechaHasta,
+        margenX,
       });
-      doc.setDrawColor(...colorPrimario);
-      doc.setLineWidth(0.6);
-      doc.line(margenX, 27, anchoPagina - margenX, 27);
     }
 
-    doc.setFillColor(187, 210, 228);
-    doc.rect(margenX, y - 2.5, anchoPagina - margenX * 2, 6.5, "F");
-    doc.setFontSize(9.5);
-    doc.setTextColor(...colorPrimario);
-    doc.text("Cuentas por Pagar", margenX + 2, y + 1.5);
+    y = seccionPDFClasica(doc, "Cuentas por Pagar", y, { margenX });
 
-    autoTable(doc, {
-      startY: y + 5,
+    tablaPDFClasica(doc, {
+      startY: y,
       head: [["Fecha", "Tipo", "Folio", "RUT", "Proveedor / Prestador", "Total", "Pagado", "Saldo", "%"]],
       body: [
         ...porPagar.map((item) => [
@@ -407,54 +351,31 @@ export default function CuentasPendientes({ irVista }) {
           "",
         ],
       ],
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.3,
-        cellPadding: 1.25,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
+        fontSize: 6.4,
+        cellPadding: 1.1,
       },
       columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 14 },
-        2: { cellWidth: 10 },
-        3: { cellWidth: 18 },
-        4: { cellWidth: 45 },
-        5: { cellWidth: 20, halign: "right" },
-        6: { cellWidth: 20, halign: "right" },
-        7: { cellWidth: 20, halign: "right" },
-        8: { cellWidth: 10, halign: "right" },
+        0: { cellWidth: 21 },
+        1: { cellWidth: 24 },
+        2: { cellWidth: 17 },
+        3: { cellWidth: 26 },
+        4: { cellWidth: 82 },
+        5: { cellWidth: 27, halign: "right" },
+        6: { cellWidth: 27, halign: "right" },
+        7: { cellWidth: 27, halign: "right" },
+        8: { cellWidth: 13, halign: "right" },
       },
       didParseCell(data) {
-        if (data.row.raw?.[0] === "TOTAL") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [235, 242, 248];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "TOTAL");
       },
     });
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
-
+    piePaginasPDFClasico(doc, {
+      texto: "Cuentas por Cobrar y por Pagar",
+      margenX,
+    });
     doc.save(`Cuentas_Pendientes_${fechaDesde}_${fechaHasta}.pdf`);
   }
 

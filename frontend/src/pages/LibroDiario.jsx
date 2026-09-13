@@ -2,9 +2,16 @@ import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerLibroDiario } from "../services/libroDiarioService";
 import { exportarExcel } from "../utils/exportUtils";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  paginaPDF,
+  piePaginasPDFClasico,
+  seccionPDFClasica,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 
 export default function LibroDiario() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -79,41 +86,19 @@ export default function LibroDiario() {
   }
 
   function exportarLibroDiarioPDF() {
-    const doc = new jsPDF("p", "mm", "letter");
-
-    const colorPrimario = [15, 76, 129];
-    const colorBanda = [187, 210, 228];
-    const colorTexto = [30, 41, 59];
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
+    const { alto: altoPagina } = paginaPDF(doc);
 
     function dibujarEncabezado() {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(...colorTexto);
-      doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-      doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-      doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-      doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-      doc.text(
-        `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-        anchoPagina - margenX,
-        22,
-        { align: "right" }
-      );
-
-      doc.setTextColor(...colorPrimario);
-      doc.setFontSize(15);
-      doc.text("Libro Diario", anchoPagina / 2, 19, { align: "center" });
-
-      doc.setDrawColor(...colorPrimario);
-      doc.setLineWidth(0.6);
-      doc.line(margenX, 27, anchoPagina - margenX, 27);
-
-      return 31;
+      return encabezadoPDFClasico(doc, {
+        titulo: "Libro Diario",
+        empresa: empresaActiva?.razon_social,
+        rut: empresaActiva?.rut,
+        fechaDesde,
+        fechaHasta,
+        margenX,
+      });
     }
 
     const grupos = {};
@@ -147,25 +132,19 @@ export default function LibroDiario() {
         y = dibujarEncabezado();
       }
 
-      doc.setFillColor(...colorBanda);
-      doc.rect(margenX, y - 2.5, anchoPagina - margenX * 2, 6.5, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.2);
-      doc.setTextColor(...colorPrimario);
-      doc.text(
+      y = seccionPDFClasica(
+        doc,
         `Comprobante de ${comp.tipo} N° ${comp.numero} - Fecha: ${fechaCL(comp.fecha)}`,
-        margenX + 2,
-        y + 1.5
+        y,
+        { margenX }
       );
 
-      y += 8;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.4);
+      doc.setFont("courier", "bold");
+      doc.setFontSize(8.2);
       doc.text("Glosa General:", margenX + 2, y);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...colorTexto);
+      doc.setFont("courier", "normal");
       doc.text(String(comp.glosa || ""), margenX + 25, y, {
-        maxWidth: anchoPagina - margenX * 2 - 27,
+        maxWidth: 255,
       });
 
       const filas = comp.detalles.map((mov) => [
@@ -188,7 +167,7 @@ export default function LibroDiario() {
         "",
       ]);
 
-      autoTable(doc, {
+      tablaPDFClasica(doc, {
         startY: y + 2,
         head: [["Cuenta", "Nombre de la Cuenta", "Auxiliar", "Documento", "Debe", "Haber", "Descripción"]],
         body: filas,
@@ -198,55 +177,27 @@ export default function LibroDiario() {
           right: margenX,
         },
         styles: {
-          fontSize: 6.2,
-          cellPadding: 1.2,
-          textColor: colorTexto,
-          lineColor: [190, 204, 219],
-          lineWidth: 0.2,
-          valign: "middle",
-        },
-        headStyles: {
-          fillColor: colorPrimario,
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          halign: "center",
-        },
-        alternateRowStyles: {
-          fillColor: [249, 252, 255],
+          fontSize: 5.9,
+          cellPadding: 1,
         },
         columnStyles: {
-          0: { cellWidth: 16 },
-          1: { cellWidth: 44 },
-          2: { cellWidth: 19 },
-          3: { cellWidth: 19 },
-          4: { cellWidth: 20, halign: "right" },
-          5: { cellWidth: 20, halign: "right" },
-          6: { cellWidth: 58 },
+          0: { cellWidth: 22 },
+          1: { cellWidth: 62 },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 26 },
+          4: { cellWidth: 28, halign: "right" },
+          5: { cellWidth: 28, halign: "right" },
+          6: { cellWidth: 78 },
         },
         didParseCell(data) {
-          const esFilaTotal = data.row.index === filas.length - 1;
-          if (esFilaTotal) {
-            data.cell.styles.fillColor = [235, 242, 248];
-            data.cell.styles.fontStyle = "bold";
-            data.cell.styles.textColor = colorPrimario;
-          }
+          marcarFilaTotalPDF(data, data.row.index === filas.length - 1);
         },
       });
 
       y = doc.lastAutoTable.finalY + 7;
     });
 
-    const totalPaginas = doc.internal.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
-
+    piePaginasPDFClasico(doc, { texto: "Libro Diario", margenX });
     doc.save(`Libro_Diario_${fechaDesde}_${fechaHasta}.pdf`);
   }
 
@@ -388,29 +339,11 @@ const subtitulo = {
   marginBottom: "18px",
 };
 
-const filtrosBox = {
-  display: "flex",
-  alignItems: "end",
-  gap: "15px",
-  background: "white",
-  padding: "18px",
-  borderRadius: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "20px",
-};
-
 const label = {
   display: "block",
   fontWeight: "bold",
   color: "#1e293b",
   marginBottom: "5px",
-};
-
-const input = {
-  padding: "11px",
-  border: "1px solid #a9d8ef",
-  borderRadius: "10px",
-  minWidth: "160px",
 };
 
 const resumenBox = {

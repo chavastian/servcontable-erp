@@ -23,6 +23,7 @@ function normalizarFactorImpuestoUnico(factor) {
 }
 
 const TASA_SEGURO_SOCIAL_DEFAULT = 1;
+const TASA_SALUD_LEGAL = 7;
 const JORNADA_SEMANAL_DEFAULT = 42;
 const RECARGO_HORA_EXTRA_DEFAULT = 50;
 
@@ -456,7 +457,7 @@ async function calcularLiquidacionBase(req, res) {
       afpParametro.tasa_seguro_social ?? TASA_SEGURO_SOCIAL_DEFAULT
     );
 
-    const tasaSalud = Number(configuracion.tasa_salud || 7);
+    const tasaSalud = TASA_SALUD_LEGAL;
 
     const contratoPlazoFijo =
       String(trabajador.tipo_contrato || "")
@@ -679,7 +680,6 @@ async function guardarLiquidacion(req, res) {
       total_haberes,
 
       tasa_afp,
-      tasa_salud,
       tasa_afc_trabajador,
       tasa_afc_empleador,
       tasa_sis,
@@ -831,7 +831,7 @@ async function guardarLiquidacion(req, res) {
         Number(total_haberes || 0),
 
         Number(tasa_afp || 0),
-        Number(tasa_salud || 0),
+        TASA_SALUD_LEGAL,
         Number(tasa_afc_trabajador || 0),
         Number(tasa_afc_empleador || 0),
         Number(tasa_sis || 0),
@@ -911,7 +911,6 @@ async function actualizarLiquidacion(req, res) {
       total_haberes_no_imponibles,
       total_haberes,
       tasa_afp,
-      tasa_salud,
       tasa_afc_trabajador,
       tasa_afc_empleador,
       tasa_sis,
@@ -1054,7 +1053,7 @@ async function actualizarLiquidacion(req, res) {
         Number(total_haberes_no_imponibles || 0),
         Number(total_haberes || 0),
         Number(tasa_afp || 0),
-        Number(tasa_salud || 0),
+        TASA_SALUD_LEGAL,
         Number(tasa_afc_trabajador || 0),
         Number(tasa_afc_empleador || 0),
         Number(tasa_sis || 0),

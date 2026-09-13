@@ -2,9 +2,16 @@ import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerBalance8Columnas } from "../services/balance8Service";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import {
+  DOCUMENT_THEME,
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  paginaPDF,
+  piePaginasPDFClasico,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 
 export default function Balance8Columnas() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -230,37 +237,17 @@ export default function Balance8Columnas() {
   }
 
   function exportarBalancePDF() {
-    const doc = new jsPDF("p", "mm", "letter");
-
-    const colorPrimario = [15, 76, 129];
-    const colorTexto = [30, 41, 59];
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...colorTexto);
-    doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-    doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-    doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-    doc.text(
-      `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-      anchoPagina - margenX,
-      22,
-      { align: "right" }
-    );
-
-    doc.setTextColor(...colorPrimario);
-    doc.setFontSize(15);
-    doc.text("Balance General", anchoPagina / 2, 19, { align: "center" });
-
-    doc.setDrawColor(...colorPrimario);
-    doc.setLineWidth(0.6);
-    doc.line(margenX, 27, anchoPagina - margenX, 27);
+    const { ancho: anchoPagina, alto: altoPagina } = paginaPDF(doc);
+    const yInicio = encabezadoPDFClasico(doc, {
+      titulo: "Balance General",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      fechaDesde,
+      fechaHasta,
+      margenX,
+    });
 
     let totalDebitos = 0;
     let totalCreditos = 0;
@@ -346,8 +333,8 @@ export default function Balance8Columnas() {
       formatoMonto(totalGanancia + (utilidad > 0 ? 0 : perdidaEjercicio)),
     ]);
 
-    autoTable(doc, {
-      startY: 31,
+    tablaPDFClasica(doc, {
+      startY: yInicio,
       head: [
         [
           "Código",
@@ -366,40 +353,27 @@ export default function Balance8Columnas() {
       theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.3,
-        cellPadding: 1.25,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        halign: "center",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
+        fontSize: 5.8,
+        cellPadding: 0.95,
       },
       columnStyles: {
-        0: { cellWidth: 16 },
-        1: { cellWidth: 34 },
-        2: { cellWidth: 18, halign: "right" },
-        3: { cellWidth: 18, halign: "right" },
-        4: { cellWidth: 18, halign: "right" },
-        5: { cellWidth: 18, halign: "right" },
-        6: { cellWidth: 18, halign: "right" },
-        7: { cellWidth: 18, halign: "right" },
-        8: { cellWidth: 18, halign: "right" },
-        9: { cellWidth: 18, halign: "right" },
+        0: { cellWidth: 20 },
+        1: { cellWidth: 55 },
+        2: { cellWidth: 25, halign: "right" },
+        3: { cellWidth: 25, halign: "right" },
+        4: { cellWidth: 25, halign: "right" },
+        5: { cellWidth: 25, halign: "right" },
+        6: { cellWidth: 25, halign: "right" },
+        7: { cellWidth: 25, halign: "right" },
+        8: { cellWidth: 25, halign: "right" },
+        9: { cellWidth: 25, halign: "right" },
       },
       didParseCell(data) {
         const texto = data.row.raw?.[0];
-        if (["Subtotales", "Totales", "Utilidad", "Pérdida"].includes(texto)) {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [235, 242, 248];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(
+          data,
+          ["Subtotales", "Totales", "Utilidad", "Pérdida"].includes(texto)
+        );
       },
     });
 
@@ -414,8 +388,8 @@ export default function Balance8Columnas() {
     const xFirmaLegal = anchoPagina - 58;
     const largoLinea = 48;
 
-    doc.setDrawColor(20, 20, 20);
-    doc.setLineWidth(0.25);
+    doc.setDrawColor(...DOCUMENT_THEME.color.black);
+    doc.setLineWidth(DOCUMENT_THEME.line.normal);
     doc.line(
       xFirmaContador - largoLinea / 2,
       yFinal,
@@ -429,9 +403,9 @@ export default function Balance8Columnas() {
       yFinal
     );
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(20, 20, 20);
+    doc.setFont(DOCUMENT_THEME.font, "bold");
+    doc.setFontSize(DOCUMENT_THEME.size.text);
+    doc.setTextColor(...DOCUMENT_THEME.color.black);
     doc.text("Firma del Contador", xFirmaContador, yFinal + 7, { align: "center" });
     doc.text("Firma del Representante Legal", xFirmaLegal, yFinal + 7, {
       align: "center",
@@ -439,24 +413,14 @@ export default function Balance8Columnas() {
 
     const textoLegal =
       "Se deja constancia de que la contabilidad ha sido confeccionada con los antecedentes y documentos fidedignos que han sido proporcionados por el contribuyente. (Artículo 100 del Código Tributario)";
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFont(DOCUMENT_THEME.font, "normal");
+    doc.setFontSize(DOCUMENT_THEME.size.note);
     doc.text(textoLegal, anchoPagina / 2, yFinal + 20, {
       align: "center",
       maxWidth: anchoPagina - 24,
     });
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
-
+    piePaginasPDFClasico(doc, { texto: "Balance General", margenX });
     doc.save(`Balance_General_${fechaDesde}_${fechaHasta}.pdf`);
   }
 
@@ -658,18 +622,6 @@ const titulo = {
 const subtitulo = {
   color: "#475569",
   marginBottom: "18px",
-};
-
-const filtrosBox = {
-  display: "flex",
-  alignItems: "end",
-  gap: "15px",
-  background: "white",
-  padding: "18px",
-  borderRadius: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "20px",
-  flexWrap: "wrap",
 };
 
 const label = {

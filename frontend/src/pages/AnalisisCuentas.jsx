@@ -7,8 +7,13 @@ import {
   obtenerMovimientosCuentaAnalisis,
 } from "../services/analisisCuentasService";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  piePaginasPDFClasico,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 
 
 
@@ -44,12 +49,6 @@ export default function AnalisisCuentas() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (empresaActiva) {
-      cargarCuentas();
-    }
-  }, []);
-
   async function cargarCuentas() {
     try {
       setMensaje("");
@@ -61,6 +60,12 @@ export default function AnalisisCuentas() {
       setError(err.message);
     }
   }
+
+  useEffect(() => {
+    if (empresaActiva) {
+      cargarCuentas();
+    }
+  }, []);
 
   async function buscarAnalisis() {
     try {
@@ -193,39 +198,19 @@ export default function AnalisisCuentas() {
   }
 
   function exportarPDF() {
-    const doc = new jsPDF("p", "mm", "letter");
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-    const colorPrimario = [15, 76, 129];
-    const colorTexto = [30, 41, 59];
+    const yInicio = encabezadoPDFClasico(doc, {
+      titulo: "Análisis de Cuentas",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      fechaDesde,
+      fechaHasta,
+      margenX,
+    });
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...colorTexto);
-    doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-    doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-    doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-    doc.text(
-      `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-      anchoPagina - margenX,
-      22,
-      { align: "right" }
-    );
-
-    doc.setTextColor(...colorPrimario);
-    doc.setFontSize(15);
-    doc.text("Análisis de Cuentas", anchoPagina / 2, 19, { align: "center" });
-
-    doc.setDrawColor(...colorPrimario);
-    doc.setLineWidth(0.6);
-    doc.line(margenX, 27, anchoPagina - margenX, 27);
-
-    autoTable(doc, {
-      startY: 31,
+    tablaPDFClasica(doc, {
+      startY: yInicio,
       head: [
         [
           "Código",
@@ -266,52 +251,26 @@ export default function AnalisisCuentas() {
       theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.6,
-        cellPadding: 1.35,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        halign: "center",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
+        fontSize: 6.8,
+        cellPadding: 1.15,
       },
       columnStyles: {
-        0: { cellWidth: 18 },
-        1: { cellWidth: 46 },
-        2: { cellWidth: 19, halign: "right" },
-        3: { cellWidth: 19, halign: "right" },
-        4: { cellWidth: 19, halign: "right" },
-        5: { cellWidth: 19, halign: "right" },
-        6: { cellWidth: 19, halign: "right" },
-        7: { cellWidth: 19, halign: "right" },
-        8: { cellWidth: 19, halign: "right" },
+        0: { cellWidth: 23 },
+        1: { cellWidth: 76 },
+        2: { cellWidth: 26, halign: "right" },
+        3: { cellWidth: 26, halign: "right" },
+        4: { cellWidth: 26, halign: "right" },
+        5: { cellWidth: 26, halign: "right" },
+        6: { cellWidth: 26, halign: "right" },
+        7: { cellWidth: 26, halign: "right" },
+        8: { cellWidth: 26, halign: "right" },
       },
       didParseCell(data) {
-        if (data.row.raw?.[0] === "TOTALES") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [235, 242, 248];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "TOTALES");
       },
     });
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
-
+    piePaginasPDFClasico(doc, { texto: "Análisis de Cuentas", margenX });
     doc.save(`Analisis_Cuentas_${fechaDesde}_${fechaHasta}.pdf`);
   }
 

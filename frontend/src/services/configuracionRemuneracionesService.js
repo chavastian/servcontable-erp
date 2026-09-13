@@ -72,6 +72,36 @@ export async function guardarAFP(datos) {
   return data;
 }
 
+export async function importarIndicadoresPrevisionales(empresaId, periodo, archivo) {
+  const token = obtenerToken();
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+
+  const params = new URLSearchParams({
+    empresa_id: empresaId,
+    periodo,
+  });
+
+  const respuesta = await fetch(
+    `${API_URL}/configuracion-remuneraciones/importar-indicadores?${params.toString()}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    }
+  );
+
+  const data = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(data.error || "Error al importar indicadores previsionales");
+  }
+
+  return data;
+}
+
 export async function eliminarAFP(id, empresaId) {
   const token = obtenerToken();
 
@@ -93,32 +123,6 @@ export async function eliminarAFP(id, empresaId) {
 
   if (!respuesta.ok) {
     throw new Error(data.error || "Error al eliminar AFP");
-  }
-
-  return data;
-}
-
-export async function copiarConfiguracionRemuneracionesPeriodo(datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(
-    `${API_URL}/configuracion-remuneraciones/copiar-periodo`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(datos),
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(
-      data.error || "Error al copiar configuración de remuneraciones"
-    );
   }
 
   return data;

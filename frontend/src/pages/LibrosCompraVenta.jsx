@@ -5,8 +5,15 @@ import {
   obtenerLibroCompras,
 } from "../services/librosTributariosService";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  paginaPDF,
+  piePaginasPDFClasico,
+  seccionPDFClasica,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
 
 export default function LibrosCompraVenta() {
@@ -308,64 +315,32 @@ export default function LibrosCompraVenta() {
   }
 
   function crearPDFBase(titulo) {
-    const doc = new jsPDF("p", "mm", "letter");
-
-    const colorPrimario = [15, 76, 129];
-    const colorTexto = [30, 41, 59];
-
+    const doc = crearPDFClasico({ orientation: "l", format: "a4" });
     const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...colorTexto);
-    doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-    doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-    doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-    doc.text(
-      `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-      anchoPagina - margenX,
-      22,
-      { align: "right" }
-    );
-
-    doc.setFontSize(15);
-    doc.setTextColor(...colorPrimario);
-    doc.text(titulo, anchoPagina / 2, 19, { align: "center" });
-
-    doc.setDrawColor(...colorPrimario);
-    doc.setLineWidth(0.6);
-    doc.line(margenX, 27, anchoPagina - margenX, 27);
+    const { alto: altoPagina } = paginaPDF(doc);
+    const yInicio = encabezadoPDFClasico(doc, {
+      titulo,
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      fechaDesde,
+      fechaHasta,
+      margenX,
+    });
 
     return {
       doc,
-      colorPrimario,
-      colorTexto,
       margenX,
-      anchoPagina,
       altoPagina,
+      yInicio,
     };
   }
 
-  function agregarPaginacion(doc, anchoPagina, altoPagina) {
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
+  function agregarPaginacion(doc, titulo, margenX) {
+    piePaginasPDFClasico(doc, { texto: titulo, margenX });
   }
 
   function exportarVentasPDF() {
-    const { doc, colorPrimario, colorTexto, margenX, anchoPagina, altoPagina } =
-      crearPDFBase("Libro de Ventas");
+    const { doc, margenX, altoPagina, yInicio } = crearPDFBase("Libro de Ventas");
 
     const body = ventas.map((item, index) => [
       index + 1,
@@ -395,8 +370,8 @@ export default function LibrosCompraVenta() {
       Number(totalesVentas.total || 0).toLocaleString("es-CL"),
     ]);
 
-    autoTable(doc, {
-      startY: 31,
+    tablaPDFClasica(doc, {
+      startY: yInicio + 1,
       head: [
         [
           "Nro",
@@ -413,42 +388,26 @@ export default function LibrosCompraVenta() {
         ],
       ],
       body,
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.1,
-        cellPadding: 1.15,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
+        fontSize: 5.7,
+        cellPadding: 0.95,
       },
       columnStyles: {
         0: { cellWidth: 8 },
-        1: { cellWidth: 12 },
-        2: { cellWidth: 11 },
-        3: { cellWidth: 13 },
-        4: { cellWidth: 17 },
-        5: { cellWidth: 35 },
-        6: { cellWidth: 11 },
-        7: { cellWidth: 16, halign: "right" },
-        8: { cellWidth: 16, halign: "right" },
-        9: { cellWidth: 16, halign: "right" },
-        10: { cellWidth: 18, halign: "right" },
+        1: { cellWidth: 16 },
+        2: { cellWidth: 15 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 24 },
+        5: { cellWidth: 64 },
+        6: { cellWidth: 17 },
+        7: { cellWidth: 25, halign: "right" },
+        8: { cellWidth: 25, halign: "right" },
+        9: { cellWidth: 25, halign: "right" },
+        10: { cellWidth: 28, halign: "right" },
       },
       didParseCell(data) {
-        if (data.row.raw?.[0] === "Total") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [235, 242, 248];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "Total");
       },
     });
 
@@ -456,18 +415,22 @@ export default function LibrosCompraVenta() {
 
     if (y > altoPagina - 45) {
       doc.addPage();
-      y = 31;
+      y = encabezadoPDFClasico(doc, {
+        titulo: "Libro de Ventas",
+        empresa: empresaActiva?.razon_social,
+        rut: empresaActiva?.rut,
+        fechaDesde,
+        fechaHasta,
+        margenX,
+      });
     }
 
-    doc.setFillColor(187, 210, 228);
-    doc.rect(margenX, y - 2.5, anchoPagina - margenX * 2, 6.5, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.3);
-    doc.setTextColor(...colorPrimario);
-    doc.text("Resumen General por Tipo de Documento", margenX + 2, y + 1.5);
+    y = seccionPDFClasica(doc, "Resumen General por Tipo de Documento", y, {
+      margenX,
+    });
 
-    autoTable(doc, {
-      startY: y + 5,
+    tablaPDFClasica(doc, {
+      startY: y,
       head: [["Tipo Doc", "Cantidad", "Exento", "Neto", "IVA", "Total"]],
       body: resumenVentas.map((item) => [
         item.tipo_doc,
@@ -477,22 +440,10 @@ export default function LibrosCompraVenta() {
         Number(item.iva || 0).toLocaleString("es-CL"),
         Number(item.total || 0).toLocaleString("es-CL"),
       ]),
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
         fontSize: 6.6,
         cellPadding: 1.3,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
       },
       columnStyles: {
         0: { cellWidth: 35 },
@@ -504,12 +455,12 @@ export default function LibrosCompraVenta() {
       },
     });
 
-    agregarPaginacion(doc, anchoPagina, altoPagina);
+    agregarPaginacion(doc, "Libro de Ventas", margenX);
     doc.save(`Libro_Ventas_${fechaDesde}_${fechaHasta}.pdf`);
   }
 
   function exportarComprasPDF() {
-    const { doc, colorPrimario, colorTexto, margenX, anchoPagina, altoPagina } =
+    const { doc, margenX, altoPagina, yInicio } =
       crearPDFBase("Libro de Compras");
 
     const body = compras.map((item, index) => [
@@ -542,8 +493,8 @@ export default function LibrosCompraVenta() {
       Number(totalesCompras.total || 0).toLocaleString("es-CL"),
     ]);
 
-    autoTable(doc, {
-      startY: 31,
+    tablaPDFClasica(doc, {
+      startY: yInicio + 1,
       head: [
         [
           "Nro",
@@ -561,43 +512,27 @@ export default function LibrosCompraVenta() {
         ],
       ],
       body,
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 5.9,
-        cellPadding: 1.1,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
+        fontSize: 5.35,
+        cellPadding: 0.9,
       },
       columnStyles: {
         0: { cellWidth: 7 },
-        1: { cellWidth: 10 },
-        2: { cellWidth: 10 },
-        3: { cellWidth: 12 },
-        4: { cellWidth: 16 },
-        5: { cellWidth: 30 },
-        6: { cellWidth: 10 },
-        7: { cellWidth: 15, halign: "right" },
-        8: { cellWidth: 15, halign: "right" },
-        9: { cellWidth: 18, halign: "right" },
-        10: { cellWidth: 18, halign: "right" },
-        11: { cellWidth: 17, halign: "right" },
+        1: { cellWidth: 15 },
+        2: { cellWidth: 14 },
+        3: { cellWidth: 16 },
+        4: { cellWidth: 24 },
+        5: { cellWidth: 56 },
+        6: { cellWidth: 15 },
+        7: { cellWidth: 23, halign: "right" },
+        8: { cellWidth: 23, halign: "right" },
+        9: { cellWidth: 28, halign: "right" },
+        10: { cellWidth: 28, halign: "right" },
+        11: { cellWidth: 25, halign: "right" },
       },
       didParseCell(data) {
-        if (data.row.raw?.[0] === "Total") {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [235, 242, 248];
-          data.cell.styles.textColor = colorPrimario;
-        }
+        marcarFilaTotalPDF(data, data.row.raw?.[0] === "Total");
       },
     });
 
@@ -605,18 +540,22 @@ export default function LibrosCompraVenta() {
 
     if (y > altoPagina - 45) {
       doc.addPage();
-      y = 31;
+      y = encabezadoPDFClasico(doc, {
+        titulo: "Libro de Compras",
+        empresa: empresaActiva?.razon_social,
+        rut: empresaActiva?.rut,
+        fechaDesde,
+        fechaHasta,
+        margenX,
+      });
     }
 
-    doc.setFillColor(187, 210, 228);
-    doc.rect(margenX, y - 2.5, anchoPagina - margenX * 2, 6.5, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.3);
-    doc.setTextColor(...colorPrimario);
-    doc.text("Resumen General por Tipo de Documento", margenX + 2, y + 1.5);
+    y = seccionPDFClasica(doc, "Resumen General por Tipo de Documento", y, {
+      margenX,
+    });
 
-    autoTable(doc, {
-      startY: y + 5,
+    tablaPDFClasica(doc, {
+      startY: y,
       head: [["Tipo Doc", "Cantidad", "Exento", "Neto", "IVA", "IVA No Rec.", "Total"]],
       body: resumenCompras.map((item) => [
         item.tipo_doc,
@@ -627,22 +566,10 @@ export default function LibrosCompraVenta() {
         Number(item.iva_no_recuperable || 0).toLocaleString("es-CL"),
         Number(item.total || 0).toLocaleString("es-CL"),
       ]),
-      theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
         fontSize: 6.3,
         cellPadding: 1.2,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [249, 252, 255],
       },
       columnStyles: {
         0: { cellWidth: 30 },
@@ -655,7 +582,7 @@ export default function LibrosCompraVenta() {
       },
     });
 
-    agregarPaginacion(doc, anchoPagina, altoPagina);
+    agregarPaginacion(doc, "Libro de Compras", margenX);
     doc.save(`Libro_Compras_${fechaDesde}_${fechaHasta}.pdf`);
   }
 

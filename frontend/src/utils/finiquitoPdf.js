@@ -1,4 +1,8 @@
-import jsPDF from "jspdf";
+import {
+  DOCUMENT_THEME,
+  crearPDFClasico,
+  piePaginasPDFClasico,
+} from "./documentTheme";
 
 function numero(valor) {
   return Number(valor || 0);
@@ -110,18 +114,18 @@ function conceptosLiquidacion(finiquito) {
   return { haberes, descuentos };
 }
 
-function agregarPagina(doc, colorTexto) {
+function agregarPagina(doc) {
   doc.addPage();
-  doc.setFont("helvetica", "normal");
+  doc.setFont(DOCUMENT_THEME.font, "normal");
   doc.setFontSize(10);
-  doc.setTextColor(...colorTexto);
+  doc.setTextColor(...DOCUMENT_THEME.color.black);
   return 22;
 }
 
-function asegurarEspacio(doc, y, requerido, colorTexto) {
+function asegurarEspacio(doc, y, requerido) {
   const altoPagina = doc.internal.pageSize.getHeight();
   if (y + requerido <= altoPagina - 22) return y;
-  return agregarPagina(doc, colorTexto);
+  return agregarPagina(doc);
 }
 
 function escribirParrafo(doc, textoParrafo, y, opciones) {
@@ -129,29 +133,27 @@ function escribirParrafo(doc, textoParrafo, y, opciones) {
     x,
     ancho,
     lineHeight,
-    colorTexto,
-    colorPrimario,
     titulo,
   } = opciones;
 
-  y = asegurarEspacio(doc, y, titulo ? 16 : 10, colorTexto);
+  y = asegurarEspacio(doc, y, titulo ? 16 : 10);
 
   if (titulo) {
-    doc.setFont("helvetica", "bold");
+    doc.setFont(DOCUMENT_THEME.font, "bold");
     doc.setFontSize(10);
-    doc.setTextColor(...colorPrimario);
+    doc.setTextColor(...DOCUMENT_THEME.color.black);
     doc.text(titulo, x, y);
     y += 5;
   }
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(DOCUMENT_THEME.font, "normal");
   doc.setFontSize(10);
-  doc.setTextColor(...colorTexto);
+  doc.setTextColor(...DOCUMENT_THEME.color.black);
 
   const lineas = doc.splitTextToSize(limpiarParrafo(textoParrafo), ancho);
 
   for (const linea of lineas) {
-    y = asegurarEspacio(doc, y, lineHeight, colorTexto);
+    y = asegurarEspacio(doc, y, lineHeight);
     doc.text(linea, x, y);
     y += lineHeight;
   }
@@ -160,17 +162,19 @@ function escribirParrafo(doc, textoParrafo, y, opciones) {
 }
 
 function escribirLineaMonto(doc, y, concepto, monto, opciones) {
-  const { x, ancho, lineHeight, colorTexto, colorPrimario, destacado = false } = opciones;
-  y = asegurarEspacio(doc, y, lineHeight + 2, colorTexto);
+  const { x, ancho, lineHeight, destacado = false } = opciones;
+  y = asegurarEspacio(doc, y, lineHeight + 2);
 
   if (destacado) {
-    doc.setFillColor(224, 242, 254);
-    doc.roundedRect(x - 2, y - 4.5, ancho + 4, 7.5, 1.5, 1.5, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...colorPrimario);
+    doc.setDrawColor(...DOCUMENT_THEME.color.black);
+    doc.setLineWidth(DOCUMENT_THEME.line.strong);
+    doc.line(x - 2, y - 4.3, x + ancho + 2, y - 4.3);
+    doc.line(x - 2, y + 2.3, x + ancho + 2, y + 2.3);
+    doc.setFont(DOCUMENT_THEME.font, "bold");
+    doc.setTextColor(...DOCUMENT_THEME.color.black);
   } else {
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...colorTexto);
+    doc.setFont(DOCUMENT_THEME.font, "normal");
+    doc.setTextColor(...DOCUMENT_THEME.color.black);
   }
 
   doc.setFontSize(10);
@@ -185,34 +189,33 @@ function agregarDetalleConcepto(doc, y, concepto, opciones) {
   return y;
 }
 
-function agregarFirmas(doc, y, datos, colores) {
-  const { colorTexto, colorPrimario } = colores;
+function agregarFirmas(doc, y, datos) {
   const altoPagina = doc.internal.pageSize.getHeight();
 
   if (y > altoPagina - 65) {
-    y = agregarPagina(doc, colorTexto);
+    y = agregarPagina(doc);
   }
 
   y = Math.max(y + 14, altoPagina - 58);
 
-  doc.setDrawColor(...colorTexto);
+  doc.setDrawColor(...DOCUMENT_THEME.color.black);
   doc.setLineWidth(0.3);
   doc.line(24, y, 84, y);
   doc.line(126, y, 186, y);
 
   y += 6;
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(DOCUMENT_THEME.font, "bold");
   doc.setFontSize(9);
-  doc.setTextColor(...colorPrimario);
+  doc.setTextColor(...DOCUMENT_THEME.color.black);
   doc.text("FIRMA EMPLEADOR", 54, y, { align: "center" });
   doc.text("FIRMA TRABAJADOR", 156, y, { align: "center" });
 
   y += 8;
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(DOCUMENT_THEME.font, "normal");
   doc.setFontSize(8.5);
-  doc.setTextColor(...colorTexto);
+  doc.setTextColor(...DOCUMENT_THEME.color.black);
 
   if (datos.representanteNombre) {
     doc.text(datos.representanteNombre.toUpperCase(), 54, y, { align: "center" });
@@ -236,26 +239,15 @@ function agregarFirmas(doc, y, datos, colores) {
 }
 
 function agregarPiePaginas(doc) {
-  const paginas = doc.internal.getNumberOfPages();
-  const anchoPagina = doc.internal.pageSize.getWidth();
-
-  for (let i = 1; i <= paginas; i += 1) {
-    doc.setPage(i);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Página ${i} de ${paginas}`, anchoPagina / 2, 287, {
-      align: "center",
-    });
-  }
+  piePaginasPDFClasico(doc, { texto: "Finiquito de Trabajo", margenX: 17 });
 }
 
 export function exportarFiniquitoPDF(finiquito, empresaActiva) {
-  const doc = new jsPDF("p", "mm", "a4");
+  const doc = crearPDFClasico({ orientation: "p", format: "a4" });
 
-  const colorPrimario = [15, 76, 129];
-  const colorTexto = [15, 23, 42];
-  const colorLinea = [203, 213, 225];
+  const colorPrimario = DOCUMENT_THEME.color.black;
+  const colorTexto = DOCUMENT_THEME.color.black;
+  const colorLinea = DOCUMENT_THEME.color.black;
 
   const x = 17;
   const ancho = 176;
@@ -264,7 +256,6 @@ export function exportarFiniquitoPDF(finiquito, empresaActiva) {
 
   const trabajadorNombre = nombreTrabajador(finiquito);
   const trabajadorRut = texto(finiquito.trabajador_rut);
-  const trabajadorCargo = texto(finiquito.trabajador_cargo, "cargo registrado");
   const trabajadorNacionalidad = texto(finiquito.trabajador_nacionalidad, "Chile");
   const trabajadorDomicilio = texto(
     finiquito.trabajador_direccion || finiquito.domicilio_trabajador,
@@ -304,7 +295,7 @@ export function exportarFiniquitoPDF(finiquito, empresaActiva) {
 
   let y = 18;
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(DOCUMENT_THEME.font, "bold");
   doc.setFontSize(15);
   doc.setTextColor(...colorPrimario);
   doc.text("FINIQUITO DE TRABAJO", anchoPagina / 2, y, { align: "center" });
@@ -343,9 +334,9 @@ export function exportarFiniquitoPDF(finiquito, empresaActiva) {
 
   y = asegurarEspacio(doc, y, 30, colorTexto);
   doc.setDrawColor(...colorLinea);
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(x, y - 3, ancho, 10, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setLineWidth(DOCUMENT_THEME.line.strong);
+  doc.rect(x, y - 3, ancho, 10);
+  doc.setFont(DOCUMENT_THEME.font, "bold");
   doc.setFontSize(10);
   doc.setTextColor(...colorPrimario);
   doc.text("Liquidación del finiquito", x + 4, y + 3);

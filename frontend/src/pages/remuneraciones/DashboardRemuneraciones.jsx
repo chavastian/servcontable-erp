@@ -192,12 +192,26 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <small>Registrar pagos y comprobantes.</small>
             </button>
 
-            <button style={acceso} onClick={() => irSubmodulo("configuracion")}>
+            <button
+              style={acceso}
+              onClick={() => irSubmodulo("configuracionPrevisional")}
+            >
               <span style={accesoIcono}>
                 <IconoSistema tipo="configuracion" />
               </span>
-              <strong>Configuracion</strong>
-              <small>Parametros, AFP y cuentas contables.</small>
+              <strong>Configuracion previsional</strong>
+              <small>Indicadores Previred, AFP, AFC y topes.</small>
+            </button>
+
+            <button
+              style={acceso}
+              onClick={() => irSubmodulo("configuracionContable")}
+            >
+              <span style={accesoIcono}>
+                <IconoSistema tipo="comprobante" />
+              </span>
+              <strong>Configuracion contable</strong>
+              <small>Cuentas para centralizacion y pagos.</small>
             </button>
           </div>
         </div>
@@ -312,30 +326,6 @@ function FilaResumen({ label, valor, destacado }) {
     </div>
   );
 }
-
-const hero = {
-  background: "linear-gradient(135deg, #0f172a, #0369a1, #0ea5e9)",
-  borderRadius: "22px",
-  padding: "28px",
-  color: "white",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "end",
-  gap: "20px",
-  flexWrap: "wrap",
-  marginBottom: "22px",
-  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.18)",
-};
-
-const titulo = {
-  margin: 0,
-  fontSize: "32px",
-};
-
-const subtitulo = {
-  color: "#dff7ff",
-  marginBottom: 0,
-};
 
 const filtros = {
   display: "flex",

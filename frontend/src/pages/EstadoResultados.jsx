@@ -2,9 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerEstadoResultados } from "../services/estadoResultadosService";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import {
+  crearPDFClasico,
+  encabezadoPDFClasico,
+  marcarFilaTotalPDF,
+  piePaginasPDFClasico,
+  tablaPDFClasica,
+} from "../utils/documentTheme";
 
 const CATEGORIAS_VACIAS = {
   ingresos_operacionales: [],
@@ -274,42 +279,19 @@ export default function EstadoResultados() {
   }
 
   function exportarEstadoResultadosPDF() {
-    const doc = new jsPDF("p", "mm", "letter");
+    const doc = crearPDFClasico({ orientation: "p", format: "a4" });
+    const margenX = 10;
+    const yInicio = encabezadoPDFClasico(doc, {
+      titulo: "Estado de Resultados",
+      empresa: empresaActiva?.razon_social,
+      rut: empresaActiva?.rut,
+      fechaDesde,
+      fechaHasta,
+      margenX,
+    });
 
-    const colorPrimario = [15, 76, 129];
-    const colorTexto = [30, 41, 59];
-    const colorFinal = [187, 210, 228];
-
-    const margenX = 8;
-    const anchoPagina = doc.internal.pageSize.getWidth();
-    const altoPagina = doc.internal.pageSize.getHeight();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...colorTexto);
-
-    doc.text(`Razón Social: ${empresaActiva?.razon_social || ""}`, margenX, 10);
-    doc.text(`RUT: ${empresaActiva?.rut || ""}`, margenX, 16);
-
-    doc.text(`Desde: ${fechaDesde}`, anchoPagina - margenX, 10, { align: "right" });
-    doc.text(`Hasta: ${fechaHasta}`, anchoPagina - margenX, 16, { align: "right" });
-    doc.text(
-      `Fecha emisión: ${new Date().toLocaleDateString("es-CL")}`,
-      anchoPagina - margenX,
-      22,
-      { align: "right" }
-    );
-
-    doc.setTextColor(...colorPrimario);
-    doc.setFontSize(15);
-    doc.text("Estado de Resultados", anchoPagina / 2, 19, { align: "center" });
-
-    doc.setDrawColor(...colorPrimario);
-    doc.setLineWidth(0.6);
-    doc.line(margenX, 27, anchoPagina - margenX, 27);
-
-    autoTable(doc, {
-      startY: 31,
+    tablaPDFClasica(doc, {
+      startY: yInicio,
       head: [["Concepto", "Monto"]],
       body: filasEstado.map((fila) => [
         fila.tipo === "detalle" ? `   ${fila.etiqueta}` : fila.etiqueta,
@@ -318,52 +300,28 @@ export default function EstadoResultados() {
       theme: "grid",
       margin: { left: margenX, right: margenX },
       styles: {
-        fontSize: 6.5,
-        cellPadding: 1.3,
-        textColor: colorTexto,
-        lineColor: [190, 204, 219],
-        lineWidth: 0.2,
-      },
-      headStyles: {
-        fillColor: colorPrimario,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
+        fontSize: 8,
+        cellPadding: 1.5,
       },
       columnStyles: {
-        0: { cellWidth: 145 },
-        1: { cellWidth: 48, halign: "right" },
+        0: { cellWidth: 135 },
+        1: { cellWidth: 50, halign: "right" },
       },
       didParseCell(data) {
         const fila = filasEstado[data.row.index];
         if (!fila) return;
-
-        if (fila.tipo === "detalle") {
-          data.cell.styles.textColor = [100, 116, 139];
-        }
 
         if (fila.negrita) {
           data.cell.styles.fontStyle = "bold";
         }
 
         if (fila.final) {
-          data.cell.styles.fillColor = colorFinal;
-          data.cell.styles.textColor = [15, 23, 42];
-          data.cell.styles.fontStyle = "bold";
+          marcarFilaTotalPDF(data, true);
         }
       },
     });
 
-    const totalPaginas = doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Página ${i}/${totalPaginas}`, anchoPagina / 2, altoPagina - 6, {
-        align: "center",
-      });
-    }
-
+    piePaginasPDFClasico(doc, { texto: "Estado de Resultados", margenX });
     doc.save(`Estado_Resultados_${fechaDesde}_${fechaHasta}.pdf`);
   }
 

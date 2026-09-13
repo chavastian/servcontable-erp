@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import {
   loginDemo,
   loginUsuario,
@@ -10,6 +10,7 @@ import { crearSolicitudContacto } from "../services/solicitudesContactoService";
 const LOGO_SRC = "/servcontable-logo.png";
 
 export default function Login({ irARegistro, loginCorrecto }) {
+  const esEscritorio = import.meta.env.VITE_DESKTOP_MODE === "true";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nuevaPassword, setNuevaPassword] = useState("");
@@ -158,9 +159,11 @@ export default function Login({ irARegistro, loginCorrecto }) {
     <div style={contenedor}>
       <div style={tarjeta}>
         <img style={logo} src={LOGO_SRC} alt="ServContable" />
-        <h1 style={titulo}>ServContable PRO</h1>
+        <h1 style={titulo}>ServContable PRO{esEscritorio ? " Escritorio" : ""}</h1>
         <p style={subtitulo}>
-          {permiteDemo
+          {esEscritorio
+            ? "Sistema contable local"
+            : permiteDemo
             ? "Demo individual por 30 días"
             : resetToken
             ? "Define una nueva contraseña"
@@ -247,7 +250,7 @@ export default function Login({ irARegistro, loginCorrecto }) {
               </button>
             </form>
 
-            {!permiteDemo && (
+            {!permiteDemo && !esEscritorio && (
               <button
                 style={botonSecundario}
                 type="button"
@@ -282,7 +285,8 @@ export default function Login({ irARegistro, loginCorrecto }) {
 
             {!permiteRegistroPublico && !permiteDemo && (
               <p style={notaAcceso}>
-                Los accesos son creados por el administrador del sistema.
+                Los accesos son creados por el administrador del equipo.
+                {esEscritorio && " Los datos permanecen en este computador."}
               </p>
             )}
           </>
