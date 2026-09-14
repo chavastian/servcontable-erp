@@ -28,8 +28,9 @@ import DashboardContable from "./contabilidad/DashboardContable";
 import AnalisisCuentas from "./AnalisisCuentas";
 import AuditoriaSistema from "./AuditoriaSistema";
 import UsuariosSistema from "./UsuariosSistema";
+import AdminSuscripciones from "./AdminSuscripciones";
 
-const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "administrador_sistema"];
+const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 const ROLES_ADMIN_CLIENTE = ["admin_cliente", "cliente_admin"];
 const LOGO_SRC = "/servcontable-logo.png";
 
@@ -134,6 +135,38 @@ const HEROES_CONTABLE = {
     titulo: "Usuarios y accesos",
     descripcion: "Administra clientes, permisos y accesos al sistema.",
   },
+  adminSuscripciones: {
+    titulo: "Administración de Suscripciones",
+    descripcion: "Controla clientes, planes, pagos, vencimientos y auditoría comercial.",
+  },
+  adminSuscripcionesClientes: {
+    titulo: "Clientes",
+    descripcion: "Lista y filtra clientes suscritos al sistema.",
+  },
+  adminSuscripcionesGestion: {
+    titulo: "Suscripciones",
+    descripcion: "Gestiona estados, vencimientos y acciones manuales.",
+  },
+  adminSuscripcionesPlanes: {
+    titulo: "Planes",
+    descripcion: "Administra precios, limites y caracteristicas de los planes.",
+  },
+  adminSuscripcionesPagos: {
+    titulo: "Pagos",
+    descripcion: "Revisa pagos y registra pagos manuales de suscripcion.",
+  },
+  adminSuscripcionesNotificaciones: {
+    titulo: "Notificaciones",
+    descripcion: "Prepara avisos de vencimiento y eventos de suscripcion.",
+  },
+  adminSuscripcionesAuditoria: {
+    titulo: "Auditoría",
+    descripcion: "Consulta acciones administrativas sensibles.",
+  },
+  adminSuscripcionesConfiguracion: {
+    titulo: "Configuración",
+    descripcion: "Define parametros generales del servicio de suscripcion.",
+  },
 };
 
 const HEROES_REMUNERACIONES = {
@@ -220,6 +253,7 @@ export default function PanelPrincipal({
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [gruposAbiertos, setGruposAbiertos] = useState({});
   const esUsuarioDemo = usuario?.demo === true;
+  const usuarioEsAdminSistema = ROLES_ADMIN_SISTEMA.includes(rolNormalizado(usuario?.rol));
   const usuarioPuedeGestionarUsuarios =
     !esUsuarioDemo && puedeGestionarUsuarios(usuario?.rol);
   const heroActual =
@@ -347,6 +381,18 @@ export default function PanelPrincipal({
     grupo: "Administración",
     items: [
       { id: "usuariosSistema", label: "Usuarios y accesos" },
+      ...(usuarioEsAdminSistema
+        ? [
+            { id: "adminSuscripciones", label: "Dashboard" },
+            { id: "adminSuscripcionesClientes", label: "Clientes" },
+            { id: "adminSuscripcionesGestion", label: "Suscripciones" },
+            { id: "adminSuscripcionesPlanes", label: "Planes" },
+            { id: "adminSuscripcionesPagos", label: "Pagos" },
+            { id: "adminSuscripcionesNotificaciones", label: "Notificaciones" },
+            { id: "adminSuscripcionesAuditoria", label: "Auditoría" },
+            { id: "adminSuscripcionesConfiguracion", label: "Configuración" },
+          ]
+        : []),
     ],
   };
 
@@ -485,6 +531,30 @@ export default function PanelPrincipal({
             {vistaActiva === "auditoria" && <AuditoriaSistema />}
             {vistaActiva === "usuariosSistema" && usuarioPuedeGestionarUsuarios && (
               <UsuariosSistema />
+            )}
+            {vistaActiva === "adminSuscripciones" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="dashboard" />
+            )}
+            {vistaActiva === "adminSuscripcionesClientes" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="clientes" />
+            )}
+            {vistaActiva === "adminSuscripcionesGestion" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="clientes" />
+            )}
+            {vistaActiva === "adminSuscripcionesPlanes" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="planes" />
+            )}
+            {vistaActiva === "adminSuscripcionesPagos" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="pagos" />
+            )}
+            {vistaActiva === "adminSuscripcionesNotificaciones" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="notificaciones" />
+            )}
+            {vistaActiva === "adminSuscripcionesAuditoria" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="auditoria" />
+            )}
+            {vistaActiva === "adminSuscripcionesConfiguracion" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="configuracion" />
             )}
             {vistaActiva === "comprobantes" && <Comprobantes />}
             {vistaActiva === "libroDiario" && <LibroDiario />}

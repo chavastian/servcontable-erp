@@ -10,7 +10,7 @@ const {
 } = require("../controllers/pagosFlow.controller");
 const {
   verificarToken,
-  exigirAdministradorUsuarios,
+  exigirAdminSistema,
 } = require("../middleware/auth.middleware");
 
 const router = express.Router();
@@ -24,13 +24,13 @@ router.post("/retorno", procesarRetornoFlow);
 router.get(
   "/contrataciones",
   verificarToken,
-  exigirAdministradorUsuarios,
+  exigirAdminSistema,
   listarContratacionesWeb
 );
 router.patch(
   "/contrataciones/:id/gestion",
   verificarToken,
-  exigirAdministradorUsuarios,
+  exigirAdminSistema,
   actualizarGestionContratacion
 );
 router.get("/contratacion/:id", obtenerContratacion);

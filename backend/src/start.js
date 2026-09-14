@@ -8,6 +8,7 @@ const {
   validarEntorno,
 } = require("./config/env");
 const { inicializarAuth } = require("./helpers/auth.helper");
+const { inicializarSuscripciones } = require("./helpers/suscripcion.helper");
 
 function resolverFrontendDist(opciones = {}) {
   if (opciones.frontendDist) {
@@ -36,6 +37,7 @@ function hostPorDefecto() {
 async function iniciarServidor(opciones = {}) {
   validarEntorno();
   await inicializarAuth(pool);
+  await inicializarSuscripciones(pool);
 
   const frontendDist = resolverFrontendDist(opciones);
 

@@ -6,6 +6,7 @@ const {
   puedeAdministrarUsuarios,
   usuarioPuedeAccederEmpresa,
 } = require("../helpers/auth.helper");
+const { validarAccesoSuscripcion } = require("../helpers/suscripcion.helper");
 
 function obtenerEmpresaIdRequest(req) {
   return (
@@ -41,6 +42,17 @@ async function verificarToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, obtenerJwtSecret());
     req.usuario = decoded;
+
+    const accesoSuscripcion = await validarAccesoSuscripcion(pool, decoded);
+
+    if (!accesoSuscripcion.permitido) {
+      return res.status(402).json({
+        error: accesoSuscripcion.mensaje || "Suscripcion no vigente",
+        suscripcion_estado: accesoSuscripcion.status,
+      });
+    }
+
+    req.suscripcion = accesoSuscripcion;
 
     const empresaId = obtenerEmpresaIdRequest(req);
 

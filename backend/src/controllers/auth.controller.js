@@ -11,6 +11,7 @@ const {
   asignarUsuarioEmpresa,
 } = require("../helpers/auth.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
+const { validarLimiteUsuariosCliente } = require("../helpers/suscripcion.helper");
 
 function registroPublicoHabilitado() {
   return process.env.ALLOW_PUBLIC_REGISTRATION === "true";
@@ -347,6 +348,10 @@ async function loginUsuario(req, res) {
       await desvincularEmpresasDemoAutomaticas(pool, usuario.id);
     }
 
+    await pool.query("UPDATE usuarios SET ultimo_acceso_en = NOW() WHERE id = $1", [
+      usuario.id,
+    ]);
+
     const empresas = await obtenerEmpresasPermitidas(pool, usuarioToken);
 
     const token = jwt.sign(usuarioToken, obtenerJwtSecret(), {
@@ -436,6 +441,10 @@ async function loginDemo(req, res) {
     };
 
     await desvincularEmpresasDemoAutomaticas(pool, usuario.id);
+
+    await pool.query("UPDATE usuarios SET ultimo_acceso_en = NOW() WHERE id = $1", [
+      usuario.id,
+    ]);
 
     const empresas = await obtenerEmpresasPermitidas(pool, usuarioToken);
     const token = jwt.sign(usuarioToken, obtenerJwtSecret(), {
@@ -655,6 +664,16 @@ async function crearUsuarioCliente(req, res) {
       if (!puedeAdministrar) {
         return res.status(403).json({
           error: "No puedes administrar usuarios de esta empresa",
+        });
+      }
+    }
+
+    if (!esAdminSistema(req.usuario.rol)) {
+      const limite = await validarLimiteUsuariosCliente(client, req.usuario);
+
+      if (!limite.permitido) {
+        return res.status(403).json({
+          error: limite.mensaje || "Limite de usuarios alcanzado para el plan actual",
         });
       }
     }

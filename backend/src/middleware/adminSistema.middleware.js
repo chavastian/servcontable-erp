@@ -6,6 +6,7 @@ const ROLES_ADMIN_SISTEMA = [
   "admin_sistema",
   "administrador_sistema",
   "superadmin",
+  "super_admin",
 ];
 
 function soloAdminSistema(req, res, next) {

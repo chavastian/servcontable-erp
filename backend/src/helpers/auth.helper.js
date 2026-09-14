@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 
-const ROLES_ADMIN_SISTEMA = ["superadmin", "admin", "administrador_sistema"];
+const ROLES_ADMIN_SISTEMA = ["superadmin", "super_admin", "admin", "administrador_sistema"];
 const ROLES_ADMIN_CLIENTE = ["admin_cliente", "cliente_admin"];
 const ROLES_USUARIO_CLIENTE = ["usuario_cliente", "cliente_usuario", "usuario"];
 

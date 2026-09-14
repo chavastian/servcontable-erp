@@ -6,6 +6,7 @@ const {
   usuarioPuedeAdministrarEmpresa,
 } = require("../helpers/auth.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
+const { validarLimiteEmpresasUsuario } = require("../helpers/suscripcion.helper");
 
 async function asegurarColumnasEmpresas(client) {
   await client.query(`
@@ -49,6 +50,14 @@ async function crearEmpresa(req, res) {
     }
 
     await asegurarColumnasEmpresas(client);
+
+    const limite = await validarLimiteEmpresasUsuario(client, req.usuario);
+    if (!limite.permitido) {
+      return res.status(403).json({
+        error: limite.mensaje || "Limite de empresas alcanzado para el plan actual",
+      });
+    }
+
     await client.query("BEGIN");
     transaccionIniciada = true;
 
