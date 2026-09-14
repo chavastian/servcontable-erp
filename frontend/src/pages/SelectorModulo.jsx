@@ -1,6 +1,13 @@
 const LOGO_SRC = "/servcontable-logo.png";
+const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
+
+function rolNormalizado(rol = "") {
+  return String(rol || "").trim().toLowerCase();
+}
 
 export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSesion }) {
+  const usuarioEsAdminSistema = ROLES_ADMIN_SISTEMA.includes(rolNormalizado(usuario?.rol));
+
   return (
     <div style={contenedor}>
       <div style={barraSuperior}>
@@ -61,6 +68,20 @@ export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSes
               Entrar a Contabilidad Simplificada
             </button>
           </div>
+
+          {usuarioEsAdminSistema && (
+            <div style={card} onClick={() => seleccionarModulo("administracion")}>
+              <div style={icono}>🛡️</div>
+              <h2 style={cardTitulo}>Administración</h2>
+              <p style={cardTexto}>
+                Clientes, suscripciones, solicitudes web, configuración y auditoría del sistema.
+              </p>
+
+              <button style={botonPrimario}>
+                Entrar a Administración
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

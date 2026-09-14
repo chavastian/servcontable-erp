@@ -4,7 +4,6 @@ const {
   crearPruebaGratisAutoservicio,
   listarSolicitudesContacto,
   actualizarSolicitudContacto,
-  activarDemoSolicitud,
 } = require("../controllers/contacto.controller");
 const {
   verificarToken,
@@ -17,6 +16,5 @@ router.post("/prueba-gratis", crearPruebaGratisAutoservicio);
 router.post("/", crearSolicitudContacto);
 router.get("/", verificarToken, exigirAdminSistema, listarSolicitudesContacto);
 router.patch("/:id", verificarToken, exigirAdminSistema, actualizarSolicitudContacto);
-router.post("/:id/activar-demo", verificarToken, exigirAdminSistema, activarDemoSolicitud);
 
 module.exports = router;

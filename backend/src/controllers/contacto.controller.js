@@ -1,16 +1,9 @@
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const pool = require("../database/db");
 const { obtenerJwtSecret } = require("../config/env");
 const { enviarCorreoSolicitudContacto } = require("../helpers/mail.helper");
-const { asegurarEsquemaAuth, asignarUsuarioEmpresa, obtenerEmpresasPermitidas } = require("../helpers/auth.helper");
-const {
-  asegurarEsquemaDemo,
-  diasDemo,
-  normalizarEmailDemo,
-  formatoFechaDemo,
-} = require("../helpers/demo.helper");
+const { asegurarEsquemaAuth } = require("../helpers/auth.helper");
 const {
   ACCIONES_SUSCRIPCION,
   ESTADOS_SUSCRIPCION,
@@ -19,7 +12,6 @@ const {
   registrarHistoriaSuscripcion,
   sumarDias,
 } = require("../helpers/suscripcion.helper");
-const { normalizarRut } = require("../helpers/rut.helper");
 
 async function asegurarTablaContacto() {
   await pool.query(`
@@ -119,12 +111,11 @@ function construirSesionTrial(usuario, empresas, suscripcion) {
     id: usuario.id,
     email: usuario.email,
     rol: usuario.rol,
-    demo: true,
-    demo_vence: suscripcion.trial_ends_at || suscripcion.expires_at,
-    demo_empresa_limite: 1,
+    trial: true,
+    trial_vence: suscripcion.trial_ends_at || suscripcion.expires_at,
   };
 
-  const token = jwt.sign(usuarioToken, obtenerJwtSecret(), { expiresIn: "4h" });
+  const token = jwt.sign(usuarioToken, obtenerJwtSecret(), { expiresIn: "8h" });
 
   return {
     token,
@@ -137,8 +128,8 @@ function construirSesionTrial(usuario, empresas, suscripcion) {
       rol: usuario.rol,
       activo: usuario.activo,
       empresas,
-      demo: true,
-      demo_info: {
+      trial: true,
+      trial_info: {
         activo: true,
         inicio: suscripcion.trial_starts_at,
         vence: suscripcion.trial_ends_at || suscripcion.expires_at,
@@ -158,27 +149,20 @@ async function crearPruebaGratisAutoservicio(req, res) {
   let transaccionIniciada = false;
 
   try {
-    const nombre = limpiarTexto(req.body.nombre);
     const correo = limpiarTexto(req.body.correo || req.body.email).toLowerCase();
-    const empresa = limpiarTexto(req.body.empresa);
-    const telefono = limpiarTexto(req.body.telefono);
     const password = String(req.body.password || "");
     const confirmarPassword = String(req.body.confirmar_password || req.body.confirmarPassword || "");
-    const rutValidado = normalizarRut(req.body.rut);
+    const nombre = correo.split("@")[0] || "Usuario ServContable";
 
-    if (!nombre || !empresa || !correo || !telefono || !req.body.rut) {
+    if (!correo) {
       return res.status(400).json({
         ok: false,
-        error: "Nombre, empresa, RUT, correo y telefono son obligatorios.",
+        error: "El correo es obligatorio.",
       });
     }
 
     if (!validarCorreo(correo)) {
       return res.status(400).json({ ok: false, error: "El correo ingresado no es valido." });
-    }
-
-    if (!rutValidado.valido) {
-      return res.status(400).json({ ok: false, error: rutValidado.error || "RUT invalido." });
     }
 
     const errorPassword = validarPasswordCliente(password, confirmarPassword);
@@ -190,19 +174,19 @@ async function crearPruebaGratisAutoservicio(req, res) {
 
     const duplicado = await client.query(
       `
-      SELECT id, email, rut_normalizado
+      SELECT id, email
       FROM usuarios
-      WHERE LOWER(email) = $1 OR rut_normalizado = $2
+      WHERE LOWER(email) = $1
       LIMIT 1
       `,
-      [correo, rutValidado.rut_normalizado]
+      [correo]
     );
 
     if (duplicado.rows.length > 0) {
       return res.status(409).json({
         ok: false,
         codigo: "CUENTA_EXISTENTE",
-        error: "Este RUT o correo ya tiene una cuenta registrada.",
+        error: "Este correo ya tiene una cuenta registrada.",
         acciones: ["iniciar_sesion", "recuperar_contrasena"],
       });
     }
@@ -211,18 +195,18 @@ async function crearPruebaGratisAutoservicio(req, res) {
       `
       SELECT id
       FROM solicitudes_contacto
-      WHERE rut_normalizado = $1
-        AND origen IN ('prueba_gratis_autoservicio', 'prueba_gratis_30_dias', 'demo_login')
+      WHERE LOWER(correo) = $1
+        AND origen IN ('prueba_gratis_autoservicio', 'prueba_gratis_30_dias')
       LIMIT 1
       `,
-      [rutValidado.rut_normalizado]
+      [correo]
     );
 
     if (trialPrevio.rows.length > 0) {
       return res.status(409).json({
         ok: false,
         codigo: "TRIAL_EXISTENTE",
-        error: "Este RUT ya tiene una prueba gratuita registrada.",
+        error: "Este correo ya tiene una prueba gratuita registrada.",
         acciones: ["iniciar_sesion", "recuperar_contrasena"],
       });
     }
@@ -243,27 +227,15 @@ async function crearPruebaGratisAutoservicio(req, res) {
        suscripcion_estado, suscripcion_plan, suscripcion_inicio, suscripcion_vence,
        suscripcion_usuarios_adicionales, suscripcion_actualizada_en, ultimo_acceso_en)
       VALUES
-      ($1,$2,$3,'admin_cliente',true,$4,$5,$6,
-       true,CURRENT_DATE,$7,1,'prueba_gratis',
-       'trial',$8,CURRENT_DATE,$7,0,NOW(),NOW())
+      ($1,$2,$3,'admin_cliente',true,NULL,NULL,'',
+       false,NULL,NULL,1,'prueba_gratis',
+       'trial',$4,CURRENT_DATE,$5,0,NOW(),NOW())
       RETURNING id, nombre, email, rol, activo, rut, rut_normalizado, telefono, demo_inicio, demo_vence, ultimo_acceso_en
       `,
-      [nombre, correo, passwordHash, rutValidado.rut, rutValidado.rut_normalizado, telefono, vence, config.default_plan_code]
+      [nombre, correo, passwordHash, config.default_plan_code, vence]
     );
 
     const usuario = usuarioResult.rows[0];
-
-    const empresaResult = await client.query(
-      `
-      INSERT INTO empresas (rut, razon_social, giro, direccion, comuna, ciudad, regimen_tributario, telefono, correo, activa)
-      VALUES ($1,$2,'','','','','',$3,$4,true)
-      RETURNING *
-      `,
-      [rutValidado.rut, empresa, telefono, correo]
-    );
-
-    const empresaCreada = empresaResult.rows[0];
-    await asignarUsuarioEmpresa(client, usuario.id, empresaCreada.id, "admin");
 
     const solicitudResult = await client.query(
       `
@@ -271,11 +243,11 @@ async function crearPruebaGratisAutoservicio(req, res) {
       (nombre, correo, empresa, interes, mensaje, estado, origen, rut, rut_normalizado, telefono,
        usuario_id, empresa_id, trial_inicio, trial_vence, demo_usuario_id, demo_inicio, demo_vence, demo_activado_en, leido)
       VALUES
-      ($1,$2,$3,'Prueba gratis 30 dias','Prueba gratis creada automaticamente desde la pagina web.',
-       'prueba_activa','prueba_gratis_autoservicio',$4,$5,$6,$7,$8,CURRENT_DATE,$9,$7,CURRENT_DATE,$9,NOW(),true)
+      ($1,$2,'','Prueba gratis 30 dias','Prueba gratis creada automaticamente desde la pagina web.',
+       'prueba_activa','prueba_gratis_autoservicio',NULL,NULL,'',$3,NULL,CURRENT_DATE,$4,NULL,NULL,NULL,NOW(),true)
       RETURNING *
       `,
-      [nombre, correo, empresa, rutValidado.rut, rutValidado.rut_normalizado, telefono, usuario.id, empresaCreada.id, vence]
+      [nombre, correo, usuario.id, vence]
     );
 
     const planResult = await client.query(
@@ -315,7 +287,7 @@ async function crearPruebaGratisAutoservicio(req, res) {
       newStatus: ESTADOS_SUSCRIPCION.TRIAL,
       newValues: {
         solicitud_id: solicitudResult.rows[0].id,
-        empresa_id: empresaCreada.id,
+        empresa_id: null,
         origen: "prueba_gratis_autoservicio",
       },
       observation: "Prueba gratis creada automaticamente por el cliente.",
@@ -324,13 +296,8 @@ async function crearPruebaGratisAutoservicio(req, res) {
     await client.query("COMMIT");
     transaccionIniciada = false;
 
-    const empresas = await obtenerEmpresasPermitidas(pool, {
-      id: usuario.id,
-      rol: usuario.rol,
-      demo: true,
-    });
-    const sesion = construirSesionTrial(usuario, empresas, suscripcion);
-    sesion.usuario.demo_info.dias_restantes = diasTrial;
+    const sesion = construirSesionTrial(usuario, [], suscripcion);
+    sesion.usuario.trial_info.dias_restantes = diasTrial;
 
     return res.status(201).json({
       ok: true,
@@ -507,145 +474,9 @@ async function actualizarSolicitudContacto(req, res) {
   }
 }
 
-async function activarDemoSolicitud(req, res) {
-  await asegurarTablaContacto();
-
-  const client = await pool.connect();
-  let transaccionIniciada = false;
-
-  try {
-    const solicitudId = Number(req.params.id);
-    const dias = Math.min(Math.max(Number(req.body?.dias || diasDemo()), 1), 90);
-
-    if (!solicitudId) {
-      return res.status(400).json({ ok: false, error: "Solicitud invalida." });
-    }
-
-    await client.query("BEGIN");
-    transaccionIniciada = true;
-    await asegurarEsquemaDemo(client);
-
-    const solicitudResult = await client.query(
-      "SELECT * FROM solicitudes_contacto WHERE id = $1 FOR UPDATE",
-      [solicitudId]
-    );
-
-    if (solicitudResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      transaccionIniciada = false;
-      return res.status(404).json({ ok: false, error: "Solicitud no encontrada." });
-    }
-
-    const solicitud = solicitudResult.rows[0];
-    const email = normalizarEmailDemo(solicitud.correo);
-
-    if (!email) {
-      await client.query("ROLLBACK");
-      transaccionIniciada = false;
-      return res.status(400).json({ ok: false, error: "La solicitud no tiene correo valido." });
-    }
-
-    const passwordTemporal = crypto.randomBytes(24).toString("hex");
-    const passwordHash = await bcrypt.hash(passwordTemporal, 10);
-    const nombre = limpiarTexto(solicitud.nombre) || "Usuario Demo";
-
-    const existente = await client.query(
-      "SELECT id FROM usuarios WHERE email = $1 LIMIT 1",
-      [email]
-    );
-
-    const usuarioResult =
-      existente.rows.length > 0
-        ? await client.query(
-            `UPDATE usuarios
-             SET nombre = $1,
-                 password_hash = $2,
-                 rol = 'admin_cliente',
-                 activo = true,
-                 demo_activo = true,
-                 demo_inicio = CURRENT_DATE,
-                 demo_vence = (CURRENT_DATE + ($3::int * INTERVAL '1 day'))::date,
-                 demo_empresa_limite = 1,
-                 demo_solicitud_id = $4,
-                 suscripcion_estado = 'demo',
-                 suscripcion_plan = 'demo',
-                 suscripcion_inicio = CURRENT_DATE,
-                 suscripcion_vence = (CURRENT_DATE + ($3::int * INTERVAL '1 day'))::date,
-                 suscripcion_usuarios_adicionales = 0,
-                 suscripcion_actualizada_en = NOW()
-             WHERE id = $5
-             RETURNING *`,
-            [nombre, passwordHash, dias, solicitudId, existente.rows[0].id]
-          )
-        : await client.query(
-            `INSERT INTO usuarios
-             (nombre, email, password_hash, rol, activo,
-              demo_activo, demo_inicio, demo_vence, demo_empresa_limite, demo_solicitud_id,
-              suscripcion_estado, suscripcion_plan, suscripcion_inicio, suscripcion_vence,
-              suscripcion_usuarios_adicionales, suscripcion_actualizada_en)
-             VALUES
-             ($1, $2, $3, 'admin_cliente', true,
-              true, CURRENT_DATE, (CURRENT_DATE + ($4::int * INTERVAL '1 day'))::date, 1, $5,
-              'demo', 'demo', CURRENT_DATE, (CURRENT_DATE + ($4::int * INTERVAL '1 day'))::date,
-              0, NOW())
-             RETURNING *`,
-            [nombre, email, passwordHash, dias, solicitudId]
-          );
-
-    const usuario = usuarioResult.rows[0];
-
-    const solicitudActualizada = await client.query(
-      `UPDATE solicitudes_contacto
-       SET estado = 'demo_activado',
-           leido = true,
-           demo_usuario_id = $1,
-           demo_inicio = CURRENT_DATE,
-           demo_vence = (CURRENT_DATE + ($2::int * INTERVAL '1 day'))::date,
-           demo_activado_en = NOW(),
-           actualizado_en = NOW()
-       WHERE id = $3
-       RETURNING *`,
-      [usuario.id, dias, solicitudId]
-    );
-
-    await client.query("COMMIT");
-    transaccionIniciada = false;
-
-    return res.json({
-      ok: true,
-      mensaje: `Demo activada por ${dias} dias para ${email}.`,
-      demo: {
-        email,
-        usuario_id: usuario.id,
-        empresa_id: null,
-        inicio: formatoFechaDemo(usuario.demo_inicio),
-        vence: formatoFechaDemo(usuario.demo_vence),
-        dias,
-        empresa_limite: Number(usuario.demo_empresa_limite || 1),
-        password_temporal: passwordTemporal,
-      },
-      solicitud: solicitudActualizada.rows[0],
-    });
-  } catch (error) {
-    if (transaccionIniciada) {
-      await client.query("ROLLBACK");
-    }
-
-    console.error("Error al activar demo desde solicitud:", error);
-
-    return res.status(500).json({
-      ok: false,
-      error: "No se pudo activar la demo.",
-    });
-  } finally {
-    client.release();
-  }
-}
-
 module.exports = {
   crearSolicitudContacto,
   crearPruebaGratisAutoservicio,
   listarSolicitudesContacto,
   actualizarSolicitudContacto,
-  activarDemoSolicitud,
 };

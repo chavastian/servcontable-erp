@@ -1,6 +1,5 @@
 ﻿import { Fragment, useEffect, useMemo, useState } from "react";
 import {
-  activarDemoDesdeSolicitud,
   listarSolicitudesWeb,
   marcarSolicitudContactada,
 } from "../services/solicitudesWebService";
@@ -212,27 +211,6 @@ export default function SolicitudesWeb() {
     }
   }
 
-  async function activarDemo(solicitud) {
-    try {
-      setError("");
-      setMensaje("");
-
-      const data = await activarDemoDesdeSolicitud(solicitud);
-      const claveTemporal = data?.demo?.password_temporal;
-      const mensajeActivacion = String(
-        data?.mensaje || "Prueba gratis activada correctamente."
-      ).replace(/demo/gi, "prueba gratis");
-      setMensaje(
-        claveTemporal
-          ? `${mensajeActivacion} Clave temporal: ${claveTemporal}`
-          : mensajeActivacion
-      );
-      await cargarSolicitudes();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
   return (
     <div>
       <div style={cabecera}>
@@ -371,19 +349,6 @@ export default function SolicitudesWeb() {
                           <Icono tipo="ok" />
                         </button>
 
-                        {solicitud.fuente === "contacto" &&
-                          esSolicitudPruebaGratis(solicitud) &&
-                          normalizar(solicitud.estado) !== "demo_activado" && (
-                            <button
-                              style={botonIconoDemo}
-                              type="button"
-                              title="Activar prueba gratis 30 días"
-                              aria-label="Activar prueba gratis 30 días"
-                              onClick={() => activarDemo(solicitud)}
-                            >
-                              <Icono tipo="demo" />
-                            </button>
-                          )}
                       </td>
                     </tr>
 

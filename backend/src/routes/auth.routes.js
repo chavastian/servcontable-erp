@@ -4,7 +4,6 @@ const router = express.Router();
 const {
   registrarUsuario,
   loginUsuario,
-  loginDemo,
   obtenerSesion,
   listarUsuarios,
   crearUsuarioCliente,
@@ -21,7 +20,6 @@ const {
 
 router.post("/registro", registrarUsuario);
 router.post("/login", loginUsuario);
-router.post("/demo-login", loginDemo);
 router.post("/recuperar-password", solicitarRecuperacionPassword);
 router.post("/resetear-password", resetearPasswordConToken);
 router.get("/me", verificarToken, obtenerSesion);

@@ -394,9 +394,9 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
   return (
     <div>
-      <h1 style={titulo}>Administracion de Suscripciones</h1>
+      <h1 style={titulo}>Administración</h1>
       <p style={subtitulo}>
-        Seguimiento comercial, control de planes, vencimientos, pagos y auditoria de clientes.
+        Seguimiento comercial y control simple de clientes, pruebas gratuitas, suscripciones y solicitudes web.
       </p>
 
       {mensaje && <p style={ok}>{mensaje}</p>}
@@ -404,15 +404,13 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
       <div style={tabs}>
         {[
-          ["dashboard", "Dashboard"],
-          ["solicitudes", "Solicitudes web"],
+          ["dashboard", "Resumen"],
           ["clientes", "Clientes"],
-          ["cliente", "Ficha"],
-          ["planes", "Planes"],
-          ["pagos", "Pagos"],
-          ["notificaciones", "Notificaciones"],
-          ["auditoria", "Auditoria"],
-          ["configuracion", "Configuracion"],
+          ["suscripciones", "Suscripciones"],
+          ["solicitudes", "Solicitudes"],
+          ["configuracion", "Configuración"],
+          ["auditoria", "Auditoría"],
+          ...(tab === "cliente" ? [["cliente", "Ficha"]] : []),
         ].map(([id, label]) => (
           <button key={id} type="button" style={tabButton(tab === id)} onClick={() => setTab(id)}>
             {label}
@@ -425,21 +423,39 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
       {tab === "dashboard" && (
         <>
           <div style={metricGrid}>
-            <Metric label="Total clientes" value={metricas.total_clientes} />
-            <Metric label="Activas" value={metricas.activos} />
-            <Metric label="En prueba" value={metricas.trial} />
-            <Metric label="Proximas a vencer" value={metricas.proximas_vencer} />
-            <Metric label="Vencidas" value={metricas.vencidas} />
-            <Metric label="Suspendidas" value={metricas.suspendidas} />
-            <Metric label="Canceladas" value={metricas.canceladas} />
-            <Metric label="Nuevos del mes" value={metricas.nuevos_mes} />
-            <Metric label="Ingresos mes" value={formatoMoneda(metricas.ingresos_mensuales)} />
-            <Metric label="MRR estimado" value={formatoMoneda(metricas.mrr_estimado)} />
+            <Metric label="Clientes activos" value={metricas.activos} />
+            <Metric label="Pruebas activas" value={metricas.trial} />
+            <Metric label="Pruebas por vencer" value={metricas.proximas_vencer} />
+            <Metric label="Pruebas vencidas" value={metricas.vencidas} />
+            <Metric label="Suscripciones activas" value={metricas.activos} />
+            <Metric label="Pagos pendientes" value={resumenSolicitudesWeb.pagos_pendientes} />
+            <Metric label="Nuevos registros mes" value={metricas.nuevos_mes} />
+            <Metric label="Conversiones mes" value={resumenSolicitudesWeb.conversiones_mes} />
           </div>
+
+          {alertasSolicitudesWeb.length > 0 && (
+            <section style={card}>
+              <h2 style={tituloSeccion}>Requieren atención</h2>
+              {alertasSolicitudesWeb.map((alerta) => (
+                <button
+                  key={alerta.tipo}
+                  type="button"
+                  style={filaClienteBoton}
+                  onClick={() => {
+                    setTab("solicitudes");
+                    buscarSolicitudesWeb({ estado: alerta.tipo });
+                  }}
+                >
+                  <span>{alerta.texto}</span>
+                  <strong>Ver</strong>
+                </button>
+              ))}
+            </section>
+          )}
 
           <div style={gridDos}>
             <section style={card}>
-              <h2 style={tituloSeccion}>Distribucion por plan</h2>
+              <h2 style={tituloSeccion}>Distribución por plan</h2>
               {(dashboard?.distribucion_planes || []).map((item) => (
                 <div key={item.plan} style={filaResumen}>
                   <span>{item.plan}</span>
@@ -449,7 +465,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
             </section>
 
             <section style={card}>
-              <h2 style={tituloSeccion}>Proximas a vencer</h2>
+              <h2 style={tituloSeccion}>Pruebas próximas a vencer</h2>
               {(dashboard?.proximas_vencer || []).map((item) => (
                 <button key={item.id} type="button" style={filaClienteBoton} onClick={() => abrirCliente(item)}>
                   <span>{item.cliente_nombre || item.correo}</span>
@@ -465,7 +481,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
         <section style={card}>
           <h2 style={tituloSeccion}>Solicitudes recibidas desde la pagina web</h2>
           <p style={subtitulo}>
-            Aqui aparecen las personas que piden prueba gratis o suscripcion mensual desde la pagina publica.
+            Registro comercial de pruebas gratuitas y solicitudes de suscripción realizadas desde la página pública.
           </p>
           <div style={metricGrid}>
             <Metric label="Pruebas activas" value={resumenSolicitudesWeb.pruebas_activas} />
@@ -500,7 +516,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
               style={input}
               value={filtrosSolicitudes.buscar}
               onChange={(e) => setFiltrosSolicitudes((actual) => ({ ...actual, buscar: e.target.value }))}
-              placeholder="Nombre, empresa, RUT o correo"
+              placeholder="Correo, nombre o empresa"
             />
             <select
               style={input}
@@ -586,6 +602,28 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
           </div>
 
           <TablaClientes clientes={clientes} abrirCliente={abrirCliente} />
+        </section>
+      )}
+
+      {tab === "suscripciones" && (
+        <section style={card}>
+          <h2 style={tituloSeccion}>Suscripciones</h2>
+          <p style={subtitulo}>
+            Vista resumida de pruebas gratuitas y clientes pagados. Para acciones, abre la ficha del cliente.
+          </p>
+          <div style={filtrosGrid}>
+            <input style={input} name="buscar" value={filtros.buscar} onChange={actualizarFiltro} placeholder="Cliente o correo" />
+            <select style={input} name="estado" value={filtros.estado} onChange={actualizarFiltro}>
+              <option value="">Todos los estados</option>
+              {ESTADOS.map((estado) => <option key={estado} value={estado}>{textoEstado(estado)}</option>)}
+            </select>
+            <select style={input} name="plan" value={filtros.plan} onChange={actualizarFiltro}>
+              <option value="">Todos los planes</option>
+              {planes.map((plan) => <option key={plan.id} value={plan.code}>{plan.name}</option>)}
+            </select>
+            <button type="button" style={botonPrimario} onClick={buscarClientes}>Buscar</button>
+          </div>
+          <TablaSuscripciones clientes={clientes} abrirCliente={abrirCliente} />
         </section>
       )}
 
@@ -773,7 +811,7 @@ function TablaSolicitudesWeb({ solicitudes, abrirCliente, verDetalle, ejecutarAc
       <table style={tabla}>
         <thead>
           <tr>
-            {["Fecha", "Tipo", "Nombre", "Empresa", "RUT", "Correo", "Telefono", "Plan", "Monto", "Estado", "Seguimiento", "Días", "Acciones"].map((col) => (
+            {["Fecha", "Tipo", "Correo", "Estado", "Suscripción", "Monto", "Seguimiento", "Días", "Acciones"].map((col) => (
               <th key={col} style={th}>{col}</th>
             ))}
           </tr>
@@ -783,14 +821,10 @@ function TablaSolicitudesWeb({ solicitudes, abrirCliente, verDetalle, ejecutarAc
             <tr key={`${solicitud.tipo}-${solicitud.id}`}>
               <td style={td}>{formatoFecha(solicitud.creado_en)}</td>
               <td style={td}>{textoTipoSolicitud(solicitud.tipo)}</td>
-              <td style={td}>{solicitud.nombre || "-"}</td>
-              <td style={td}>{solicitud.empresa || "-"}</td>
-              <td style={td}>{solicitud.rut || "-"}</td>
               <td style={td}>{solicitud.correo || "-"}</td>
-              <td style={td}>{solicitud.telefono || "-"}</td>
-              <td style={td}>{solicitud.plan || solicitud.periodicidad || "-"}</td>
-              <td style={td}>{solicitud.total ? formatoMoneda(solicitud.total) : "-"}</td>
               <td style={td}>{textoEstadoSolicitud(solicitud.estado_comercial || solicitud.estado || solicitud.flow_status)}</td>
+              <td style={td}>{solicitud.plan || solicitud.periodicidad || solicitud.plan_nombre || "-"}</td>
+              <td style={td}>{solicitud.total ? formatoMoneda(solicitud.total) : "-"}</td>
               <td style={td}>{solicitud.seguimiento || "-"}</td>
               <td style={td}>{solicitud.dias_restantes ?? "-"}</td>
               <td style={td}>
@@ -821,7 +855,7 @@ function TablaSolicitudesWeb({ solicitudes, abrirCliente, verDetalle, ejecutarAc
           ))}
           {solicitudes.length === 0 && (
             <tr>
-              <td style={td} colSpan={13}>No hay solicitudes web registradas.</td>
+              <td style={td} colSpan={9}>No hay solicitudes web registradas.</td>
             </tr>
           )}
         </tbody>
@@ -935,6 +969,48 @@ function TablaClientes({ clientes, abrirCliente }) {
           ))}
           {clientes.length === 0 && (
             <tr><td style={td} colSpan="12">No hay clientes para el filtro seleccionado.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TablaSuscripciones({ clientes, abrirCliente }) {
+  return (
+    <div style={tablaWrap}>
+      <table style={tabla}>
+        <thead>
+          <tr>
+            {["Cliente", "Estado", "Plan", "Inicio", "Renovación", "Vencimiento", "Monto", "Pago", "Acción"].map((col) => (
+              <th key={col} style={th}>{col}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {clientes.map((cliente) => (
+            <tr key={cliente.id}>
+              <td style={td}>{cliente.razon_social || cliente.cliente_nombre || cliente.correo}</td>
+              <td style={td}>
+                <span style={estadoStyle(cliente.estado_suscripcion_calculado)}>
+                  {textoEstado(cliente.estado_suscripcion_calculado)}
+                </span>
+              </td>
+              <td style={td}>{cliente.plan_contratado || "-"}</td>
+              <td style={td}>{formatoFecha(cliente.fecha_inicio_suscripcion)}</td>
+              <td style={td}>{formatoFecha(cliente.proxima_renovacion)}</td>
+              <td style={td}>{formatoFecha(cliente.proximo_vencimiento)}</td>
+              <td style={td}>{formatoMoneda(cliente.price)}</td>
+              <td style={td}>{cliente.payment_status || "-"}</td>
+              <td style={td}>
+                <button type="button" style={botonTabla} onClick={() => abrirCliente(cliente)}>
+                  Ver ficha
+                </button>
+              </td>
+            </tr>
+          ))}
+          {clientes.length === 0 && (
+            <tr><td style={td} colSpan="9">No hay suscripciones para el filtro seleccionado.</td></tr>
           )}
         </tbody>
       </table>

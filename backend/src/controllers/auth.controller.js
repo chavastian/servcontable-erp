@@ -348,7 +348,7 @@ async function loginUsuario(req, res) {
     if (esDemo && !demoEstaVigente(usuario)) {
       return res.status(403).json({
         error:
-          "Demo vencida o no autorizada. Solicita activacion al administrador.",
+          "Prueba gratuita vencida o no autorizada. Solicita activacion al administrador.",
       });
     }
 
@@ -401,7 +401,7 @@ async function loginDemo(req, res) {
 
     if (!email || !password) {
       return res.status(400).json({
-        error: "Correo y contrasena son obligatorios para ingresar a la demo.",
+        error: "Correo y contrasena son obligatorios para ingresar a la prueba gratuita.",
       });
     }
 
@@ -427,7 +427,7 @@ async function loginDemo(req, res) {
     if (resultado.rows.length === 0) {
       return res.status(403).json({
         error:
-          "Demo no autorizada. Solicita activacion al administrador del sistema.",
+          "Prueba gratuita no autorizada. Solicita activacion al administrador del sistema.",
       });
     }
 
@@ -435,7 +435,7 @@ async function loginDemo(req, res) {
 
     if (!demoEstaVigente(usuario)) {
       return res.status(403).json({
-        error: "Demo vencida. Solicita renovacion o contratacion del plan.",
+        error: "Prueba gratuita vencida. Solicita renovacion o contratacion del plan.",
       });
     }
 
@@ -446,7 +446,7 @@ async function loginDemo(req, res) {
 
     if (!passwordCorrecta) {
       return res.status(401).json({
-        error: "Credenciales demo incorrectas.",
+        error: "Credenciales incorrectas.",
       });
     }
 
@@ -471,7 +471,7 @@ async function loginDemo(req, res) {
     });
 
     return res.json({
-      mensaje: "Demo iniciada correctamente",
+      mensaje: "Prueba gratuita iniciada correctamente",
       token,
       usuario: {
         ...datosUsuarioPublico(usuario, empresas),
@@ -480,10 +480,10 @@ async function loginDemo(req, res) {
       },
     });
   } catch (error) {
-    console.error("Error al iniciar demo:", error);
+    console.error("Error al iniciar prueba gratuita:", error);
 
     return res.status(500).json({
-      error: "Error interno al iniciar demo",
+      error: "Error interno al iniciar prueba gratuita",
     });
   }
 }
@@ -524,7 +524,7 @@ async function obtenerSesion(req, res) {
 
     if (esDemo && !demoEstaVigente(usuario)) {
       return res.status(403).json({
-        error: "Demo vencida. Solicita renovacion o contratacion del plan.",
+        error: "Prueba gratuita vencida. Solicita renovacion o contratacion del plan.",
       });
     }
 
@@ -1194,7 +1194,6 @@ async function resetearPasswordConToken(req, res) {
 module.exports = {
   registrarUsuario,
   loginUsuario,
-  loginDemo,
   obtenerSesion,
   listarUsuarios,
   crearUsuarioCliente,

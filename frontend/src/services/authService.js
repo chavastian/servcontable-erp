@@ -58,27 +58,6 @@ export async function loginUsuario(email, password) {
   return data;
 }
 
-export async function loginDemo(email, password) {
-  const respuesta = await fetch(API_URL + "/auth/demo-login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al iniciar demo");
-  }
-
-  guardarDatoSesion("token", data.token);
-  guardarDatoSesion("usuario", JSON.stringify(data.usuario));
-
-  return data;
-}
-
 export async function obtenerSesionActualizada() {
   const token = obtenerToken();
 

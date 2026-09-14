@@ -91,7 +91,7 @@ function exigirAdminSistema(req, res, next) {
 function exigirAdministradorUsuarios(req, res, next) {
   if (req.usuario?.demo === true) {
     return res.status(403).json({
-      error: "La version demo no permite administrar usuarios",
+      error: "La prueba gratuita no permite administrar usuarios",
     });
   }
 

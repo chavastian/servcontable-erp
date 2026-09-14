@@ -144,16 +144,12 @@ async function handleTrialSubmit(event) {
 
   const formData = new FormData(trialForm);
   const submitButton = trialForm.querySelector("button[type='submit']");
-  const nombre = String(formData.get("nombre") || "").trim();
   const correo = String(formData.get("correo") || "").trim();
-  const empresa = String(formData.get("empresa") || "").trim();
-  const rut = String(formData.get("rut") || "").trim();
-  const telefono = String(formData.get("telefono") || "").trim();
   const password = String(formData.get("password") || "");
   const confirmarPassword = String(formData.get("confirmar_password") || "");
 
-  if (!nombre || !correo || !empresa || !rut || !telefono || !password || !confirmarPassword) {
-    setStatus(trialStatus, "Completa todos los datos para comenzar la prueba gratis.", "is-error");
+  if (!correo || !password || !confirmarPassword) {
+    setStatus(trialStatus, "Completa correo, contraseña y confirmación para comenzar.", "is-error");
     return;
   }
 
@@ -172,16 +168,12 @@ async function handleTrialSubmit(event) {
 
   try {
     const data = await postJson(TRIAL_ENDPOINT, {
-      nombre,
       correo,
-      empresa,
-      rut,
-      telefono,
       password,
       confirmar_password: confirmarPassword,
     });
 
-    trackAnalyticsEvent("prueba_gratis_creada", { empresa });
+    trackAnalyticsEvent("prueba_gratis_creada", { correo });
     trialForm.reset();
     setStatus(
       trialStatus,

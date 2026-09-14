@@ -48,6 +48,10 @@ function consumirSesionDesdeUrl() {
   return null;
 }
 
+function esModuloAdministracion(modulo) {
+  return modulo === "administracion";
+}
+
 function App() {
   const [usuario, setUsuario] = useState(() => consumirSesionDesdeUrl() || obtenerUsuarioActual());
 
@@ -71,6 +75,7 @@ function App() {
 
     if (!usuarioGuardado) return "login";
     if (!moduloGuardado) return "selectorModulo";
+    if (esModuloAdministracion(moduloGuardado)) return "panel";
     if (!empresaGuardada) return "selectorEmpresa";
     if (!ejercicioGuardado) return "selectorEjercicio";
 
@@ -98,7 +103,7 @@ function App() {
     setEmpresaActiva(null);
     setEjercicioActivo(null);
 
-    setVista("selectorEmpresa");
+    setVista(esModuloAdministracion(modulo) ? "panel" : "selectorEmpresa");
   }
 
   function seleccionarEmpresa(empresa) {
@@ -200,7 +205,7 @@ function App() {
     );
   }
 
-  if (vista === "selectorEmpresa" || !empresaActiva) {
+  if (!esModuloAdministracion(moduloActivo) && (vista === "selectorEmpresa" || !empresaActiva)) {
     return (
       <SelectorEmpresaModulo
         usuario={usuario}
@@ -212,7 +217,7 @@ function App() {
     );
   }
 
-  if (vista === "selectorEjercicio" || !ejercicioActivo) {
+  if (!esModuloAdministracion(moduloActivo) && (vista === "selectorEjercicio" || !ejercicioActivo)) {
     return (
       <SelectorEjercicio
         usuario={usuario}

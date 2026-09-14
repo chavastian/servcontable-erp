@@ -35,8 +35,7 @@ export default function SelectorEmpresaModulo({
   const [mostrarCrearEmpresa, setMostrarCrearEmpresa] = useState(false);
 
   const administradorSistema = true;
-  const esUsuarioDemo = usuario?.demo === true;
-  const puedeCrearEmpresa = administradorSistema && (!esUsuarioDemo || empresas.length === 0);
+  const puedeCrearEmpresa = administradorSistema;
 
   const [nuevaEmpresa, setNuevaEmpresa] = useState(EMPRESA_INICIAL);
 
@@ -152,16 +151,18 @@ export default function SelectorEmpresaModulo({
           <img style={icono} src={LOGO_SRC} alt="ServContable" />
           <h1 style={titulo}>Seleccionar empresa</h1>
 
-          <p style={subtitulo}>
-            Estas ingresando a <strong>{nombreModulo()}</strong>. Selecciona la
-            empresa con la que deseas trabajar.
-          </p>
-
-          {esUsuarioDemo && (
-            <div style={demoBox}>
-              Demo limitada: puedes trabajar con una empresa de prueba. Las
-              empresas ilimitadas, usuarios adicionales y funciones productivas
-              se habilitan al contratar ServContable PRO.
+          {empresas.length > 0 ? (
+            <p style={subtitulo}>
+              Estas ingresando a <strong>{nombreModulo()}</strong>. Selecciona la
+              empresa con la que deseas trabajar.
+            </p>
+          ) : (
+            <div style={bienvenidaTrialBox}>
+              <h2 style={bienvenidaTitulo}>Bienvenido a ServContable PRO</h2>
+              <p>
+                Tu prueba gratuita ya está activa. Para comenzar debes configurar
+                la empresa con la que deseas trabajar.
+              </p>
             </div>
           )}
 
@@ -170,8 +171,9 @@ export default function SelectorEmpresaModulo({
 
           {empresas.length === 0 && (
             <div style={sinEmpresasBox}>
-              Aun no tienes empresas. Crea tu primera empresa para comenzar a
-              trabajar en el sistema.
+              Aún no tienes una empresa configurada. Presiona
+              <strong> Configurar mi empresa</strong> para ingresar los datos de
+              la empresa dentro del sistema.
             </div>
           )}
 
@@ -227,15 +229,12 @@ export default function SelectorEmpresaModulo({
                   setMostrarCrearEmpresa(!mostrarCrearEmpresa);
                 }}
               >
-                {mostrarCrearEmpresa ? "Cancelar creación" : "+ Crear nueva empresa"}
+                {mostrarCrearEmpresa
+                  ? "Cancelar creación"
+                  : empresas.length === 0
+                  ? "Configurar mi empresa"
+                  : "+ Crear nueva empresa"}
               </button>
-            )}
-
-            {esUsuarioDemo && empresas.length > 0 && (
-              <div style={demoNota}>
-                La demo ya tiene una empresa asignada. Para trabajar multiempresa,
-                contrata el plan ServContable PRO.
-              </div>
             )}
 
             {puedeCrearEmpresa && mostrarCrearEmpresa && (
@@ -492,26 +491,21 @@ const mensajeOk = {
   textAlign: "center",
 };
 
-const demoBox = {
+const bienvenidaTrialBox = {
   background: "linear-gradient(135deg, #ecfeff, #f0fdf4)",
   border: "1px solid #67e8f9",
   color: "#075985",
   borderRadius: "12px",
-  padding: "10px 12px",
-  fontSize: "13px",
-  fontWeight: "bold",
+  padding: "14px",
+  fontSize: "14px",
   lineHeight: 1.35,
   marginBottom: "12px",
 };
 
-const demoNota = {
-  background: "#f8fcff",
-  border: "1px dashed #67e8f9",
+const bienvenidaTitulo = {
+  margin: "0 0 8px 0",
   color: "#0369a1",
-  borderRadius: "10px",
-  padding: "9px 11px",
-  fontSize: "12px",
-  fontWeight: "bold",
+  fontSize: "22px",
 };
 
 const sinEmpresasBox = {

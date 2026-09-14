@@ -5,7 +5,6 @@ import {
 } from "../services/contratacionService";
 
 const LOGO_SRC = "/servcontable-logo.png";
-const DEMO_URL = import.meta.env.VITE_DEMO_URL || "https://demo.servcontablepro.cl";
 const APP_URL = import.meta.env.VITE_APP_URL || "https://app.servcontablepro.cl";
 const WHATSAPP_URL =
   "https://wa.me/56984508073?text=Hola%2C%20quiero%20contratar%20ServContable%20PRO";
@@ -128,9 +127,11 @@ export default function Inicio() {
           <button
             style={botonClaro}
             type="button"
-            onClick={() => window.open(DEMO_URL, "_blank", "noopener,noreferrer")}
+            onClick={() => {
+              window.location.href = `${APP_URL}#prueba-gratis`;
+            }}
           >
-            Probar demo
+            Probar gratis
           </button>
           <button
             style={botonPrincipalMini}
@@ -177,8 +178,8 @@ export default function Inicio() {
             Ordena contabilidad, impuestos y remuneraciones en una sola plataforma.
           </h1>
           <p style={bajada}>
-            Demo disponible para revisar el flujo. La contratacion se paga por
-            Flow y el plan queda registrado para activacion.
+            Prueba ServContable PRO gratis por 30 días. La contratación se paga
+            por Flow y el plan queda registrado para activación.
           </p>
 
           <div style={botonesHero}>
@@ -192,9 +193,11 @@ export default function Inicio() {
             <button
               style={botonSecundario}
               type="button"
-              onClick={() => window.open(DEMO_URL, "_blank", "noopener,noreferrer")}
+              onClick={() => {
+                window.location.href = `${APP_URL}#prueba-gratis`;
+              }}
             >
-              Ver demo
+              Probar gratis
             </button>
             <a
               style={botonWhatsapp}
@@ -272,28 +275,29 @@ export default function Inicio() {
           <MiniCard titulo="Contabilidad" texto="Comprobantes, compras, ventas, libro diario, mayor, balance y resultado." />
           <MiniCard titulo="Tributario" texto="Resumen IVA, F29 estimado, retenciones y control de remanente." />
           <MiniCard titulo="Remuneraciones" texto="Trabajadores, haberes, descuentos, liquidaciones, pagos y Previred." />
-          <MiniCard titulo="Gestión" texto="Empresas, usuarios, auditoría, demo y solicitudes web." />
+          <MiniCard titulo="Gestión" texto="Empresas, usuarios, auditoría, prueba gratis y solicitudes web." />
         </div>
       </section>
 
-      <section style={seccionWeb} id="demo">
-        <h2 style={seccionTitulo}>Demo</h2>
+      <section style={seccionWeb} id="prueba-gratis">
+        <h2 style={seccionTitulo}>Prueba gratis</h2>
         <div style={demoLegalBox}>
           <p style={textoPlan}>
-            El demo es individual por cliente: el interesado solicita acceso con
-            su correo, el administrador lo activa por 30 días y queda limitado a
-            1 empresa.
+            Crea tu acceso con correo y contraseña. Entras directo al programa
+            completo y luego configuras tu empresa dentro del sistema.
           </p>
           <p style={textoPlan}>
-            Al vencer, el sistema bloquea el ingreso demo y muestra un mensaje
-            para solicitar renovación o contratar el plan.
+            La prueba gratuita dura 30 días, no requiere datos de pago y no
+            elimina tus datos al vencer.
           </p>
           <button
             style={botonPrincipalMini}
             type="button"
-            onClick={() => window.open(DEMO_URL, "_blank", "noopener,noreferrer")}
+            onClick={() => {
+              window.location.href = `${APP_URL}#prueba-gratis`;
+            }}
           >
-            Solicitar demo
+            Comenzar prueba gratis
           </button>
         </div>
       </section>
@@ -302,7 +306,7 @@ export default function Inicio() {
         <h2 style={seccionTitulo}>Preguntas frecuentes</h2>
         <div style={gridWeb2}>
           <Pregunta titulo="¿El plan es multiempresa?" texto="Sí. El plan PRO es multiempresa e incluye 1 usuario." />
-          <Pregunta titulo="¿Cuánto dura el demo?" texto="30 días desde la activación del administrador, con límite de 1 empresa." />
+          <Pregunta titulo="¿Cuánto dura la prueba gratis?" texto="30 días. El acceso se crea automáticamente y luego configuras tu empresa dentro del sistema." />
           <Pregunta titulo="¿Cómo se activa el plan?" texto="Flow confirma el pago por webhook y el sistema registra la contratación para habilitar el acceso." />
           <Pregunta titulo="¿Cuánto cuesta un usuario adicional?" texto="$3.990 + IVA mensual por usuario adicional." />
         </div>
@@ -313,7 +317,7 @@ export default function Inicio() {
         <div style={gridWeb4}>
           <MiniCard titulo="Términos y condiciones" texto="Servicio SaaS de suscripción mensual o anual. El cliente debe ingresar información fidedigna y revisar sus reportes." />
           <MiniCard titulo="Política de privacidad" texto="Los datos se usan para contratación, activación, facturación, soporte y comunicaciones del servicio." />
-          <MiniCard titulo="Seguridad" texto="Acceso autenticado, roles de usuario, separación por empresa y bloqueo automático de demos vencidas." />
+          <MiniCard titulo="Seguridad" texto="Acceso autenticado, roles de usuario, separación por empresa y control automático de pruebas vencidas." />
           <MiniCard titulo="Retracto" texto="La contratación online informa precio, IVA y condiciones. El derecho a retracto se aplicará cuando corresponda según normativa vigente." />
         </div>
       </section>
@@ -323,7 +327,6 @@ export default function Inicio() {
         <div style={datosEmpresaBox}>
           <LineaResumen label="Web" valor="www.servcontablepro.cl" />
           <LineaResumen label="Aplicación" valor="app.servcontablepro.cl" />
-          <LineaResumen label="Demo" valor="demo.servcontablepro.cl" />
           <LineaResumen label="Contacto" valor="contacto@servcontablepro.cl" />
           <LineaResumen label="WhatsApp" valor="+56984508073" />
           <LineaResumen label="Razón social / RUT" valor="Completar datos de la empresa emisora en producción" />

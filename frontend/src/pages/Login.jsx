@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   crearPruebaGratis,
-  loginDemo,
   loginUsuario,
   resetearPasswordConToken,
   solicitarRecuperacionPassword,
@@ -17,13 +16,9 @@ export default function Login({ irARegistro, loginCorrecto }) {
   const [mensaje, setMensaje] = useState("");
   const [urlResetDesarrollo, setUrlResetDesarrollo] = useState("");
   const [error, setError] = useState("");
-  const [solicitarDemo, setSolicitarDemo] = useState(false);
-  const [demoForm, setDemoForm] = useState({
-    nombre: "",
+  const [solicitarPrueba, setSolicitarPrueba] = useState(false);
+  const [trialForm, setTrialForm] = useState({
     correo: "",
-    empresa: "",
-    rut: "",
-    telefono: "",
     password: "",
     confirmarPassword: "",
   });
@@ -38,14 +33,9 @@ export default function Login({ irARegistro, loginCorrecto }) {
 
   const permiteRegistroPublico =
     import.meta.env.VITE_ALLOW_PUBLIC_REGISTRATION === "true";
-  const permiteDemo = import.meta.env.VITE_DEMO_MODE === "true";
 
   async function manejarLogin(e) {
     e.preventDefault();
-
-    if (permiteDemo) {
-      return manejarDemo(e);
-    }
 
     try {
       limpiarMensajes();
@@ -56,54 +46,25 @@ export default function Login({ irARegistro, loginCorrecto }) {
     }
   }
 
-  async function manejarDemo(e) {
-    e?.preventDefault?.();
-
-    try {
-      limpiarMensajes();
-
-      if (!email) {
-        throw new Error("Ingresa el correo que fue autorizado para la demo.");
-      }
-
-      if (!password) {
-        throw new Error("Ingresa la contrasena asignada para la demo.");
-      }
-
-      const data = await loginDemo(email, password);
-      loginCorrecto(data.usuario);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function manejarSolicitudDemo(e) {
+  async function manejarSolicitudPrueba(e) {
     e.preventDefault();
 
     try {
       limpiarMensajes();
 
       const data = await crearPruebaGratis({
-        nombre: demoForm.nombre,
-        correo: demoForm.correo || email,
-        empresa: demoForm.empresa,
-        rut: demoForm.rut,
-        telefono: demoForm.telefono,
-        password: demoForm.password,
-        confirmar_password: demoForm.confirmarPassword,
+        correo: trialForm.correo || email,
+        password: trialForm.password,
+        confirmar_password: trialForm.confirmarPassword,
       });
 
-      setEmail(data.usuario?.email || demoForm.correo || email);
-      setDemoForm({
-        nombre: "",
+      setEmail(data.usuario?.email || trialForm.correo || email);
+      setTrialForm({
         correo: "",
-        empresa: "",
-        rut: "",
-        telefono: "",
         password: "",
         confirmarPassword: "",
       });
-      setSolicitarDemo(false);
+      setSolicitarPrueba(false);
       setMensaje("¡Bienvenido a ServContable PRO! Tu prueba gratuita ya esta activa.");
       loginCorrecto(data.usuario);
     } catch (err) {
@@ -154,13 +115,13 @@ export default function Login({ irARegistro, loginCorrecto }) {
     setModoRecuperacion(false);
     setResetToken("");
     setNuevaPassword("");
-    setSolicitarDemo(false);
+    setSolicitarPrueba(false);
     limpiarMensajes();
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  function cambiarDemo(campo, valor) {
-    setDemoForm((actual) => ({ ...actual, [campo]: valor }));
+  function cambiarTrial(campo, valor) {
+    setTrialForm((actual) => ({ ...actual, [campo]: valor }));
   }
 
   return (
@@ -171,8 +132,6 @@ export default function Login({ irARegistro, loginCorrecto }) {
         <p style={subtitulo}>
           {esEscritorio
             ? "Sistema contable local"
-            : permiteDemo
-            ? "Demo individual por 30 días"
             : resetToken
             ? "Define una nueva contraseña"
             : modoRecuperacion
@@ -207,59 +166,33 @@ export default function Login({ irARegistro, loginCorrecto }) {
               Enviar instrucciones
             </button>
           </form>
-        ) : solicitarDemo ? (
-          <form onSubmit={manejarSolicitudDemo} style={formulario}>
+        ) : solicitarPrueba ? (
+          <form onSubmit={manejarSolicitudPrueba} style={formulario}>
             <p style={textoAyuda}>
-              30 días gratis · Sin compromiso · No necesitas ingresar datos de pago.
+              Prueba ServContable PRO gratis por 30 días. No necesitas ingresar datos de pago.
             </p>
 
             <CampoTexto
-              label="Nombre"
-              value={demoForm.nombre}
-              onChange={(valor) => cambiarDemo("nombre", valor)}
-              placeholder="Tu nombre"
-            />
-            <CampoTexto
               label="Correo"
               type="email"
-              value={demoForm.correo || email}
+              value={trialForm.correo || email}
               onChange={(valor) => {
-                cambiarDemo("correo", valor);
+                cambiarTrial("correo", valor);
                 setEmail(valor);
               }}
               placeholder="correo@empresa.cl"
             />
-            <CampoTexto
-              label="Empresa"
-              value={demoForm.empresa}
-              onChange={(valor) => cambiarDemo("empresa", valor)}
-              placeholder="Empresa o estudio contable"
-            />
-            <CampoTexto
-              label="RUT"
-              value={demoForm.rut}
-              onChange={(valor) => cambiarDemo("rut", valor)}
-              placeholder="16.153.127-8"
-              autoComplete="username"
-            />
-            <CampoTexto
-              label="Telefono / WhatsApp"
-              value={demoForm.telefono}
-              onChange={(valor) => cambiarDemo("telefono", valor)}
-              placeholder="+56 9 1234 5678"
-              autoComplete="tel"
-            />
             <CampoPassword
               label="Contraseña"
-              value={demoForm.password}
-              onChange={(valor) => cambiarDemo("password", valor)}
+              value={trialForm.password}
+              onChange={(valor) => cambiarTrial("password", valor)}
               placeholder="Minimo 8 caracteres"
               autoComplete="new-password"
             />
             <CampoPassword
               label="Confirmar contraseña"
-              value={demoForm.confirmarPassword}
-              onChange={(valor) => cambiarDemo("confirmarPassword", valor)}
+              value={trialForm.confirmarPassword}
+              onChange={(valor) => cambiarTrial("confirmarPassword", valor)}
               placeholder="Repite tu contraseña"
               autoComplete="new-password"
             />
@@ -281,11 +214,11 @@ export default function Login({ irARegistro, loginCorrecto }) {
               />
 
               <button style={botonPrimario} type="submit">
-                {permiteDemo ? "Ingresar a demo autorizada" : "Ingresar"}
+                Ingresar
               </button>
             </form>
 
-            {!permiteDemo && !esEscritorio && (
+            {!esEscritorio && (
               <button
                 style={botonSecundario}
                 type="button"
@@ -303,22 +236,22 @@ export default function Login({ irARegistro, loginCorrecto }) {
                 style={botonDemo}
                 type="button"
                 onClick={() => {
-                  setSolicitarDemo(true);
+                  setSolicitarPrueba(true);
                   limpiarMensajes();
-                  setDemoForm((actual) => ({ ...actual, correo: email }));
+                  setTrialForm((actual) => ({ ...actual, correo: email }));
                 }}
               >
                 Probar gratis
               </button>
             )}
 
-            {permiteRegistroPublico && !permiteDemo && (
+            {permiteRegistroPublico && (
               <button style={botonSecundario} onClick={irARegistro}>
                 Crear una cuenta nueva
               </button>
             )}
 
-            {!permiteRegistroPublico && !permiteDemo && (
+            {!permiteRegistroPublico && (
               <p style={notaAcceso}>
                 Los accesos son creados por el administrador del equipo.
                 {esEscritorio && " Los datos permanecen en este computador."}
@@ -335,7 +268,7 @@ export default function Login({ irARegistro, loginCorrecto }) {
         )}
         {error && <p style={mensajeError}>{error}</p>}
 
-        {(modoRecuperacion || resetToken || solicitarDemo) && (
+        {(modoRecuperacion || resetToken || solicitarPrueba) && (
           <button style={botonSecundario} type="button" onClick={volverLogin}>
             Volver al ingreso
           </button>

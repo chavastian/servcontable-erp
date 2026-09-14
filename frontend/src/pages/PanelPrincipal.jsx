@@ -238,6 +238,7 @@ function puedeGestionarUsuarios(rol = "") {
 }
 
 function vistaInicialPorModulo(moduloActivo) {
+  if (moduloActivo === "administracion") return "adminSuscripciones";
   if (moduloActivo === "remuneraciones") return "remuneraciones";
   if (moduloActivo === "simplificada") return "registroSimplificado";
   return "inicio";
@@ -256,12 +257,13 @@ export default function PanelPrincipal({
   const [vistaActiva, setVistaActiva] = useState(() => vistaInicialPorModulo(moduloActivo));
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [gruposAbiertos, setGruposAbiertos] = useState({});
-  const esUsuarioDemo = usuario?.demo === true;
   const usuarioEsAdminSistema = ROLES_ADMIN_SISTEMA.includes(rolNormalizado(usuario?.rol));
-  const usuarioPuedeGestionarUsuarios =
-    !esUsuarioDemo && puedeGestionarUsuarios(usuario?.rol);
+  const usuarioPuedeGestionarUsuarios = puedeGestionarUsuarios(usuario?.rol);
+  const esModuloAdministracion = moduloActivo === "administracion";
   const heroActual =
-    moduloActivo === "remuneraciones"
+    esModuloAdministracion
+      ? HEROES_CONTABLE[vistaActiva]
+      : moduloActivo === "remuneraciones"
       ? HEROES_REMUNERACIONES[vistaActiva] || HEROES_CONTABLE[vistaActiva]
       : HEROES_CONTABLE[vistaActiva];
   const vistasConHeroPropio = [
@@ -384,38 +386,52 @@ export default function PanelPrincipal({
   const menuAdministracion = {
     grupo: "Administración",
     items: [
-      { id: "usuariosSistema", label: "Usuarios y accesos" },
-      ...(usuarioEsAdminSistema
-        ? [
-            { id: "adminSuscripciones", label: "Dashboard" },
-            { id: "adminSuscripcionesSolicitudes", label: "Solicitudes web" },
-            { id: "adminSuscripcionesClientes", label: "Clientes" },
-            { id: "adminSuscripcionesGestion", label: "Suscripciones" },
-            { id: "adminSuscripcionesPlanes", label: "Planes" },
-            { id: "adminSuscripcionesPagos", label: "Pagos" },
-            { id: "adminSuscripcionesNotificaciones", label: "Notificaciones" },
-            { id: "adminSuscripcionesAuditoria", label: "Auditoría" },
-            { id: "adminSuscripcionesConfiguracion", label: "Configuración" },
-          ]
-        : []),
+      { id: "adminSuscripciones", label: "Resumen" },
+      { id: "adminSuscripcionesClientes", label: "Clientes" },
+      { id: "adminSuscripcionesGestion", label: "Suscripciones" },
+      { id: "adminSuscripcionesSolicitudes", label: "Solicitudes" },
+      { id: "adminSuscripcionesConfiguracion", label: "Configuración" },
+      { id: "adminSuscripcionesAuditoria", label: "Auditoría" },
     ],
   };
 
   const menuBase =
-    moduloActivo === "remuneraciones"
+    esModuloAdministracion
+      ? [menuAdministracion]
+      : moduloActivo === "remuneraciones"
       ? menuRemuneraciones
       : moduloActivo === "simplificada"
       ? menuSimplificada
       : menuContable;
-  const menuActivo = usuarioPuedeGestionarUsuarios
+  const menuActivo = !esModuloAdministracion && usuarioEsAdminSistema
     ? [...menuBase, menuAdministracion]
     : menuBase;
   const tituloModulo =
-    moduloActivo === "remuneraciones"
+    esModuloAdministracion
+      ? "Administración"
+      : moduloActivo === "remuneraciones"
       ? "Módulo Remuneraciones"
       : moduloActivo === "simplificada"
       ? "Módulo Contabilidad Simplificada"
       : "Módulo Contable";
+
+  if (esModuloAdministracion && !usuarioEsAdminSistema) {
+    return (
+      <div style={layout}>
+        <main style={main(false)}>
+          <section style={contenido}>
+            <div style={tarjetaAccesoDenegado}>
+              <h1>Acceso denegado</h1>
+              <p>La Administración del sistema está disponible solo para el Administrador del Sistema.</p>
+              <button style={botonCambiar} type="button" onClick={volverASeleccionModulo}>
+                Volver a módulos
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div style={layout}>
@@ -429,19 +445,23 @@ export default function PanelPrincipal({
             </div>
           </div>
 
-          <div style={empresaBox}>
-            <p style={empresaLabel}>Empresa activa</p>
-            <strong>{empresaActiva?.razon_social || empresaActiva?.nombre || "Sin empresa"}</strong>
-            <small>RUT: {empresaActiva?.rut || "-"}</small>
-          </div>
+          {!esModuloAdministracion && (
+            <>
+              <div style={empresaBox}>
+                <p style={empresaLabel}>Empresa activa</p>
+                <strong>{empresaActiva?.razon_social || empresaActiva?.nombre || "Sin empresa"}</strong>
+                <small>RUT: {empresaActiva?.rut || "-"}</small>
+              </div>
 
-          <div style={ejercicioBox}>
-            <p style={empresaLabel}>Año de trabajo</p>
-            <strong>{ejercicioActivo?.anio || "Sin año seleccionado"}</strong>
-            <span style={{ ...estadoBadge, background: colorEstadoEjercicio() }}>
-              {estadoEjercicio()}
-            </span>
-          </div>
+              <div style={ejercicioBox}>
+                <p style={empresaLabel}>Año de trabajo</p>
+                <strong>{ejercicioActivo?.anio || "Sin año seleccionado"}</strong>
+                <span style={{ ...estadoBadge, background: colorEstadoEjercicio() }}>
+                  {estadoEjercicio()}
+                </span>
+              </div>
+            </>
+          )}
 
           <div style={moduloBox}>{tituloModulo}</div>
 
@@ -478,9 +498,13 @@ export default function PanelPrincipal({
           })}
 
           <div style={accionesMenu}>
-            <button style={botonCambiar} onClick={cambiarEmpresa}>Cambiar empresa</button>
-            {typeof cambiarEjercicio === "function" && (
-              <button style={botonCambiar} onClick={cambiarEjercicio}>Cambiar año</button>
+            {!esModuloAdministracion && (
+              <>
+                <button style={botonCambiar} onClick={cambiarEmpresa}>Cambiar empresa</button>
+                {typeof cambiarEjercicio === "function" && (
+                  <button style={botonCambiar} onClick={cambiarEjercicio}>Cambiar año</button>
+                )}
+              </>
             )}
             <button style={botonCambiar} onClick={volverASeleccionModulo}>Cambiar módulo</button>
             <button style={botonSalir} onClick={salir}>Cerrar sesión</button>
@@ -498,10 +522,14 @@ export default function PanelPrincipal({
             <strong>{usuario?.nombre || "Usuario"}</strong>
             <span>{usuario?.email || ""}</span>
             <span>{tituloModulo}</span>
-            <span style={topbarAnio}>Año: <strong>{ejercicioActivo?.anio || "-"}</strong></span>
-            <span style={{ ...topbarEstado, background: colorEstadoEjercicio() }}>
-              {estadoEjercicio()}
-            </span>
+            {!esModuloAdministracion && (
+              <>
+                <span style={topbarAnio}>Año: <strong>{ejercicioActivo?.anio || "-"}</strong></span>
+                <span style={{ ...topbarEstado, background: colorEstadoEjercicio() }}>
+                  {estadoEjercicio()}
+                </span>
+              </>
+            )}
           </div>
         </header>
 
@@ -511,17 +539,6 @@ export default function PanelPrincipal({
               titulo={heroActual.titulo}
               descripcion={heroActual.descripcion}
             />
-          )}
-
-          {esUsuarioDemo && (
-            <div style={demoBanner}>
-              <span style={demoBadge}>DEMO</span>
-              <span>
-                Version demo limitada: prueba registros basicos con cupos reducidos.
-                Importaciones masivas, contabilizacion final, pagos, usuarios y uso
-                ilimitado se habilitan al contratar ServContable PRO.
-              </span>
-            </div>
           )}
 
           <div
@@ -547,16 +564,7 @@ export default function PanelPrincipal({
               <AdminSuscripciones vistaInicial="clientes" />
             )}
             {vistaActiva === "adminSuscripcionesGestion" && usuarioEsAdminSistema && (
-              <AdminSuscripciones vistaInicial="clientes" />
-            )}
-            {vistaActiva === "adminSuscripcionesPlanes" && usuarioEsAdminSistema && (
-              <AdminSuscripciones vistaInicial="planes" />
-            )}
-            {vistaActiva === "adminSuscripcionesPagos" && usuarioEsAdminSistema && (
-              <AdminSuscripciones vistaInicial="pagos" />
-            )}
-            {vistaActiva === "adminSuscripcionesNotificaciones" && usuarioEsAdminSistema && (
-              <AdminSuscripciones vistaInicial="notificaciones" />
+              <AdminSuscripciones vistaInicial="suscripciones" />
             )}
             {vistaActiva === "adminSuscripcionesAuditoria" && usuarioEsAdminSistema && (
               <AdminSuscripciones vistaInicial="auditoria" />
@@ -861,26 +869,12 @@ const contenido = {
   padding: "16px",
 };
 
-const demoBanner = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  background: "linear-gradient(135deg, #ecfeff, #f0fdf4)",
-  border: "1px solid #67e8f9",
-  color: "#075985",
+const tarjetaAccesoDenegado = {
+  background: "white",
+  border: "1px solid #bae6fd",
   borderRadius: "12px",
-  padding: "10px 12px",
-  margin: "0 0 12px 0",
-  fontSize: "13px",
-  fontWeight: "bold",
-  boxShadow: "0 10px 24px rgba(6, 182, 212, 0.12)",
-};
-
-const demoBadge = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
-  color: "white",
-  borderRadius: "999px",
-  padding: "5px 9px",
-  fontSize: "11px",
-  letterSpacing: "0.06em",
+  padding: "24px",
+  color: "#0f172a",
+  maxWidth: "620px",
+  boxShadow: "0 12px 30px rgba(2, 132, 199, 0.10)",
 };
