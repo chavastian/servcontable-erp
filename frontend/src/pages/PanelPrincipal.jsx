@@ -139,6 +139,10 @@ const HEROES_CONTABLE = {
     titulo: "Administración de Suscripciones",
     descripcion: "Controla clientes, planes, pagos, vencimientos y auditoría comercial.",
   },
+  adminSuscripcionesSolicitudes: {
+    titulo: "Solicitudes web",
+    descripcion: "Revisa pruebas gratis y suscripciones solicitadas desde la pagina publica.",
+  },
   adminSuscripcionesClientes: {
     titulo: "Clientes",
     descripcion: "Lista y filtra clientes suscritos al sistema.",
@@ -384,6 +388,7 @@ export default function PanelPrincipal({
       ...(usuarioEsAdminSistema
         ? [
             { id: "adminSuscripciones", label: "Dashboard" },
+            { id: "adminSuscripcionesSolicitudes", label: "Solicitudes web" },
             { id: "adminSuscripcionesClientes", label: "Clientes" },
             { id: "adminSuscripcionesGestion", label: "Suscripciones" },
             { id: "adminSuscripcionesPlanes", label: "Planes" },
@@ -534,6 +539,9 @@ export default function PanelPrincipal({
             )}
             {vistaActiva === "adminSuscripciones" && usuarioEsAdminSistema && (
               <AdminSuscripciones vistaInicial="dashboard" />
+            )}
+            {vistaActiva === "adminSuscripcionesSolicitudes" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="solicitudes" />
             )}
             {vistaActiva === "adminSuscripcionesClientes" && usuarioEsAdminSistema && (
               <AdminSuscripciones vistaInicial="clientes" />

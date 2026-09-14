@@ -7,6 +7,7 @@ const {
   listarClientes,
   listarNotificaciones,
   listarPlanes,
+  listarSolicitudesWeb,
   obtenerCliente,
   obtenerConfiguracion,
   obtenerDashboard,
@@ -31,5 +32,6 @@ router.get("/configuracion", obtenerConfiguracion);
 router.patch("/configuracion", guardarConfiguracion);
 router.get("/auditoria", listarAuditoriaAdmin);
 router.get("/notificaciones", listarNotificaciones);
+router.get("/solicitudes-web", listarSolicitudesWeb);
 
 module.exports = router;

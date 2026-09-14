@@ -94,3 +94,7 @@ export function listarAuditoriaSuscripciones() {
 export function listarNotificacionesSuscripciones() {
   return request("/notificaciones");
 }
+
+export function listarSolicitudesWebSuscripciones() {
+  return request("/solicitudes-web");
+}

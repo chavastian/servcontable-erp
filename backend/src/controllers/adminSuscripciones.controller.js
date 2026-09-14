@@ -751,6 +751,104 @@ async function listarNotificaciones(req, res) {
   }
 }
 
+async function tablaExiste(nombreTabla) {
+  const resultado = await pool.query("SELECT to_regclass($1) AS tabla", [`public.${nombreTabla}`]);
+  return Boolean(resultado.rows[0]?.tabla);
+}
+
+async function listarSolicitudesWeb(req, res) {
+  try {
+    await asegurarListo();
+
+    const [existeContacto, existeContrataciones] = await Promise.all([
+      tablaExiste("solicitudes_contacto"),
+      tablaExiste("contrataciones_web"),
+    ]);
+
+    const [contactosResult, contratacionesResult] = await Promise.all([
+      existeContacto
+        ? pool.query(`
+            SELECT
+              id,
+              'PRUEBA_GRATIS' AS tipo,
+              nombre,
+              correo,
+              empresa,
+              NULL::text AS rut,
+              NULL::text AS telefono,
+              COALESCE(interes, 'Prueba gratis') AS plan,
+              estado,
+              origen,
+              creado_en,
+              actualizado_en,
+              mensaje,
+              nota_interna,
+              demo_usuario_id,
+              demo_inicio,
+              demo_vence,
+              demo_activado_en,
+              NULL::numeric AS total,
+              NULL::text AS periodicidad,
+              NULL::text AS flow_status,
+              NULL::text AS flow_order,
+              jsonb_build_object('fuente', 'solicitudes_contacto') AS metadata
+            FROM solicitudes_contacto
+            ORDER BY creado_en DESC
+            LIMIT 300
+          `)
+        : Promise.resolve({ rows: [] }),
+      existeContrataciones
+        ? pool.query(`
+            SELECT
+              id,
+              'SUSCRIPCION_MENSUAL' AS tipo,
+              nombre,
+              correo,
+              empresa,
+              rut,
+              telefono,
+              COALESCE(metadata->>'plan', periodicidad, 'Suscripcion mensual') AS plan,
+              estado,
+              origen,
+              creado_en,
+              actualizado_en,
+              metadata->>'mensaje' AS mensaje,
+              NULL::text AS nota_interna,
+              NULL::integer AS demo_usuario_id,
+              NULL::date AS demo_inicio,
+              NULL::date AS demo_vence,
+              NULL::timestamp AS demo_activado_en,
+              total,
+              periodicidad,
+              flow_status,
+              flow_order,
+              metadata
+            FROM contrataciones_web
+            ORDER BY creado_en DESC
+            LIMIT 300
+          `)
+        : Promise.resolve({ rows: [] }),
+    ]);
+
+    const solicitudes = [...contactosResult.rows, ...contratacionesResult.rows]
+      .sort((a, b) => new Date(b.creado_en || 0) - new Date(a.creado_en || 0))
+      .slice(0, 300);
+
+    return res.json({
+      ok: true,
+      solicitudes,
+      resumen: {
+        total: solicitudes.length,
+        pruebas_gratis: contactosResult.rows.length,
+        suscripciones: contratacionesResult.rows.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error solicitudes web suscripciones:", error);
+    return res.status(500).json({ ok: false, error: "No se pudieron listar las solicitudes web." });
+  }
+}
+
 module.exports = {
   obtenerDashboard,
   listarClientes,
@@ -763,4 +861,5 @@ module.exports = {
   guardarConfiguracion,
   listarAuditoriaAdmin,
   listarNotificaciones,
+  listarSolicitudesWeb,
 };

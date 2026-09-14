@@ -7,6 +7,7 @@ import {
   listarClientesSuscripciones,
   listarNotificacionesSuscripciones,
   listarPlanesSuscripcion,
+  listarSolicitudesWebSuscripciones,
   obtenerClienteSuscripcion,
   obtenerConfiguracionSuscripciones,
   obtenerDashboardSuscripciones,
@@ -94,6 +95,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
   const [planes, setPlanes] = useState([]);
   const [auditoria, setAuditoria] = useState([]);
   const [notificaciones, setNotificaciones] = useState([]);
+  const [solicitudesWeb, setSolicitudesWeb] = useState([]);
   const [configuracion, setConfiguracion] = useState([]);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
@@ -146,7 +148,15 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
     try {
       setCargando(true);
       setError("");
-      const [dataDashboard, dataClientes, dataPlanes, dataConfig, dataAuditoria, dataNotificaciones] =
+      const [
+        dataDashboard,
+        dataClientes,
+        dataPlanes,
+        dataConfig,
+        dataAuditoria,
+        dataNotificaciones,
+        dataSolicitudesWeb,
+      ] =
         await Promise.all([
           obtenerDashboardSuscripciones(),
           listarClientesSuscripciones(filtros),
@@ -154,6 +164,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
           obtenerConfiguracionSuscripciones(),
           listarAuditoriaSuscripciones(),
           listarNotificacionesSuscripciones(),
+          listarSolicitudesWebSuscripciones(),
         ]);
 
       setDashboard(dataDashboard);
@@ -162,6 +173,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
       setConfiguracion(dataConfig.configuracion || []);
       setAuditoria(dataAuditoria.auditoria || []);
       setNotificaciones(dataNotificaciones.notificaciones || []);
+      setSolicitudesWeb(dataSolicitudesWeb.solicitudes || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -315,6 +327,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
       <div style={tabs}>
         {[
           ["dashboard", "Dashboard"],
+          ["solicitudes", "Solicitudes web"],
           ["clientes", "Clientes"],
           ["cliente", "Ficha"],
           ["planes", "Planes"],
@@ -368,6 +381,16 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
             </section>
           </div>
         </>
+      )}
+
+      {tab === "solicitudes" && (
+        <section style={card}>
+          <h2 style={tituloSeccion}>Solicitudes recibidas desde la pagina web</h2>
+          <p style={subtitulo}>
+            Aqui aparecen las personas que piden prueba gratis o suscripcion mensual desde la pagina publica.
+          </p>
+          <TablaSolicitudesWeb solicitudes={solicitudesWeb} />
+        </section>
       )}
 
       {tab === "clientes" && (
@@ -529,6 +552,49 @@ function Metric({ label, value }) {
     <div style={metricCard}>
       <span style={metricLabel}>{label}</span>
       <strong style={metricValue}>{value ?? 0}</strong>
+    </div>
+  );
+}
+
+function textoTipoSolicitud(tipo = "") {
+  if (tipo === "PRUEBA_GRATIS") return "Prueba gratis";
+  if (tipo === "SUSCRIPCION_MENSUAL") return "Suscripcion mensual";
+  return tipo || "-";
+}
+
+function TablaSolicitudesWeb({ solicitudes }) {
+  return (
+    <div style={tablaWrap}>
+      <table style={tabla}>
+        <thead>
+          <tr>
+            {["Fecha", "Tipo", "Nombre", "Empresa", "RUT", "Correo", "Telefono", "Plan", "Monto", "Estado"].map((col) => (
+              <th key={col} style={th}>{col}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {solicitudes.map((solicitud) => (
+            <tr key={`${solicitud.tipo}-${solicitud.id}`}>
+              <td style={td}>{formatoFecha(solicitud.creado_en)}</td>
+              <td style={td}>{textoTipoSolicitud(solicitud.tipo)}</td>
+              <td style={td}>{solicitud.nombre || "-"}</td>
+              <td style={td}>{solicitud.empresa || "-"}</td>
+              <td style={td}>{solicitud.rut || "-"}</td>
+              <td style={td}>{solicitud.correo || "-"}</td>
+              <td style={td}>{solicitud.telefono || "-"}</td>
+              <td style={td}>{solicitud.plan || solicitud.periodicidad || "-"}</td>
+              <td style={td}>{solicitud.total ? formatoMoneda(solicitud.total) : "-"}</td>
+              <td style={td}>{solicitud.estado || solicitud.flow_status || "-"}</td>
+            </tr>
+          ))}
+          {solicitudes.length === 0 && (
+            <tr>
+              <td style={td} colSpan={10}>No hay solicitudes web registradas.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

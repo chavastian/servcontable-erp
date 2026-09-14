@@ -246,14 +246,6 @@ async function registrarPagoFlow({
 }) {
   await asegurarTablaContrataciones();
 
-  const apiKey = obtenerFlowApiKey();
-
-  if (!apiKey || !obtenerFlowSecretKey()) {
-    const error = new Error("FLOW_API_KEY y FLOW_SECRET_KEY deben estar configurados en el backend.");
-    error.status = 500;
-    throw error;
-  }
-
   const totales = calcularTotales(periodicidad, usuariosAdicionales, meses);
 
   const contratacionResult = await pool.query(
@@ -290,6 +282,32 @@ async function registrarPagoFlow({
   );
 
   const contratacion = contratacionResult.rows[0];
+  const apiKey = obtenerFlowApiKey();
+
+  if (!apiKey || !obtenerFlowSecretKey()) {
+    await pool.query(
+      `
+      UPDATE contrataciones_web
+      SET estado = 'pendiente_configuracion_pago',
+          metadata = metadata || $1::jsonb,
+          actualizado_en = CURRENT_TIMESTAMP
+      WHERE id = $2;
+      `,
+      [
+        JSON.stringify({
+          flow_error: "FLOW_API_KEY y FLOW_SECRET_KEY deben estar configurados en el backend.",
+          solicitud_registrada: true,
+        }),
+        contratacion.id,
+      ]
+    );
+
+    const error = new Error("FLOW_API_KEY y FLOW_SECRET_KEY deben estar configurados en el backend.");
+    error.status = 500;
+    error.contratacion_id = contratacion.id;
+    throw error;
+  }
+
   const commerceOrder = `SC-${contratacion.id}`;
   const paramsFlow = {
     apiKey,
