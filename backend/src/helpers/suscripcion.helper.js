@@ -29,6 +29,13 @@ const ESTADOS_PAGO = Object.freeze({
   VOID: "VOID",
 });
 
+const CODIGO_PLAN_UNICO = "servcontable_pro";
+const NOMBRE_SERVICIO_UNICO = "SERVCONTABLE PRO";
+const PRECIO_BASE_MENSUAL_DEFECTO = 29990;
+const PRECIO_USUARIO_ADICIONAL_DEFECTO = 3990;
+const IVA_DEFECTO = 0.19;
+const USUARIOS_INCLUIDOS_DEFECTO = 1;
+
 const SETTINGS_DEFECTO = [
   ["trial_days", "30"],
   ["grace_days", "5"],
@@ -36,57 +43,27 @@ const SETTINGS_DEFECTO = [
   ["currency", "CLP"],
   ["expired_status", ESTADOS_SUSCRIPCION.EXPIRED],
   ["suspension_policy", "manual_after_grace"],
-  ["default_plan_code", "basico"],
+  ["default_plan_code", CODIGO_PLAN_UNICO],
+  ["commercial_service_name", NOMBRE_SERVICIO_UNICO],
+  ["commercial_monthly_base_price", String(PRECIO_BASE_MENSUAL_DEFECTO)],
+  ["commercial_included_users", String(USUARIOS_INCLUIDOS_DEFECTO)],
+  ["commercial_additional_user_price", String(PRECIO_USUARIO_ADICIONAL_DEFECTO)],
+  ["commercial_iva_rate", String(IVA_DEFECTO)],
+  ["commercial_companies_limit", "unlimited"],
 ];
 
 const PLANES_INICIALES = [
   {
-    code: "basico",
-    name: "Plan Basico",
-    description: "Hasta 3 empresas y 1 usuario.",
-    monthly_price: 16990,
-    annual_price: 169900,
-    max_companies: 3,
-    max_users: 1,
-    trial_days: 30,
-    sort_order: 10,
-    features: ["Hasta 3 empresas", "1 usuario"],
-  },
-  {
-    code: "profesional",
-    name: "Plan Profesional",
-    description: "Hasta 10 empresas y hasta 3 usuarios.",
-    monthly_price: 29990,
-    annual_price: 299900,
-    max_companies: 10,
-    max_users: 3,
-    trial_days: 30,
-    sort_order: 20,
-    features: ["Hasta 10 empresas", "Hasta 3 usuarios"],
-  },
-  {
-    code: "estudio_contable",
-    name: "Plan Estudio Contable",
-    description: "Hasta 50 empresas y hasta 10 usuarios.",
-    monthly_price: 59990,
-    annual_price: 599900,
-    max_companies: 50,
-    max_users: 10,
-    trial_days: 30,
-    sort_order: 30,
-    features: ["Hasta 50 empresas", "Hasta 10 usuarios"],
-  },
-  {
-    code: "empresarial",
-    name: "Plan Empresarial",
-    description: "Limites configurables por administracion.",
-    monthly_price: 0,
-    annual_price: 0,
+    code: CODIGO_PLAN_UNICO,
+    name: NOMBRE_SERVICIO_UNICO,
+    description: "Servicio unico mensual con 1 usuario incluido, empresas ilimitadas y usuarios adicionales facturables.",
+    monthly_price: PRECIO_BASE_MENSUAL_DEFECTO,
+    annual_price: PRECIO_BASE_MENSUAL_DEFECTO * 12,
     max_companies: null,
     max_users: null,
     trial_days: 30,
-    sort_order: 40,
-    features: ["Limites configurables", "Soporte comercial"],
+    sort_order: 10,
+    features: ["1 usuario incluido", "Empresas ilimitadas", "Usuarios adicionales facturables"],
   },
 ];
 
@@ -121,6 +98,74 @@ function sumarDias(fechaBase, dias) {
   const fecha = fechaBase ? new Date(`${fechaISO(fechaBase)}T12:00:00`) : new Date();
   fecha.setDate(fecha.getDate() + Number(dias || 0));
   return fecha.toISOString().slice(0, 10);
+}
+
+function numeroConfiguracion(valor, defecto = 0) {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : defecto;
+}
+
+function tasaIvaConfiguracion(valor) {
+  const numero = numeroConfiguracion(valor, IVA_DEFECTO);
+  if (numero > 1) return numero / 100;
+  if (numero < 0) return IVA_DEFECTO;
+  return numero;
+}
+
+function normalizarConfiguracionComercial(config = {}) {
+  const usuariosIncluidos = Math.max(
+    1,
+    Math.round(numeroConfiguracion(config.commercial_included_users ?? config.included_users, USUARIOS_INCLUIDOS_DEFECTO))
+  );
+
+  return {
+    service_name: limpiarNombreServicio(config.commercial_service_name || config.service_name),
+    monthly_base_price: Math.max(
+      0,
+      Math.round(numeroConfiguracion(config.commercial_monthly_base_price ?? config.monthly_base_price, PRECIO_BASE_MENSUAL_DEFECTO))
+    ),
+    included_users: usuariosIncluidos,
+    additional_user_price: Math.max(
+      0,
+      Math.round(numeroConfiguracion(config.commercial_additional_user_price ?? config.additional_user_price, PRECIO_USUARIO_ADICIONAL_DEFECTO))
+    ),
+    iva_rate: tasaIvaConfiguracion(config.commercial_iva_rate ?? config.iva_rate),
+    companies_unlimited: String(config.commercial_companies_limit || "unlimited").toLowerCase() !== "limited",
+  };
+}
+
+function limpiarNombreServicio(valor) {
+  const texto = String(valor || "").trim();
+  return texto || NOMBRE_SERVICIO_UNICO;
+}
+
+function calcularMontoSuscripcion({ usuariosActivos = 1, meses = 1, config = {} } = {}) {
+  const comercial = normalizarConfiguracionComercial(config);
+  const mesesCobrados = Math.max(1, Math.round(numeroConfiguracion(meses, 1)));
+  const usuariosActivosFinal = Math.max(0, Math.round(numeroConfiguracion(usuariosActivos, 0)));
+  const usuariosAdicionales = Math.max(0, usuariosActivosFinal - comercial.included_users);
+  const precioBaseTotal = comercial.monthly_base_price * mesesCobrados;
+  const usuariosAdicionalesTotal =
+    usuariosAdicionales * comercial.additional_user_price * mesesCobrados;
+  const subtotal = precioBaseTotal + usuariosAdicionalesTotal;
+  const iva = Math.round(subtotal * comercial.iva_rate);
+
+  return {
+    service_name: comercial.service_name,
+    usuarios_activos: usuariosActivosFinal,
+    usuarios_incluidos: comercial.included_users,
+    usuarios_adicionales: usuariosAdicionales,
+    meses_cobrados: mesesCobrados,
+    precio_base_mensual: comercial.monthly_base_price,
+    precio_base_total: precioBaseTotal,
+    precio_usuario_adicional: comercial.additional_user_price,
+    usuarios_adicionales_total: usuariosAdicionalesTotal,
+    subtotal,
+    iva_rate: comercial.iva_rate,
+    iva,
+    total: subtotal + iva,
+    empresas_ilimitadas: comercial.companies_unlimited,
+  };
 }
 
 async function asegurarEsquemaSuscripcion(client) {
@@ -197,6 +242,21 @@ async function asegurarEsquemaSuscripcion(client) {
       provider_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
       created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
     )
+  `);
+
+  await client.query(`
+    ALTER TABLE subscription_payments
+      ADD COLUMN IF NOT EXISTS service_name VARCHAR(160),
+      ADD COLUMN IF NOT EXISTS base_price INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS included_users INTEGER NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS active_users INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS additional_users INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS additional_user_price INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS additional_users_amount INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS subtotal INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS iva_rate NUMERIC(8,4) NOT NULL DEFAULT 0.19,
+      ADD COLUMN IF NOT EXISTS iva_amount INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS total_amount INTEGER NOT NULL DEFAULT 0
   `);
 
   await client.query(`
@@ -281,7 +341,18 @@ async function asegurarDatosBaseSuscripcion(client) {
       INSERT INTO subscription_plans
       (code, name, description, monthly_price, annual_price, max_companies, max_users, features, active, trial_days, sort_order)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,true,$9,$10)
-      ON CONFLICT (code) DO NOTHING
+      ON CONFLICT (code) DO UPDATE
+      SET name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          monthly_price = EXCLUDED.monthly_price,
+          annual_price = EXCLUDED.annual_price,
+          max_companies = NULL,
+          max_users = NULL,
+          features = EXCLUDED.features,
+          active = true,
+          trial_days = EXCLUDED.trial_days,
+          sort_order = EXCLUDED.sort_order,
+          updated_at = NOW()
       `,
       [
         plan.code,
@@ -297,6 +368,11 @@ async function asegurarDatosBaseSuscripcion(client) {
       ]
     );
   }
+
+  await client.query(
+    "UPDATE subscription_plans SET active = false, updated_at = NOW() WHERE code <> $1",
+    [CODIGO_PLAN_UNICO]
+  );
 }
 
 async function inicializarSuscripciones(pool) {
@@ -322,6 +398,8 @@ async function obtenerConfiguracionSuscripcion(client) {
     config[fila.key] = fila.value;
   }
 
+  const comercial = normalizarConfiguracionComercial(config);
+
   return {
     trial_days: Number(config.trial_days || 14),
     grace_days: Number(config.grace_days || 5),
@@ -332,7 +410,19 @@ async function obtenerConfiguracionSuscripcion(client) {
     currency: config.currency || "CLP",
     expired_status: normalizarEstadoSuscripcion(config.expired_status),
     suspension_policy: config.suspension_policy || "manual_after_grace",
-    default_plan_code: config.default_plan_code || "basico",
+    default_plan_code: CODIGO_PLAN_UNICO,
+    commercial_service_name: comercial.service_name,
+    commercial_monthly_base_price: comercial.monthly_base_price,
+    commercial_included_users: comercial.included_users,
+    commercial_additional_user_price: comercial.additional_user_price,
+    commercial_iva_rate: comercial.iva_rate,
+    commercial_companies_limit: comercial.companies_unlimited ? "unlimited" : "limited",
+    service_name: comercial.service_name,
+    monthly_base_price: comercial.monthly_base_price,
+    included_users: comercial.included_users,
+    additional_user_price: comercial.additional_user_price,
+    iva_rate: comercial.iva_rate,
+    companies_unlimited: comercial.companies_unlimited,
   };
 }
 
@@ -422,7 +512,7 @@ async function obtenerSuscripcionUsuario(client, usuarioId) {
 
 async function crearSuscripcionDesdeUsuarioLegacy(client, usuario) {
   const config = await obtenerConfiguracionSuscripcion(client);
-  const planCode = usuario.suscripcion_plan || config.default_plan_code;
+  const planCode = config.default_plan_code;
   const plan =
     (await obtenerPlanPorCodigo(client, planCode)) ||
     (await obtenerPlanPorCodigo(client, config.default_plan_code));
@@ -442,7 +532,7 @@ async function crearSuscripcionDesdeUsuarioLegacy(client, usuario) {
       usuario.id,
       plan?.id || null,
       estado,
-      Number(plan?.monthly_price || 0),
+      Number(config.monthly_base_price || plan?.monthly_price || 0),
       config.currency,
       inicio,
       vence,
@@ -606,69 +696,23 @@ async function obtenerLimitesPlanUsuario(client, usuarioId) {
 
   return {
     status: estado.status,
-    max_companies: suscripcion.max_companies_override ?? suscripcion.max_companies,
-    max_users: suscripcion.max_users_override ?? suscripcion.max_users,
+    max_companies: null,
+    max_users: null,
+    empresas_ilimitadas: true,
+    usuarios_adicionales_facturables: true,
   };
 }
 
 async function validarLimiteEmpresasUsuario(client, usuario) {
   const { esAdminSistema } = require("./auth.helper");
   if (!usuario?.id || esAdminSistema(usuario?.rol)) return { permitido: true };
-
-  const limites = await obtenerLimitesPlanUsuario(client, usuario.id);
-  if (limites.max_companies === null || limites.max_companies === undefined) return { permitido: true };
-
-  const conteo = await client.query(
-    `
-    SELECT COUNT(DISTINCT ue.empresa_id)::int AS total
-    FROM usuarios_empresas ue
-    JOIN empresas e ON e.id = ue.empresa_id
-    WHERE ue.usuario_id = $1
-      AND ue.activo = true
-      AND COALESCE(e.activa, true) = true
-    `,
-    [usuario.id]
-  );
-  const total = Number(conteo.rows[0]?.total || 0);
-
-  if (total >= Number(limites.max_companies)) {
-    return {
-      permitido: false,
-      mensaje: `Limite de empresas alcanzado para el plan actual (${limites.max_companies}).`,
-    };
-  }
-
-  return { permitido: true };
+  return { permitido: true, empresas_ilimitadas: true };
 }
 
 async function validarLimiteUsuariosCliente(client, usuario) {
   const { esAdminSistema } = require("./auth.helper");
   if (!usuario?.id || esAdminSistema(usuario?.rol)) return { permitido: true };
-
-  const limites = await obtenerLimitesPlanUsuario(client, usuario.id);
-  if (limites.max_users === null || limites.max_users === undefined) return { permitido: true };
-
-  const conteo = await client.query(
-    `
-    SELECT COUNT(DISTINCT ue2.usuario_id)::int AS total
-    FROM usuarios_empresas base
-    JOIN usuarios_empresas ue2 ON ue2.empresa_id = base.empresa_id AND ue2.activo = true
-    JOIN usuarios u2 ON u2.id = ue2.usuario_id AND u2.activo = true
-    WHERE base.usuario_id = $1
-      AND base.activo = true
-    `,
-    [usuario.id]
-  );
-  const total = Number(conteo.rows[0]?.total || 0);
-
-  if (total >= Number(limites.max_users)) {
-    return {
-      permitido: false,
-      mensaje: `Limite de usuarios alcanzado para el plan actual (${limites.max_users}).`,
-    };
-  }
-
-  return { permitido: true };
+  return { permitido: true, usuarios_adicionales_facturables: true };
 }
 
 async function extenderSuscripcionUsuario(
@@ -750,6 +794,9 @@ module.exports = {
   ESTADOS_SUSCRIPCION,
   ACCIONES_SUSCRIPCION,
   ESTADOS_PAGO,
+  CODIGO_PLAN_UNICO,
+  NOMBRE_SERVICIO_UNICO,
+  calcularMontoSuscripcion,
   asegurarEsquemaSuscripcion,
   inicializarSuscripciones,
   obtenerConfiguracionSuscripcion,

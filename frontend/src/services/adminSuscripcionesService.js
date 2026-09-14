@@ -64,18 +64,6 @@ export function registrarPagoSuscripcion(id, datos) {
   });
 }
 
-export function listarPlanesSuscripcion() {
-  return request("/planes");
-}
-
-export function guardarPlanSuscripcion(plan) {
-  const id = plan.id || "";
-  return request(id ? `/planes/${id}` : "/planes", {
-    method: id ? "PATCH" : "POST",
-    body: JSON.stringify(plan),
-  });
-}
-
 export function obtenerConfiguracionSuscripciones() {
   return request("/configuracion");
 }

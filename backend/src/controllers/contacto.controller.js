@@ -261,10 +261,18 @@ async function crearPruebaGratisAutoservicio(req, res) {
       INSERT INTO subscriptions
       (user_id, plan_id, status, billing_cycle, price, currency, starts_at, expires_at,
        trial_starts_at, trial_ends_at, auto_renew, grace_days, max_companies_override, max_users_override)
-      VALUES ($1,$2,$3,'monthly',0,$4,CURRENT_DATE,$5,CURRENT_DATE,$5,false,$6,1,NULL)
+      VALUES ($1,$2,$3,'monthly',$4,$5,CURRENT_DATE,$6,CURRENT_DATE,$6,false,$7,NULL,NULL)
       RETURNING *
       `,
-      [usuario.id, plan?.id || null, ESTADOS_SUSCRIPCION.TRIAL, config.currency, vence, config.grace_days]
+      [
+        usuario.id,
+        plan?.id || null,
+        ESTADOS_SUSCRIPCION.TRIAL,
+        Number(config.monthly_base_price || plan?.monthly_price || 0),
+        config.currency,
+        vence,
+        config.grace_days,
+      ]
     );
 
     const suscripcion = suscripcionResult.rows[0];

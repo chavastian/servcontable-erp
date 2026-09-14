@@ -135,8 +135,8 @@ const HEROES_CONTABLE = {
     descripcion: "Administra clientes, permisos y accesos al sistema.",
   },
   adminSuscripciones: {
-    titulo: "Administración de Suscripciones",
-    descripcion: "Controla clientes, planes, pagos, vencimientos y auditoría comercial.",
+    titulo: "Administración del Sistema",
+    descripcion: "Controla clientes, usuarios, pagos, vencimientos y configuración comercial.",
   },
   adminSuscripcionesSolicitudes: {
     titulo: "Solicitudes web",
@@ -150,9 +150,9 @@ const HEROES_CONTABLE = {
     titulo: "Suscripciones",
     descripcion: "Gestiona estados, vencimientos y acciones manuales.",
   },
-  adminSuscripcionesPlanes: {
-    titulo: "Planes",
-    descripcion: "Administra precios, limites y caracteristicas de los planes.",
+  adminSuscripcionesEmpresas: {
+    titulo: "Empresas",
+    descripcion: "Revisa empresas asociadas a clientes. El servicio permite empresas ilimitadas.",
   },
   adminSuscripcionesPagos: {
     titulo: "Pagos",
@@ -167,8 +167,8 @@ const HEROES_CONTABLE = {
     descripcion: "Consulta acciones administrativas sensibles.",
   },
   adminSuscripcionesConfiguracion: {
-    titulo: "Configuración",
-    descripcion: "Define parametros generales del servicio de suscripcion.",
+    titulo: "Configuración Comercial",
+    descripcion: "Define precio base, IVA, usuario incluido y valor de usuarios adicionales.",
   },
 };
 
@@ -379,13 +379,15 @@ export default function PanelPrincipal({
   const menuAdministracion = {
     grupo: "Administración",
     items: [
-      { id: "adminSuscripciones", label: "Resumen" },
-      { id: "usuariosSistema", label: "Usuarios" },
+      { id: "adminSuscripciones", label: "Dashboard" },
       { id: "adminSuscripcionesClientes", label: "Clientes" },
+      { id: "adminSuscripcionesEmpresas", label: "Empresas" },
+      { id: "usuariosSistema", label: "Usuarios" },
       { id: "adminSuscripcionesGestion", label: "Suscripciones" },
-      { id: "adminSuscripcionesSolicitudes", label: "Solicitudes" },
-      { id: "adminSuscripcionesConfiguracion", label: "Configuración" },
-      { id: "adminSuscripcionesAuditoria", label: "Auditoría" },
+      { id: "adminSuscripcionesPagos", label: "Pagos" },
+      { id: "adminSuscripcionesSolicitudes", label: "Solicitudes Web" },
+      { id: "adminSuscripcionesAuditoria", label: "Auditoría / Actividad" },
+      { id: "adminSuscripcionesConfiguracion", label: "Configuración Comercial" },
     ],
   };
 
@@ -555,8 +557,14 @@ export default function PanelPrincipal({
             {vistaActiva === "adminSuscripcionesClientes" && usuarioEsAdminSistema && (
               <AdminSuscripciones vistaInicial="clientes" />
             )}
+            {vistaActiva === "adminSuscripcionesEmpresas" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="empresas" />
+            )}
             {vistaActiva === "adminSuscripcionesGestion" && usuarioEsAdminSistema && (
               <AdminSuscripciones vistaInicial="suscripciones" />
+            )}
+            {vistaActiva === "adminSuscripcionesPagos" && usuarioEsAdminSistema && (
+              <AdminSuscripciones vistaInicial="pagos" />
             )}
             {vistaActiva === "adminSuscripcionesAuditoria" && usuarioEsAdminSistema && (
               <AdminSuscripciones vistaInicial="auditoria" />

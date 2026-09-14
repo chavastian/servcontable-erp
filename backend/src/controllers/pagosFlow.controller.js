@@ -2,24 +2,14 @@
 const crypto = require("crypto");
 const {
   asegurarEsquemaSuscripcion,
+  NOMBRE_SERVICIO_UNICO,
+  calcularMontoSuscripcion,
   extenderSuscripcionUsuario,
+  obtenerConfiguracionSuscripcion,
 } = require("../helpers/suscripcion.helper");
 
-const IVA = 0.19;
-const PRECIO_USUARIO_ADICIONAL = 3990;
 const MESES_ANUALES = 12;
-const PLANES = {
-  mensual: {
-    periodicidad: "mensual",
-    nombre: "ServContable PRO - Plan mensual",
-    montoNeto: 16990,
-  },
-  anual: {
-    periodicidad: "anual",
-    nombre: "ServContable PRO - Plan anual",
-    montoNeto: 14990 * 12,
-  },
-};
+const PERIODICIDADES_PERMITIDAS = new Set(["mensual", "anual"]);
 
 function limpiarTexto(valor) {
   if (valor === undefined || valor === null) return "";
@@ -35,31 +25,33 @@ function normalizarEnteroPositivo(valor) {
   return Number.isFinite(numero) && numero > 0 ? numero : 0;
 }
 
-function calcularTotales(periodicidad, usuariosAdicionales = 0, meses = 1) {
-  const plan = PLANES[periodicidad] || PLANES.mensual;
+async function calcularTotales(periodicidad, usuariosAdicionales = 0, meses = 1) {
+  const config = await obtenerConfiguracionSuscripcion(pool);
   const mesesSolicitados = normalizarEnteroPositivo(meses) || 1;
   const mesesCobrados =
     periodicidad === "anual" ? MESES_ANUALES : Math.min(mesesSolicitados, 12);
-  const planBaseNeto =
-    periodicidad === "anual" ? plan.montoNeto : plan.montoNeto * mesesCobrados;
-  const usuariosAdicionalesNeto =
-    PRECIO_USUARIO_ADICIONAL * usuariosAdicionales * mesesCobrados;
-  const subtotalNeto = planBaseNeto + usuariosAdicionalesNeto;
-  const iva = Math.round(subtotalNeto * IVA);
+  const resumen = calcularMontoSuscripcion({
+    usuariosActivos: Number(usuariosAdicionales || 0) + Number(config.included_users || 1),
+    meses: mesesCobrados,
+    config,
+  });
+  const nombreBase = config.service_name || NOMBRE_SERVICIO_UNICO;
 
   return {
-    ...plan,
+    periodicidad,
     nombre:
       periodicidad === "mensual" && mesesCobrados > 1
-        ? `${plan.nombre} (${mesesCobrados} meses)`
-        : plan.nombre,
+        ? `${nombreBase} - Suscripción mensual (${mesesCobrados} meses)`
+        : `${nombreBase} - Suscripción ${periodicidad}`,
     usuariosAdicionales,
     mesesCobrados,
-    planBaseNeto,
-    usuariosAdicionalesNeto,
-    montoNeto: subtotalNeto,
-    iva,
-    total: subtotalNeto + iva,
+    planBaseNeto: resumen.precio_base_total,
+    usuariosAdicionalesNeto: resumen.usuarios_adicionales_total,
+    montoNeto: resumen.subtotal,
+    iva: resumen.iva,
+    total: resumen.total,
+    precioUsuarioAdicional: resumen.precio_usuario_adicional,
+    usuariosIncluidos: resumen.usuarios_incluidos,
   };
 }
 
@@ -246,7 +238,7 @@ async function registrarPagoFlow({
 }) {
   await asegurarTablaContrataciones();
 
-  const totales = calcularTotales(periodicidad, usuariosAdicionales, meses);
+  const totales = await calcularTotales(periodicidad, usuariosAdicionales, meses);
 
   const contratacionResult = await pool.query(
     `
@@ -269,8 +261,11 @@ async function registrarPagoFlow({
       JSON.stringify({
         pasarela: "flow",
         acepta_terminos: true,
-        plan: "PRO multiempresa 1 usuario",
+        servicio: NOMBRE_SERVICIO_UNICO,
+        modelo_comercial: "1 usuario incluido, empresas ilimitadas, usuarios adicionales facturables",
         usuarios_adicionales: usuariosAdicionales,
+        usuarios_incluidos: totales.usuariosIncluidos,
+        precio_usuario_adicional: totales.precioUsuarioAdicional,
         meses_cobrados: totales.mesesCobrados,
         plan_base_neto: totales.planBaseNeto,
         usuarios_adicionales_neto: totales.usuariosAdicionalesNeto,
@@ -396,7 +391,7 @@ async function crearPagoContratacion(req, res) {
       return res.status(400).json({ ok: false, error: "El correo ingresado no es valido." });
     }
 
-    if (!PLANES[periodicidad]) {
+    if (!PERIODICIDADES_PERMITIDAS.has(periodicidad)) {
       return res.status(400).json({ ok: false, error: "Periodicidad no valida." });
     }
 
@@ -483,7 +478,7 @@ async function crearRenovacionSuscripcionFlow(req, res) {
       req.body.meses || req.body.meses_cobrados || req.body.mesesCobro
     ) || 1;
 
-    if (!PLANES[periodicidad]) {
+    if (!PERIODICIDADES_PERMITIDAS.has(periodicidad)) {
       return res.status(400).json({ ok: false, error: "Periodicidad no valida." });
     }
 

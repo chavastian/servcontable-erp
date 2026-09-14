@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   ESTADOS_SUSCRIPCION,
+  calcularMontoSuscripcion,
   calcularEstadoVigente,
   normalizarEstadoSuscripcion,
 } = require("../src/helpers/suscripcion.helper");
@@ -88,6 +89,28 @@ test("abstraccion de pagos conserva proveedor futuro sin acoplar la suscripcion"
   assert.equal(pago.provider, "flow");
   assert.equal(pago.transaction_id, "TRX-1");
   assert.equal(pago.payment_method, "tarjeta");
+});
+
+test("calcula servicio unico con 1 usuario incluido y empresas ilimitadas", () => {
+  const monto = calcularMontoSuscripcion({ usuariosActivos: 1 });
+
+  assert.equal(monto.precio_base_mensual, 29990);
+  assert.equal(monto.usuarios_incluidos, 1);
+  assert.equal(monto.usuarios_adicionales, 0);
+  assert.equal(monto.subtotal, 29990);
+  assert.equal(monto.iva, 5698);
+  assert.equal(monto.total, 35688);
+  assert.equal(monto.empresas_ilimitadas, true);
+});
+
+test("calcula usuarios adicionales facturables sin cobrar empresas", () => {
+  const monto = calcularMontoSuscripcion({ usuariosActivos: 5 });
+
+  assert.equal(monto.usuarios_adicionales, 4);
+  assert.equal(monto.usuarios_adicionales_total, 15960);
+  assert.equal(monto.subtotal, 45950);
+  assert.equal(monto.iva, 8731);
+  assert.equal(monto.total, 54681);
 });
 
 test("normaliza y valida RUT chileno para login autoservicio", () => {

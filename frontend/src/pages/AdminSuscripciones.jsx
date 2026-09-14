@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ejecutarAccionSuscripcion,
   ejecutarAccionSolicitudWebSuscripcion,
   guardarConfiguracionSuscripciones,
-  guardarPlanSuscripcion,
   listarAuditoriaSuscripciones,
   listarClientesSuscripciones,
   listarNotificacionesSuscripciones,
-  listarPlanesSuscripcion,
   listarSolicitudesWebSuscripciones,
   obtenerDetalleSolicitudWebSuscripcion,
   obtenerClienteSuscripcion,
@@ -16,10 +14,25 @@ import {
   registrarPagoSuscripcion,
 } from "../services/adminSuscripcionesService";
 import { obtenerUsuarioActual } from "../services/authService";
+import { CONFIG_COMERCIAL } from "../config/comercial";
 
 const ROLES_SUPER_ADMIN = ["superadmin", "super_admin", "admin", "administrador_sistema"];
 const ESTADOS = ["TRIAL", "ACTIVE", "PAST_DUE", "EXPIRED", "SUSPENDED", "CANCELLED"];
 const ESTADOS_PAGO = ["PAID", "PENDING", "FAILED", "REFUNDED", "VOID"];
+const CONFIG_COMERCIAL_KEYS = [
+  "commercial_service_name",
+  "commercial_monthly_base_price",
+  "commercial_iva_rate",
+  "commercial_included_users",
+  "commercial_additional_user_price",
+  "commercial_companies_limit",
+  "trial_days",
+  "grace_days",
+  "expiry_notice_days",
+  "currency",
+  "expired_status",
+  "suspension_policy",
+];
 
 function esSuperAdmin(rol = "") {
   return ROLES_SUPER_ADMIN.includes(String(rol || "").trim().toLowerCase());
@@ -50,6 +63,25 @@ function textoEstado(estado = "") {
   return labels[estado] || estado || "-";
 }
 
+function etiquetaConfiguracion(key = "") {
+  const labels = {
+    commercial_service_name: "Servicio",
+    commercial_monthly_base_price: "Precio mensual base",
+    commercial_included_users: "Usuarios incluidos",
+    commercial_additional_user_price: "Precio usuario adicional",
+    commercial_iva_rate: "IVA",
+    commercial_companies_limit: "Empresas",
+    trial_days: "Duración prueba gratis",
+    grace_days: "Días de gracia",
+    expiry_notice_days: "Avisos antes del vencimiento",
+    currency: "Moneda",
+    expired_status: "Estado al vencer",
+    suspension_policy: "Política de suspensión",
+    default_plan_code: "Código interno del servicio",
+  };
+  return labels[key] || key;
+}
+
 function estadoStyle(estado = "") {
   const base = {
     borderRadius: "999px",
@@ -69,32 +101,12 @@ function estadoStyle(estado = "") {
   return { ...base, background: "#e2e8f0", color: "#334155" };
 }
 
-function leerListaFeatures(plan) {
-  if (Array.isArray(plan?.features)) return plan.features.join("\n");
-  return "";
-}
-
-const planInicial = {
-  code: "",
-  name: "",
-  description: "",
-  monthly_price: 0,
-  annual_price: 0,
-  max_companies: "",
-  max_users: "",
-  features: "",
-  active: true,
-  trial_days: 30,
-  sort_order: 0,
-};
-
 export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
   const usuario = obtenerUsuarioActual();
   const [tab, setTab] = useState(vistaInicial);
   const [dashboard, setDashboard] = useState(null);
   const [clientes, setClientes] = useState([]);
   const [clienteActivo, setClienteActivo] = useState(null);
-  const [planes, setPlanes] = useState([]);
   const [auditoria, setAuditoria] = useState([]);
   const [notificaciones, setNotificaciones] = useState([]);
   const [solicitudesWeb, setSolicitudesWeb] = useState([]);
@@ -105,11 +117,9 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
-  const [planEditando, setPlanEditando] = useState(planInicial);
   const [filtros, setFiltros] = useState({
     buscar: "",
     estado: "",
-    plan: "",
     desde: "",
     vence_hasta: "",
     sort: "created_desc",
@@ -126,14 +136,11 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
     dias: 30,
     meses: 1,
     billing_cycle: "monthly",
-    plan_id: "",
     observacion: "",
-    max_companies_override: "",
-    max_users_override: "",
   });
   const [pago, setPago] = useState({
     payment_date: new Date().toISOString().slice(0, 10),
-    amount: 0,
+    amount: "",
     period_label: "",
     payment_method: "manual",
     status: "PAID",
@@ -143,10 +150,6 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
   });
 
   const metricas = dashboard?.metricas || {};
-  const planOpciones = useMemo(
-    () => planes.map((plan) => ({ id: plan.id, label: plan.name || plan.code })),
-    [planes]
-  );
 
   useEffect(() => {
     cargarTodo();
@@ -163,7 +166,6 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
       const [
         dataDashboard,
         dataClientes,
-        dataPlanes,
         dataConfig,
         dataAuditoria,
         dataNotificaciones,
@@ -172,7 +174,6 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
         await Promise.all([
           obtenerDashboardSuscripciones(),
           listarClientesSuscripciones(filtros),
-          listarPlanesSuscripcion(),
           obtenerConfiguracionSuscripciones(),
           listarAuditoriaSuscripciones(),
           listarNotificacionesSuscripciones(),
@@ -181,7 +182,6 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
       setDashboard(dataDashboard);
       setClientes(dataClientes.clientes || []);
-      setPlanes(dataPlanes.planes || []);
       setConfiguracion(dataConfig.configuracion || []);
       setAuditoria(dataAuditoria.auditoria || []);
       setNotificaciones(dataNotificaciones.notificaciones || []);
@@ -252,9 +252,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
     }
 
     if (accionSolicitud === "CONVERTIR") {
-      const planId = window.prompt("ID del plan a convertir:", planes[0]?.id || "");
-      if (!planId) return;
-      payload = { ...payload, plan_id: planId, billing_cycle: "monthly" };
+      payload = { ...payload, billing_cycle: "monthly" };
     }
 
     const confirma = window.confirm("Confirma aplicar esta accion?");
@@ -279,10 +277,6 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
       const data = await obtenerClienteSuscripcion(cliente.id);
       setClienteActivo(data);
       setTab("cliente");
-      setAccion((actual) => ({
-        ...actual,
-        plan_id: data.cliente?.plan_id || planes[0]?.id || "",
-      }));
     } catch (err) {
       setError(err.message);
     }
@@ -322,32 +316,8 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
     }
   }
 
-  async function guardarPlan(e) {
-    e.preventDefault();
-    const confirma = window.confirm("Confirma guardar este plan de suscripcion?");
-    if (!confirma) return;
-
-    try {
-      setError("");
-      setMensaje("");
-      await guardarPlanSuscripcion({
-        ...planEditando,
-        features: String(planEditando.features || "")
-          .split("\n")
-          .map((item) => item.trim())
-          .filter(Boolean),
-      });
-      setPlanEditando(planInicial);
-      setMensaje("Plan guardado correctamente.");
-      const data = await listarPlanesSuscripcion();
-      setPlanes(data.planes || []);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
   async function guardarConfig() {
-    const confirma = window.confirm("Confirma guardar la configuracion general?");
+    const confirma = window.confirm("Confirma guardar la configuracion comercial?");
     if (!confirma) return;
 
     try {
@@ -365,28 +335,10 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
     setFiltros((actual) => ({ ...actual, [name]: value }));
   }
 
-  function actualizarPlan(e) {
-    const { name, value, type, checked } = e.target;
-    setPlanEditando((actual) => ({
-      ...actual,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  }
-
-  function editarPlan(plan) {
-    setPlanEditando({
-      ...plan,
-      features: leerListaFeatures(plan),
-      max_companies: plan.max_companies ?? "",
-      max_users: plan.max_users ?? "",
-    });
-    setTab("planes");
-  }
-
   if (!esSuperAdmin(usuario?.rol)) {
     return (
       <div>
-        <h1 style={titulo}>Administracion de Suscripciones</h1>
+        <h1 style={titulo}>Administración del Sistema</h1>
         <p style={errorTexto}>Solo el administrador del sistema puede acceder a este modulo.</p>
       </div>
     );
@@ -404,11 +356,13 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
       <div style={tabs}>
         {[
-          ["dashboard", "Resumen"],
+          ["dashboard", "Dashboard"],
           ["clientes", "Clientes"],
+          ["empresas", "Empresas"],
           ["suscripciones", "Suscripciones"],
-          ["solicitudes", "Solicitudes"],
-          ["configuracion", "Configuración"],
+          ["pagos", "Pagos"],
+          ["solicitudes", "Solicitudes Web"],
+          ["configuracion", "Configuración Comercial"],
           ["auditoria", "Auditoría"],
           ...(tab === "cliente" ? [["cliente", "Ficha"]] : []),
         ].map(([id, label]) => (
@@ -424,13 +378,15 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
         <>
           <div style={metricGrid}>
             <Metric label="Clientes activos" value={metricas.activos} />
-            <Metric label="Pruebas activas" value={metricas.trial} />
-            <Metric label="Pruebas por vencer" value={metricas.proximas_vencer} />
-            <Metric label="Pruebas vencidas" value={metricas.vencidas} />
             <Metric label="Suscripciones activas" value={metricas.activos} />
-            <Metric label="Pagos pendientes" value={resumenSolicitudesWeb.pagos_pendientes} />
-            <Metric label="Nuevos registros mes" value={metricas.nuevos_mes} />
-            <Metric label="Conversiones mes" value={resumenSolicitudesWeb.conversiones_mes} />
+            <Metric label="Clientes en prueba" value={metricas.trial} />
+            <Metric label="Por vencer" value={metricas.proximas_vencer} />
+            <Metric label="Vencidas" value={metricas.vencidas} />
+            <Metric label="Suspendidas" value={metricas.suspendidas} />
+            <Metric label="Empresas registradas" value={metricas.empresas_registradas} />
+            <Metric label="Usuarios activos" value={metricas.usuarios_activos} />
+            <Metric label="Usuarios adicionales" value={metricas.usuarios_adicionales_activos} />
+            <Metric label="Pagos pendientes" value={metricas.pagos_pendientes || resumenSolicitudesWeb.pagos_pendientes} />
           </div>
 
           {alertasSolicitudesWeb.length > 0 && (
@@ -455,13 +411,51 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
           <div style={gridDos}>
             <section style={card}>
-              <h2 style={tituloSeccion}>Distribución por plan</h2>
-              {(dashboard?.distribucion_planes || []).map((item) => (
-                <div key={item.plan} style={filaResumen}>
-                  <span>{item.plan}</span>
-                  <strong>{item.total}</strong>
-                </div>
-              ))}
+              <h2 style={tituloSeccion}>Modelo comercial</h2>
+              <div style={filaResumen}>
+                <span>Servicio</span>
+                <strong>{dashboard?.configuracion_comercial?.servicio || CONFIG_COMERCIAL.servicio}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>Precio base mensual</span>
+                <strong>{formatoMoneda(dashboard?.configuracion_comercial?.precio_base_mensual || CONFIG_COMERCIAL.precioBaseMensual)}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>Usuarios incluidos</span>
+                <strong>{dashboard?.configuracion_comercial?.usuarios_incluidos || CONFIG_COMERCIAL.usuariosIncluidos}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>Usuario adicional</span>
+                <strong>{formatoMoneda(dashboard?.configuracion_comercial?.precio_usuario_adicional || CONFIG_COMERCIAL.precioUsuarioAdicional)}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>Empresas</span>
+                <strong>Ilimitadas</strong>
+              </div>
+            </section>
+
+            <section style={card}>
+              <h2 style={tituloSeccion}>Ingreso mensual estimado</h2>
+              <div style={filaResumen}>
+                <span>Base mensual</span>
+                <strong>{formatoMoneda(metricas.ingreso_base_mensual)}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>Usuarios adicionales</span>
+                <strong>{formatoMoneda(metricas.ingreso_usuarios_adicionales)}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>Neto</span>
+                <strong>{formatoMoneda(metricas.ingreso_mensual_neto)}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>IVA estimado</span>
+                <strong>{formatoMoneda(metricas.iva_estimado)}</strong>
+              </div>
+              <div style={filaResumen}>
+                <span>Total mensual</span>
+                <strong>{formatoMoneda(metricas.total_mensual_estimado)}</strong>
+              </div>
             </section>
 
             <section style={card}>
@@ -584,17 +578,12 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
               <option value="">Todos los estados</option>
               {ESTADOS.map((estado) => <option key={estado} value={estado}>{textoEstado(estado)}</option>)}
             </select>
-            <select style={input} name="plan" value={filtros.plan} onChange={actualizarFiltro}>
-              <option value="">Todos los planes</option>
-              {planes.map((plan) => <option key={plan.id} value={plan.code}>{plan.name}</option>)}
-            </select>
             <input style={input} type="date" name="desde" value={filtros.desde} onChange={actualizarFiltro} />
             <input style={input} type="date" name="vence_hasta" value={filtros.vence_hasta} onChange={actualizarFiltro} />
             <select style={input} name="sort" value={filtros.sort} onChange={actualizarFiltro}>
               <option value="created_desc">Fecha de alta</option>
               <option value="nombre">Nombre</option>
               <option value="vencimiento">Vencimiento</option>
-              <option value="plan">Plan</option>
               <option value="estado">Estado</option>
               <option value="ultimo_acceso">Ultimo acceso</option>
             </select>
@@ -617,13 +606,27 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
               <option value="">Todos los estados</option>
               {ESTADOS.map((estado) => <option key={estado} value={estado}>{textoEstado(estado)}</option>)}
             </select>
-            <select style={input} name="plan" value={filtros.plan} onChange={actualizarFiltro}>
-              <option value="">Todos los planes</option>
-              {planes.map((plan) => <option key={plan.id} value={plan.code}>{plan.name}</option>)}
-            </select>
             <button type="button" style={botonPrimario} onClick={buscarClientes}>Buscar</button>
           </div>
           <TablaSuscripciones clientes={clientes} abrirCliente={abrirCliente} />
+        </section>
+      )}
+
+      {tab === "empresas" && (
+        <section style={card}>
+          <h2 style={tituloSeccion}>Empresas</h2>
+          <p style={subtitulo}>
+            Las empresas son ilimitadas por cliente. Esta vista resume las empresas asociadas sin afectar el valor mensual.
+          </p>
+          <div style={filtrosGrid}>
+            <input style={input} name="buscar" value={filtros.buscar} onChange={actualizarFiltro} placeholder="Cliente, correo, RUT o empresa" />
+            <select style={input} name="estado" value={filtros.estado} onChange={actualizarFiltro}>
+              <option value="">Todos los estados</option>
+              {ESTADOS.map((estado) => <option key={estado} value={estado}>{textoEstado(estado)}</option>)}
+            </select>
+            <button type="button" style={botonPrimario} onClick={buscarClientes}>Buscar</button>
+          </div>
+          <TablaEmpresasAdministracion clientes={clientes} abrirCliente={abrirCliente} />
         </section>
       )}
 
@@ -631,7 +634,6 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
         clienteActivo ? (
           <FichaCliente
             data={clienteActivo}
-            planes={planOpciones}
             accion={accion}
             setAccion={setAccion}
             pago={pago}
@@ -644,31 +646,6 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
             <p style={subtitulo}>Selecciona un cliente desde el listado para ver su ficha completa.</p>
           </section>
         )
-      )}
-
-      {tab === "planes" && (
-        <section style={card}>
-          <h2 style={tituloSeccion}>Planes de suscripcion</h2>
-          <form style={gridFormulario} onSubmit={guardarPlan}>
-            <input style={input} name="code" value={planEditando.code} onChange={actualizarPlan} placeholder="codigo_plan" />
-            <input style={input} name="name" value={planEditando.name} onChange={actualizarPlan} placeholder="Nombre del plan" />
-            <input style={input} name="monthly_price" value={planEditando.monthly_price} onChange={actualizarPlan} placeholder="Precio mensual" />
-            <input style={input} name="annual_price" value={planEditando.annual_price} onChange={actualizarPlan} placeholder="Precio anual" />
-            <input style={input} name="max_companies" value={planEditando.max_companies} onChange={actualizarPlan} placeholder="Max empresas" />
-            <input style={input} name="max_users" value={planEditando.max_users} onChange={actualizarPlan} placeholder="Max usuarios" />
-            <input style={input} name="trial_days" value={planEditando.trial_days} onChange={actualizarPlan} placeholder="Dias prueba" />
-            <input style={input} name="sort_order" value={planEditando.sort_order} onChange={actualizarPlan} placeholder="Orden" />
-            <textarea style={textarea} name="description" value={planEditando.description || ""} onChange={actualizarPlan} placeholder="Descripcion" />
-            <textarea style={textarea} name="features" value={planEditando.features || ""} onChange={actualizarPlan} placeholder="Caracteristicas, una por linea" />
-            <label style={checkLabel}>
-              <input type="checkbox" name="active" checked={Boolean(planEditando.active)} onChange={actualizarPlan} />
-              Plan activo
-            </label>
-            <button type="submit" style={botonGuardar}>Guardar plan</button>
-          </form>
-
-          <TablaPlanes planes={planes} editarPlan={editarPlan} />
-        </section>
       )}
 
       {tab === "pagos" && (
@@ -726,18 +703,20 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
       {tab === "configuracion" && (
         <section style={card}>
-          <h2 style={tituloSeccion}>Configuracion general</h2>
+          <h2 style={tituloSeccion}>Configuración Comercial</h2>
           <div style={gridFormulario}>
-            {configuracion.map((item, index) => (
+            {configuracion
+              .filter((item) => CONFIG_COMERCIAL_KEYS.includes(item.key))
+              .map((item) => (
               <div key={item.key}>
-                <label style={label}>{item.key}</label>
+                <label style={label}>{etiquetaConfiguracion(item.key)}</label>
                 <input
                   style={input}
                   value={item.value}
                   onChange={(e) =>
                     setConfiguracion((actual) =>
-                      actual.map((fila, i) =>
-                        i === index ? { ...fila, value: e.target.value } : fila
+                      actual.map((fila) =>
+                        fila.key === item.key ? { ...fila, value: e.target.value } : fila
                       )
                     )
                   }
@@ -916,7 +895,7 @@ function DetalleSolicitudWeb({ data, cerrar, abrirCliente }) {
         <section style={subCard}>
           <h3 style={tituloSeccion}>Comercial</h3>
           <div style={datosGrid}>
-            <Dato label="Plan" value={solicitud.plan_nombre || solicitud.plan || solicitud.periodicidad} />
+            <Dato label="Servicio" value={solicitud.plan_nombre || solicitud.plan || solicitud.periodicidad} />
             <Dato label="Seguimiento" value={solicitud.seguimiento} />
             <Dato label="Monto" value={solicitud.total ? formatoMoneda(solicitud.total) : "-"} />
             <Dato label="Flow" value={solicitud.flow_status || solicitud.flow_order || "-"} />
@@ -945,7 +924,7 @@ function TablaClientes({ clientes, abrirCliente }) {
       <table style={tabla}>
         <thead>
           <tr>
-            {["ID", "Cliente", "RUT", "Correo", "Plan", "Estado", "Registro", "Vence", "Empresas", "Usuarios", "Ultimo acceso", "Accion"].map((col) => (
+            {["ID", "Cliente", "RUT", "Correo", "Estado", "Registro", "Vence", "Empresas", "Usuarios", "Tipo", "Ultimo acceso", "Accion"].map((col) => (
               <th key={col} style={th}>{col}</th>
             ))}
           </tr>
@@ -957,12 +936,12 @@ function TablaClientes({ clientes, abrirCliente }) {
               <td style={td}>{cliente.razon_social || cliente.cliente_nombre}</td>
               <td style={td}>{cliente.rut || "-"}</td>
               <td style={td}>{cliente.correo}</td>
-              <td style={td}>{cliente.plan_contratado || "-"}</td>
               <td style={td}><span style={estadoStyle(cliente.estado_suscripcion_calculado)}>{textoEstado(cliente.estado_suscripcion_calculado)}</span></td>
               <td style={td}>{formatoFecha(cliente.fecha_registro)}</td>
               <td style={td}>{formatoFecha(cliente.proximo_vencimiento)}</td>
-              <td style={td}>{cliente.empresas_utilizadas}/{cliente.empresas_permitidas ?? "Sin limite"}</td>
-              <td style={td}>{cliente.usuarios_activos}/{cliente.usuarios_permitidos ?? "Sin limite"}</td>
+              <td style={td}>{cliente.empresas_utilizadas || 0} / Ilimitadas</td>
+              <td style={td}>{cliente.usuarios_activos || 0}</td>
+              <td style={td}>{Number(cliente.usuarios_adicionales || 0) > 0 ? "Con adicionales" : "Incluido"}</td>
               <td style={td}>{formatoFecha(cliente.ultimo_acceso)}</td>
               <td style={td}><button type="button" style={botonTabla} onClick={() => abrirCliente(cliente)}>Ver ficha</button></td>
             </tr>
@@ -982,7 +961,7 @@ function TablaSuscripciones({ clientes, abrirCliente }) {
       <table style={tabla}>
         <thead>
           <tr>
-            {["Cliente", "Estado", "Plan", "Inicio", "Renovación", "Vencimiento", "Monto", "Pago", "Acción"].map((col) => (
+            {["Cliente", "Estado", "Empresas", "Usuarios", "Adicionales", "Inicio", "Renovación", "Vencimiento", "Total mensual", "Pago", "Acción"].map((col) => (
               <th key={col} style={th}>{col}</th>
             ))}
           </tr>
@@ -996,11 +975,13 @@ function TablaSuscripciones({ clientes, abrirCliente }) {
                   {textoEstado(cliente.estado_suscripcion_calculado)}
                 </span>
               </td>
-              <td style={td}>{cliente.plan_contratado || "-"}</td>
+              <td style={td}>{cliente.empresas_utilizadas || 0} / Ilimitadas</td>
+              <td style={td}>{cliente.usuarios_activos || 0}</td>
+              <td style={td}>{cliente.usuarios_adicionales || 0}</td>
               <td style={td}>{formatoFecha(cliente.fecha_inicio_suscripcion)}</td>
               <td style={td}>{formatoFecha(cliente.proxima_renovacion)}</td>
               <td style={td}>{formatoFecha(cliente.proximo_vencimiento)}</td>
-              <td style={td}>{formatoMoneda(cliente.price)}</td>
+              <td style={td}>{formatoMoneda(cliente.total_mensual || cliente.price)}</td>
               <td style={td}>{cliente.payment_status || "-"}</td>
               <td style={td}>
                 <button type="button" style={botonTabla} onClick={() => abrirCliente(cliente)}>
@@ -1010,7 +991,7 @@ function TablaSuscripciones({ clientes, abrirCliente }) {
             </tr>
           ))}
           {clientes.length === 0 && (
-            <tr><td style={td} colSpan="9">No hay suscripciones para el filtro seleccionado.</td></tr>
+            <tr><td style={td} colSpan="11">No hay suscripciones para el filtro seleccionado.</td></tr>
           )}
         </tbody>
       </table>
@@ -1018,8 +999,9 @@ function TablaSuscripciones({ clientes, abrirCliente }) {
   );
 }
 
-function FichaCliente({ data, planes, accion, setAccion, pago, setPago, aplicarAccion, guardarPago }) {
+function FichaCliente({ data, accion, setAccion, pago, setPago, aplicarAccion, guardarPago }) {
   const cliente = data.cliente || {};
+  const resumen = cliente.resumen_mensual || {};
 
   return (
     <div style={gridDos}>
@@ -1038,8 +1020,8 @@ function FichaCliente({ data, planes, accion, setAccion, pago, setPago, aplicarA
 
         <h2 style={tituloSeccion}>Suscripcion</h2>
         <div style={datosGrid}>
-          <Dato label="Plan" value={cliente.plan_contratado} />
-          <Dato label="Precio" value={formatoMoneda(cliente.price)} />
+          <Dato label="Servicio" value={cliente.plan_contratado || CONFIG_COMERCIAL.servicio} />
+          <Dato label="Precio base mensual" value={formatoMoneda(cliente.precio_base_mensual || CONFIG_COMERCIAL.precioBaseMensual)} />
           <Dato label="Modalidad" value={cliente.billing_cycle === "annual" ? "Anual" : "Mensual"} />
           <Dato label="Inicio" value={formatoFecha(cliente.fecha_inicio_suscripcion)} />
           <Dato label="Renovacion" value={formatoFecha(cliente.proxima_renovacion)} />
@@ -1050,10 +1032,21 @@ function FichaCliente({ data, planes, accion, setAccion, pago, setPago, aplicarA
 
         <h2 style={tituloSeccion}>Uso del sistema</h2>
         <div style={datosGrid}>
-          <Dato label="Empresas" value={`${cliente.empresas_utilizadas}/${cliente.empresas_permitidas ?? "Sin limite"}`} />
-          <Dato label="Usuarios" value={`${cliente.usuarios_activos}/${cliente.usuarios_permitidos ?? "Sin limite"}`} />
+          <Dato label="Empresas" value={`${cliente.empresas_utilizadas || 0} / Ilimitadas`} />
+          <Dato label="Usuarios activos" value={cliente.usuarios_activos || 0} />
+          <Dato label="Usuario incluido" value={resumen.usuarios_incluidos || CONFIG_COMERCIAL.usuariosIncluidos} />
+          <Dato label="Usuarios adicionales" value={resumen.usuarios_adicionales || 0} />
           <Dato label="Dias restantes" value={cliente.dias_restantes ?? "-"} />
           <Dato label="Gracia restante" value={cliente.gracia_restante ?? "-"} />
+        </div>
+
+        <h2 style={tituloSeccion}>Resumen mensual</h2>
+        <div style={datosGrid}>
+          <Dato label="Base mensual" value={formatoMoneda(resumen.precio_base_mensual || cliente.precio_base_mensual)} />
+          <Dato label="Usuarios adicionales" value={formatoMoneda(resumen.usuarios_adicionales_total || 0)} />
+          <Dato label="Subtotal" value={formatoMoneda(resumen.subtotal || cliente.subtotal_mensual)} />
+          <Dato label="IVA" value={formatoMoneda(resumen.iva || cliente.iva_mensual)} />
+          <Dato label="Total" value={formatoMoneda(resumen.total || cliente.total_mensual)} />
         </div>
       </section>
 
@@ -1065,28 +1058,23 @@ function FichaCliente({ data, planes, accion, setAccion, pago, setPago, aplicarA
             <option value="SUSPENDER">Suspender</option>
             <option value="REACTIVAR">Reactivar</option>
             <option value="CANCELAR">Cancelar</option>
-            <option value="CAMBIAR_PLAN">Cambiar plan</option>
             <option value="EXTENDER">Extender vencimiento</option>
             <option value="RENOVAR">Renovar</option>
-            <option value="LIMITES">Modificar limites</option>
             <option value="NOTA_INTERNA">Agregar nota interna</option>
-          </select>
-          <select style={input} value={accion.plan_id} onChange={(e) => setAccion((actual) => ({ ...actual, plan_id: e.target.value }))}>
-            <option value="">Seleccionar plan</option>
-            {planes.map((plan) => <option key={plan.id} value={plan.id}>{plan.label}</option>)}
           </select>
           <input style={input} value={accion.dias} onChange={(e) => setAccion((actual) => ({ ...actual, dias: e.target.value }))} placeholder="Dias gratuitos o extension" />
           <input style={input} value={accion.meses} onChange={(e) => setAccion((actual) => ({ ...actual, meses: e.target.value }))} placeholder="Meses renovacion" />
-          <input style={input} value={accion.max_companies_override} onChange={(e) => setAccion((actual) => ({ ...actual, max_companies_override: e.target.value }))} placeholder="Limite especial empresas" />
-          <input style={input} value={accion.max_users_override} onChange={(e) => setAccion((actual) => ({ ...actual, max_users_override: e.target.value }))} placeholder="Limite especial usuarios" />
           <textarea style={textarea} value={accion.observacion} onChange={(e) => setAccion((actual) => ({ ...actual, observacion: e.target.value }))} placeholder="Observacion interna" />
           <button type="button" style={botonGuardar} onClick={aplicarAccion}>Aplicar accion</button>
         </div>
 
         <h2 style={tituloSeccion}>Registrar pago manual</h2>
+        <p style={subtitulo}>
+          Si dejas el monto vacío, se registrará el total mensual calculado: {formatoMoneda(resumen.total || cliente.total_mensual)}.
+        </p>
         <div style={gridFormularioUna}>
           <input style={input} type="date" value={pago.payment_date} onChange={(e) => setPago((actual) => ({ ...actual, payment_date: e.target.value }))} />
-          <input style={input} value={pago.amount} onChange={(e) => setPago((actual) => ({ ...actual, amount: e.target.value }))} placeholder="Monto" />
+          <input style={input} value={pago.amount} onChange={(e) => setPago((actual) => ({ ...actual, amount: e.target.value }))} placeholder="Monto opcional" />
           <input style={input} value={pago.period_label} onChange={(e) => setPago((actual) => ({ ...actual, period_label: e.target.value }))} placeholder="Periodo" />
           <input style={input} value={pago.payment_method} onChange={(e) => setPago((actual) => ({ ...actual, payment_method: e.target.value }))} placeholder="Medio de pago" />
           <select style={input} value={pago.status} onChange={(e) => setPago((actual) => ({ ...actual, status: e.target.value }))}>
@@ -1121,28 +1109,31 @@ function Dato({ label, value }) {
   );
 }
 
-function TablaPlanes({ planes, editarPlan }) {
+function TablaEmpresasAdministracion({ clientes, abrirCliente }) {
   return (
     <div style={tablaWrap}>
       <table style={tabla}>
         <thead>
           <tr>
-            {["Codigo", "Nombre", "Mensual", "Anual", "Empresas", "Usuarios", "Estado", "Accion"].map((col) => <th key={col} style={th}>{col}</th>)}
+            {["Cliente", "Correo", "Empresa principal", "RUT", "Empresas registradas", "Condición", "Estado", "Acción"].map((col) => <th key={col} style={th}>{col}</th>)}
           </tr>
         </thead>
         <tbody>
-          {planes.map((plan) => (
-            <tr key={plan.id}>
-              <td style={td}>{plan.code}</td>
-              <td style={td}>{plan.name}</td>
-              <td style={td}>{formatoMoneda(plan.monthly_price)}</td>
-              <td style={td}>{formatoMoneda(plan.annual_price)}</td>
-              <td style={td}>{plan.max_companies ?? "Sin limite"}</td>
-              <td style={td}>{plan.max_users ?? "Sin limite"}</td>
-              <td style={td}><span style={plan.active ? badgeActivo : badgeInactivo}>{plan.active ? "Activo" : "Inactivo"}</span></td>
-              <td style={td}><button type="button" style={botonTabla} onClick={() => editarPlan(plan)}>Editar</button></td>
+          {clientes.map((cliente) => (
+            <tr key={cliente.id}>
+              <td style={td}>{cliente.razon_social || cliente.cliente_nombre || "-"}</td>
+              <td style={td}>{cliente.correo || "-"}</td>
+              <td style={td}>{cliente.razon_social || "Sin empresa configurada"}</td>
+              <td style={td}>{cliente.rut || "-"}</td>
+              <td style={td}>{cliente.empresas_utilizadas || 0}</td>
+              <td style={td}>Empresas ilimitadas</td>
+              <td style={td}><span style={estadoStyle(cliente.estado_suscripcion_calculado)}>{textoEstado(cliente.estado_suscripcion_calculado)}</span></td>
+              <td style={td}><button type="button" style={botonTabla} onClick={() => abrirCliente(cliente)}>Ver ficha</button></td>
             </tr>
           ))}
+          {clientes.length === 0 && (
+            <tr><td style={td} colSpan="8">No hay empresas para el filtro seleccionado.</td></tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -1294,7 +1285,6 @@ const gridFormularioUna = {
   gap: "10px",
   marginBottom: "20px",
 };
-const checkLabel = { display: "flex", gap: "8px", alignItems: "center", fontWeight: "bold", color: "#1e293b" };
 const label = { display: "block", fontWeight: "bold", color: "#1e293b", marginBottom: "6px" };
 const datosGrid = {
   display: "grid",
@@ -1304,8 +1294,6 @@ const datosGrid = {
 };
 const datoBox = { background: "#f8fafc", border: "1px solid #dbeafe", borderRadius: "12px", padding: "10px" };
 const datoLabel = { color: "#64748b", display: "block", fontSize: "12px", marginBottom: "4px", fontWeight: "bold" };
-const badgeActivo = { background: "#dcfce7", color: "#166534", borderRadius: "999px", padding: "5px 9px", fontWeight: "bold", fontSize: "12px" };
-const badgeInactivo = { background: "#fee2e2", color: "#991b1b", borderRadius: "999px", padding: "5px 9px", fontWeight: "bold", fontSize: "12px" };
 const alertasBox = {
   ...card,
   boxShadow: "none",

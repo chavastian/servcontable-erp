@@ -3,6 +3,7 @@ import {
   crearPagoFlow,
   obtenerEstadoContratacion,
 } from "../services/contratacionService";
+import { CONFIG_COMERCIAL, calcularMontoComercial } from "../config/comercial";
 
 const LOGO_SRC = "/servcontable-logo.png";
 const APP_URL = import.meta.env.VITE_APP_URL || "https://app.servcontablepro.cl";
@@ -10,12 +11,16 @@ const WHATSAPP_URL =
   "https://wa.me/56984508073?text=Hola%2C%20quiero%20contratar%20ServContable%20PRO";
 
 const PRECIOS = {
-  mensual: { etiqueta: "Mensual", neto: 16990, descripcion: "+ IVA / mes" },
+  mensual: {
+    etiqueta: "Mensual",
+    neto: CONFIG_COMERCIAL.precioBaseMensual,
+    descripcion: "+ IVA / mes",
+  },
   anual: {
     etiqueta: "Anual",
-    neto: 14990,
+    neto: CONFIG_COMERCIAL.precioBaseMensual,
     descripcion: "+ IVA / mes",
-    nota: "Pago anual de una vez: 12 meses x $14.990 = $179.880 + IVA.",
+    nota: `Pago anual de una vez: 12 meses x ${formatearCLP(CONFIG_COMERCIAL.precioBaseMensual)} = ${formatearCLP(CONFIG_COMERCIAL.precioBaseMensual * 12)} + IVA.`,
   },
 };
 
@@ -53,10 +58,10 @@ export default function Inicio() {
   const resultadoPago = obtenerResultadoPago();
 
   const totalSeleccionado = useMemo(() => {
-    const neto =
-      periodicidad === "anual" ? PRECIOS.anual.neto * 12 : PRECIOS.mensual.neto;
-    const iva = Math.round(neto * 0.19);
-    return { neto, iva, total: neto + iva };
+    return calcularMontoComercial({
+      usuariosActivos: CONFIG_COMERCIAL.usuariosIncluidos,
+      meses: periodicidad === "anual" ? 12 : 1,
+    });
   }, [periodicidad]);
 
   useEffect(() => {
@@ -138,7 +143,7 @@ export default function Inicio() {
             type="button"
             onClick={() => irAContratacion("mensual")}
           >
-            Contratar plan
+            Contratar servicio
           </button>
           <button
             style={botonTexto}
@@ -179,7 +184,7 @@ export default function Inicio() {
           </h1>
           <p style={bajada}>
             Prueba ServContable PRO gratis por 30 días. La contratación se paga
-            por Flow y el plan queda registrado para activación.
+            por Flow y la suscripción queda registrada para activación.
           </p>
 
           <div style={botonesHero}>
@@ -188,7 +193,7 @@ export default function Inicio() {
               type="button"
               onClick={() => irAContratacion("mensual")}
             >
-              Contratar plan PRO
+              Contratar SERVCONTABLE PRO
             </button>
             <button
               style={botonSecundario}
@@ -211,9 +216,9 @@ export default function Inicio() {
         </section>
 
         <section style={panelPlan}>
-          <span style={pillSuave}>Plan unico</span>
-          <h2 style={tituloPlan}>Contratacion PRO</h2>
-          <p style={textoPlan}>Plan multiempresa con 1 usuario incluido.</p>
+          <span style={pillSuave}>Servicio único</span>
+          <h2 style={tituloPlan}>Contratación SERVCONTABLE PRO</h2>
+          <p style={textoPlan}>Servicio con 1 usuario incluido y empresas ilimitadas.</p>
 
           <div style={precioGrid}>
             <button
@@ -240,9 +245,9 @@ export default function Inicio() {
           <div style={notaAnual}>{PRECIOS.anual.nota}</div>
 
           <ul style={listaPlan}>
-            <li>Multiempresa incluido en el plan.</li>
-            <li>1 usuario incluido.</li>
-            <li>Usuario adicional: $3.990 + IVA mensual.</li>
+            <li>Empresas ilimitadas incluidas.</li>
+            <li>{CONFIG_COMERCIAL.usuariosIncluidos} usuario incluido.</li>
+            <li>Usuario adicional: {formatearCLP(CONFIG_COMERCIAL.precioUsuarioAdicional)} + IVA mensual.</li>
             <li>Contabilidad, remuneraciones, Previred, libros e informes.</li>
           </ul>
 
@@ -251,7 +256,7 @@ export default function Inicio() {
             type="button"
             onClick={() => irAContratacion(periodicidad)}
           >
-            Contratar plan →
+            Contratar servicio →
           </button>
         </section>
       </main>
@@ -305,10 +310,10 @@ export default function Inicio() {
       <section style={seccionWeb} id="faq">
         <h2 style={seccionTitulo}>Preguntas frecuentes</h2>
         <div style={gridWeb2}>
-          <Pregunta titulo="¿El plan es multiempresa?" texto="Sí. El plan PRO es multiempresa e incluye 1 usuario." />
+          <Pregunta titulo="¿El servicio incluye empresas ilimitadas?" texto="Sí. SERVCONTABLE PRO incluye empresas ilimitadas y 1 usuario." />
           <Pregunta titulo="¿Cuánto dura la prueba gratis?" texto="30 días. El acceso se crea automáticamente y luego configuras tu empresa dentro del sistema." />
-          <Pregunta titulo="¿Cómo se activa el plan?" texto="Flow confirma el pago por webhook y el sistema registra la contratación para habilitar el acceso." />
-          <Pregunta titulo="¿Cuánto cuesta un usuario adicional?" texto="$3.990 + IVA mensual por usuario adicional." />
+          <Pregunta titulo="¿Cómo se activa la suscripción?" texto="Flow confirma el pago por webhook y el sistema registra la contratación para habilitar el acceso." />
+          <Pregunta titulo="¿Cuánto cuesta un usuario adicional?" texto={`${formatearCLP(CONFIG_COMERCIAL.precioUsuarioAdicional)} + IVA mensual por usuario adicional.`} />
         </div>
       </section>
 
@@ -395,7 +400,7 @@ export default function Inicio() {
                 </p>
                 <p>
                   Los datos se usan para prestar el servicio, administrar pagos,
-                  soporte y activacion del plan. El sistema opera con acceso
+                  soporte y activacion de la suscripcion. El sistema opera con acceso
                   autenticado, control de sesiones, perfiles de usuario y respaldo
                   de la informacion en la infraestructura contratada.
                 </p>
@@ -426,7 +431,7 @@ export default function Inicio() {
         <aside style={resumenPedido}>
           <h3 style={resumenTitulo}>Resumen del pedido</h3>
           <LineaResumen
-            label={`Plan PRO ${periodicidad}`}
+            label={`SERVCONTABLE PRO ${periodicidad}`}
             valor={formatearCLP(totalSeleccionado.neto)}
           />
           <LineaResumen label="IVA 19%" valor={formatearCLP(totalSeleccionado.iva)} />

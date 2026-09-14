@@ -2,11 +2,7 @@
 import SessionHeader from "../components/SessionHeader";
 import { obtenerSesionActualizada } from "../services/authService";
 import { crearRenovacionFlow } from "../services/suscripcionService";
-
-const PRECIO_MENSUAL_BASE = 16990;
-const PRECIO_ANUAL_BASE_MENSUAL = 14990;
-const PRECIO_USUARIO_ADICIONAL = 3990;
-const IVA = 0.19;
+import { CONFIG_COMERCIAL, calcularMontoComercial } from "../config/comercial";
 
 const MESES = Array.from({ length: 12 }, (_, index) => index + 1);
 
@@ -27,20 +23,9 @@ function formatearFecha(fecha) {
 
 function calcularValores(plan, meses, usuariosAdicionales) {
   const mesesCobro = plan === "anual" ? 12 : Number(meses || 1);
-  const base = plan === "anual"
-    ? PRECIO_ANUAL_BASE_MENSUAL * 12
-    : PRECIO_MENSUAL_BASE * mesesCobro;
-  const usuarios = PRECIO_USUARIO_ADICIONAL * Number(usuariosAdicionales || 0) * mesesCobro;
-  const neto = base + usuarios;
-  const iva = Math.round(neto * IVA);
-
   return {
+    ...calcularMontoComercial({ usuariosAdicionales, meses: mesesCobro }),
     mesesCobro,
-    base,
-    usuarios,
-    neto,
-    iva,
-    total: neto + iva,
   };
 }
 
@@ -113,7 +98,7 @@ function RenovarSuscripcion({
   function mostrarTransferencia() {
     setError("");
     setMensaje(
-      "Para renovar por transferencia, escribe a ventas@servcontablepro.cl indicando tu correo de usuario y el plan elegido."
+      "Para renovar por transferencia, escribe a ventas@servcontablepro.cl indicando tu correo de usuario y la modalidad elegida."
     );
   }
 
@@ -154,7 +139,7 @@ function RenovarSuscripcion({
           <div className="serv-modulo-hero__texto">
             <h1>Renovar suscripción</h1>
             <p>
-              Tu acceso está vencido. Renueva el plan para volver a utilizar los módulos
+              Tu acceso está vencido. Activa el servicio para volver a utilizar los módulos
               contables y de remuneraciones.
             </p>
           </div>
@@ -167,14 +152,14 @@ function RenovarSuscripcion({
         <section className="sc-renewal-card">
           <div className="sc-renewal-grid">
             <label className="sc-field">
-              <span className="sc-label">Plan</span>
+              <span className="sc-label">Modalidad</span>
               <select
                 className="sc-input"
                 value={plan}
                 onChange={(event) => setPlan(event.target.value)}
               >
-                <option value="mensual">Mensual: $16.990 + IVA / mes</option>
-                <option value="anual">Anual: $14.990 + IVA x 12 meses</option>
+                <option value="mensual">Mensual: {formatearCLP(CONFIG_COMERCIAL.precioBaseMensual)} + IVA / mes</option>
+                <option value="anual">Anual: 12 meses de servicio</option>
               </select>
             </label>
 
@@ -210,7 +195,7 @@ function RenovarSuscripcion({
 
           <div className="sc-renewal-summary">
             <div>
-              <span>Valor neto plan</span>
+              <span>Valor neto servicio</span>
               <strong>{formatearCLP(valores.base)}</strong>
             </div>
             <div>
@@ -229,7 +214,7 @@ function RenovarSuscripcion({
 
           {plan === "anual" && (
             <p className="sc-renewal-note">
-              Pago anual de una vez: 12 meses x $14.990 neto, más IVA.
+              Pago anual de una vez: 12 meses x {formatearCLP(CONFIG_COMERCIAL.precioBaseMensual)} neto, más IVA.
             </p>
           )}
 
