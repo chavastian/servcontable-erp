@@ -8,6 +8,7 @@ import SelectorEjercicio from "./pages/SelectorEjercicio";
 
 import {
   cerrarSesion,
+  guardarSesionAutenticada,
   limpiarContextoSesion,
   obtenerSesionActualizada,
   obtenerUsuarioActual,
@@ -24,8 +25,31 @@ function leerSessionStorageJSON(clave) {
   }
 }
 
+function consumirSesionDesdeUrl() {
+  const hash = window.location.hash || "";
+  const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+  const payload = params.get("trialSession");
+
+  if (!payload) return null;
+
+  try {
+    const texto = decodeURIComponent(escape(window.atob(payload)));
+    const data = JSON.parse(texto);
+
+    if (data.token && data.usuario) {
+      guardarSesionAutenticada(data.token, data.usuario);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return data.usuario;
+    }
+  } catch {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  return null;
+}
+
 function App() {
-  const [usuario, setUsuario] = useState(obtenerUsuarioActual());
+  const [usuario, setUsuario] = useState(() => consumirSesionDesdeUrl() || obtenerUsuarioActual());
 
   const [moduloActivo, setModuloActivo] = useState(
     sessionStorage.getItem("moduloActivo") || ""

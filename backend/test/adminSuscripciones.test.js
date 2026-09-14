@@ -10,6 +10,7 @@ const {
   PROVEEDORES_PAGO_SUSCRIPCION,
   construirPagoSuscripcion,
 } = require("../src/helpers/pagosSuscripcion.helper");
+const { normalizarRut, pareceRut } = require("../src/helpers/rut.helper");
 
 function fechaEnDias(dias) {
   const fecha = new Date();
@@ -87,4 +88,14 @@ test("abstraccion de pagos conserva proveedor futuro sin acoplar la suscripcion"
   assert.equal(pago.provider, "flow");
   assert.equal(pago.transaction_id, "TRX-1");
   assert.equal(pago.payment_method, "tarjeta");
+});
+
+test("normaliza y valida RUT chileno para login autoservicio", () => {
+  const rut = normalizarRut("16.153.127-8");
+
+  assert.equal(rut.valido, true);
+  assert.equal(rut.rut, "16.153.127-8");
+  assert.equal(rut.rut_normalizado, "16153127-8");
+  assert.equal(pareceRut("161531278"), true);
+  assert.equal(normalizarRut("16.153.127-9").valido, false);
 });

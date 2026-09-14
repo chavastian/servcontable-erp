@@ -147,6 +147,33 @@ export async function crearUsuarioSistema(datosUsuario) {
   return data;
 }
 
+export async function crearPruebaGratis(datos) {
+  const respuesta = await fetch(`${API_URL}/contacto/prueba-gratis`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(datos),
+  });
+
+  const data = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(data.error || "No se pudo crear la prueba gratis");
+  }
+
+  if (data.token && data.usuario) {
+    guardarSesionAutenticada(data.token, data.usuario);
+  }
+
+  return data;
+}
+
+export function guardarSesionAutenticada(token, usuario) {
+  guardarDatoSesion("token", token);
+  guardarDatoSesion("usuario", JSON.stringify(usuario));
+}
+
 export async function actualizarUsuarioSistema(id, datosUsuario) {
   const token = obtenerToken();
 

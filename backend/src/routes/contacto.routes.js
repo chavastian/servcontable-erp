@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   crearSolicitudContacto,
+  crearPruebaGratisAutoservicio,
   listarSolicitudesContacto,
   actualizarSolicitudContacto,
   activarDemoSolicitud,
@@ -12,6 +13,7 @@ const {
 
 const router = express.Router();
 
+router.post("/prueba-gratis", crearPruebaGratisAutoservicio);
 router.post("/", crearSolicitudContacto);
 router.get("/", verificarToken, exigirAdminSistema, listarSolicitudesContacto);
 router.patch("/:id", verificarToken, exigirAdminSistema, actualizarSolicitudContacto);

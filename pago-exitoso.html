@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pago recibido | ServContable PRO</title>
+    <meta name="description" content="Resultado de pago ServContable PRO." />
+    <link rel="icon" href="./assets/servcontable-logo.png" />
+    <link rel="stylesheet" href="./styles.css?v=20" />
+  </head>
+  <body>
+    <main class="payment-result-page" data-payment-result="success">
+      <section class="payment-result-card success">
+        <img src="./assets/servcontable-logo.png" alt="ServContable PRO" />
+        <span class="plan-label">Pago recibido</span>
+        <h1>Pago recibido. Estamos preparando tu acceso.</h1>
+        <p>
+          Tu contratación de ServContable PRO fue registrada correctamente.
+          Te enviaremos la información de acceso a
+          <a href="mailto:" data-result-email-link>correo registrado</a>.
+        </p>
+
+        <div class="result-grid">
+          <div><span>Número de solicitud</span><strong data-result-id>-</strong></div>
+          <div><span>Correo</span><strong data-result-email>-</strong></div>
+          <div><span>Plan</span><strong data-result-plan>-</strong></div>
+          <div><span>Monto pagado</span><strong data-result-amount>-</strong></div>
+          <div><span>Estado</span><strong data-result-status>Pago recibido</strong></div>
+        </div>
+
+        <div class="payment-result-actions">
+          <a class="button button-primary" href="https://app.servcontablepro.cl" target="_blank" rel="noopener">Ingresar a ServContable PRO</a>
+          <a class="button button-secondary" href="./index.html">Volver a la web</a>
+        </div>
+      </section>
+    </main>
+    <script src="./script.js?v=20"></script>
+  </body>
+</html>

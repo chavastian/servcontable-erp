@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pago pendiente | ServContable PRO</title>
+    <meta name="description" content="Pago pendiente ServContable PRO." />
+    <link rel="icon" href="./assets/servcontable-logo.png" />
+    <link rel="stylesheet" href="./styles.css?v=20" />
+  </head>
+  <body>
+    <main class="payment-result-page" data-payment-result="pending">
+      <section class="payment-result-card pending">
+        <img src="./assets/servcontable-logo.png" alt="ServContable PRO" />
+        <span class="plan-label">Pago pendiente</span>
+        <h1>Tu pago está en proceso</h1>
+        <p>
+          Flow aún no confirma el pago. Cuando el backend reciba la confirmación,
+          la solicitud quedará actualizada para revisión del administrador.
+        </p>
+
+        <div class="result-grid">
+          <div><span>Número de solicitud</span><strong data-result-id>-</strong></div>
+          <div><span>Correo</span><strong data-result-email>-</strong></div>
+          <div><span>Plan</span><strong data-result-plan>-</strong></div>
+          <div><span>Monto</span><strong data-result-amount>-</strong></div>
+          <div><span>Estado</span><strong data-result-status>Pendiente</strong></div>
+        </div>
+
+        <div class="payment-result-actions">
+          <a class="button button-primary" href="./index.html#contratar">Revisar contratación</a>
+          <a class="button button-secondary" href="./index.html">Volver a la web</a>
+        </div>
+      </section>
+    </main>
+    <script src="./script.js?v=20"></script>
+  </body>
+</html>

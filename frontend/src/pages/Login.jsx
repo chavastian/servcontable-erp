@@ -1,11 +1,11 @@
 import { useState } from "react";
 import {
+  crearPruebaGratis,
   loginDemo,
   loginUsuario,
   resetearPasswordConToken,
   solicitarRecuperacionPassword,
 } from "../services/authService";
-import { crearSolicitudContacto } from "../services/solicitudesContactoService";
 
 const LOGO_SRC = "/servcontable-logo.png";
 
@@ -18,7 +18,15 @@ export default function Login({ irARegistro, loginCorrecto }) {
   const [urlResetDesarrollo, setUrlResetDesarrollo] = useState("");
   const [error, setError] = useState("");
   const [solicitarDemo, setSolicitarDemo] = useState(false);
-  const [demoForm, setDemoForm] = useState({ nombre: "", correo: "", empresa: "" });
+  const [demoForm, setDemoForm] = useState({
+    nombre: "",
+    correo: "",
+    empresa: "",
+    rut: "",
+    telefono: "",
+    password: "",
+    confirmarPassword: "",
+  });
   const [resetToken, setResetToken] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("resetToken") || "";
@@ -75,29 +83,29 @@ export default function Login({ irARegistro, loginCorrecto }) {
     try {
       limpiarMensajes();
 
-      const nombre = demoForm.nombre.trim();
-      const correo = (demoForm.correo || email).trim();
-
-      if (!nombre || !correo) {
-        throw new Error("Nombre y correo son obligatorios para solicitar la demo.");
-      }
-
-      await crearSolicitudContacto({
-        nombre,
-        correo,
+      const data = await crearPruebaGratis({
+        nombre: demoForm.nombre,
+        correo: demoForm.correo || email,
         empresa: demoForm.empresa,
-        interes: "Solicitud demo 30 días",
-        mensaje:
-          "Solicito demo individual de ServContable PRO por 30 días para evaluar el sistema.",
-        origen: "demo_login",
+        rut: demoForm.rut,
+        telefono: demoForm.telefono,
+        password: demoForm.password,
+        confirmar_password: demoForm.confirmarPassword,
       });
 
-      setEmail(correo);
-      setDemoForm({ nombre: "", correo: "", empresa: "" });
+      setEmail(data.usuario?.email || demoForm.correo || email);
+      setDemoForm({
+        nombre: "",
+        correo: "",
+        empresa: "",
+        rut: "",
+        telefono: "",
+        password: "",
+        confirmarPassword: "",
+      });
       setSolicitarDemo(false);
-      setMensaje(
-        "Solicitud recibida. El administrador revisara y activara tu demo por 30 días."
-      );
+      setMensaje("¡Bienvenido a ServContable PRO! Tu prueba gratuita ya esta activa.");
+      loginCorrecto(data.usuario);
     } catch (err) {
       setError(err.message);
     }
@@ -189,11 +197,11 @@ export default function Login({ irARegistro, loginCorrecto }) {
         ) : modoRecuperacion ? (
           <form onSubmit={manejarSolicitudRecuperacion} style={formulario}>
             <p style={textoAyuda}>
-              Ingresa tu correo y enviaremos un enlace temporal para crear una
+              Ingresa tu RUT o correo y enviaremos un enlace temporal para crear una
               nueva contraseña.
             </p>
 
-            <CampoEmail value={email} onChange={setEmail} />
+            <CampoIdentificador value={email} onChange={setEmail} />
 
             <button style={botonPrimario} type="submit">
               Enviar instrucciones
@@ -202,8 +210,7 @@ export default function Login({ irARegistro, loginCorrecto }) {
         ) : solicitarDemo ? (
           <form onSubmit={manejarSolicitudDemo} style={formulario}>
             <p style={textoAyuda}>
-              Solicita acceso demo. El administrador habilitará tu correo por 30
-              días y con límite de 1 empresa.
+              30 días gratis · Sin compromiso · No necesitas ingresar datos de pago.
             </p>
 
             <CampoTexto
@@ -213,7 +220,7 @@ export default function Login({ irARegistro, loginCorrecto }) {
               placeholder="Tu nombre"
             />
             <CampoTexto
-              label="Correo electrónico"
+              label="Correo"
               type="email"
               value={demoForm.correo || email}
               onChange={(valor) => {
@@ -228,15 +235,43 @@ export default function Login({ irARegistro, loginCorrecto }) {
               onChange={(valor) => cambiarDemo("empresa", valor)}
               placeholder="Empresa o estudio contable"
             />
+            <CampoTexto
+              label="RUT"
+              value={demoForm.rut}
+              onChange={(valor) => cambiarDemo("rut", valor)}
+              placeholder="16.153.127-8"
+              autoComplete="username"
+            />
+            <CampoTexto
+              label="Telefono / WhatsApp"
+              value={demoForm.telefono}
+              onChange={(valor) => cambiarDemo("telefono", valor)}
+              placeholder="+56 9 1234 5678"
+              autoComplete="tel"
+            />
+            <CampoPassword
+              label="Contraseña"
+              value={demoForm.password}
+              onChange={(valor) => cambiarDemo("password", valor)}
+              placeholder="Minimo 8 caracteres"
+              autoComplete="new-password"
+            />
+            <CampoPassword
+              label="Confirmar contraseña"
+              value={demoForm.confirmarPassword}
+              onChange={(valor) => cambiarDemo("confirmarPassword", valor)}
+              placeholder="Repite tu contraseña"
+              autoComplete="new-password"
+            />
 
             <button style={botonPrimario} type="submit">
-              Solicitar demo al administrador
+              Comenzar prueba gratis
             </button>
           </form>
         ) : (
           <>
             <form onSubmit={manejarLogin} style={formulario}>
-              <CampoEmail value={email} onChange={setEmail} />
+              <CampoIdentificador value={email} onChange={setEmail} />
               <CampoPassword
                 label="Contraseña"
                 value={password}
@@ -259,11 +294,11 @@ export default function Login({ irARegistro, loginCorrecto }) {
                   limpiarMensajes();
                 }}
               >
-                Recuperar contraseña
+              Recuperar contraseña
               </button>
             )}
 
-            {permiteDemo && (
+            {!esEscritorio && (
               <button
                 style={botonDemo}
                 type="button"
@@ -273,7 +308,7 @@ export default function Login({ irARegistro, loginCorrecto }) {
                   setDemoForm((actual) => ({ ...actual, correo: email }));
                 }}
               >
-                Solicitar demo al administrador
+                Probar gratis
               </button>
             )}
 
@@ -318,6 +353,19 @@ function CampoEmail({ value, onChange }) {
       value={value}
       onChange={onChange}
       placeholder="correo@empresa.cl"
+      autoComplete="username"
+    />
+  );
+}
+
+function CampoIdentificador({ value, onChange }) {
+  return (
+    <CampoTexto
+      label="RUT o correo"
+      type="text"
+      value={value}
+      onChange={onChange}
+      placeholder="16.153.127-8 o correo@empresa.cl"
       autoComplete="username"
     />
   );
@@ -503,4 +551,3 @@ const notaAcceso = {
   textAlign: "center",
   fontSize: "12px",
 };
-

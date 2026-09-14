@@ -12,6 +12,7 @@ const {
 } = require("../helpers/auth.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const { validarLimiteUsuariosCliente } = require("../helpers/suscripcion.helper");
+const { normalizarRut, pareceRut } = require("../helpers/rut.helper");
 
 function registroPublicoHabilitado() {
   return process.env.ALLOW_PUBLIC_REGISTRATION === "true";
@@ -133,11 +134,20 @@ function datosDemoPublico(usuario = {}) {
 async function asegurarColumnasDemoAuth(conexion = pool) {
   await conexion.query(`
     ALTER TABLE usuarios
+      ADD COLUMN IF NOT EXISTS rut VARCHAR(30),
+      ADD COLUMN IF NOT EXISTS rut_normalizado VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
       ADD COLUMN IF NOT EXISTS demo_activo BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS demo_inicio DATE,
       ADD COLUMN IF NOT EXISTS demo_vence DATE,
       ADD COLUMN IF NOT EXISTS demo_empresa_limite INTEGER DEFAULT 1,
       ADD COLUMN IF NOT EXISTS demo_origen VARCHAR(80)
+  `);
+
+  await conexion.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_rut_normalizado_unico
+    ON usuarios (rut_normalizado)
+    WHERE rut_normalizado IS NOT NULL AND rut_normalizado <> ''
   `);
 }
 
@@ -281,15 +291,19 @@ async function registrarUsuario(req, res) {
 
 async function loginUsuario(req, res) {
   try {
-    const { email, password } = req.body;
+    const identificador = String(req.body.email || req.body.identificador || req.body.rut || "").trim();
+    const { password } = req.body;
 
-    if (!email || !password) {
+    if (!identificador || !password) {
       return res.status(400).json({
-        error: "Email y contrasena son obligatorios",
+        error: "RUT o correo y contrasena son obligatorios",
       });
     }
 
-    const emailNormalizado = String(email).trim().toLowerCase();
+    const emailNormalizado = identificador.toLowerCase();
+    const rutNormalizado = pareceRut(identificador)
+      ? normalizarRut(identificador).rut_normalizado
+      : "";
 
     await asegurarColumnasDemoAuth(pool);
 
@@ -301,8 +315,13 @@ async function loginUsuario(req, res) {
            ELSE GREATEST((u.demo_vence - CURRENT_DATE), 0)::int
          END AS demo_dias_restantes
        FROM usuarios u
-       WHERE u.email = $1 AND u.activo = true`,
-      [emailNormalizado]
+       WHERE u.activo = true
+         AND (
+           u.email = $1
+           OR ($2 <> '' AND u.rut_normalizado = $2)
+         )
+       LIMIT 1`,
+      [emailNormalizado, rutNormalizado]
     );
 
     if (resultado.rows.length === 0) {
@@ -1005,66 +1024,42 @@ async function cambiarEstadoUsuario(req, res) {
 }
 
 async function resetearPasswordUsuario(req, res) {
-  try {
-    const { id } = req.params;
-    const { password } = req.body;
-
-    if (!password || String(password).length < 6) {
-      return res.status(400).json({
-        error: "La nueva contrasena debe tener al menos 6 caracteres",
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const actualizado = await pool.query(
-      `UPDATE usuarios
-       SET password_hash = $1
-       WHERE id = $2
-       RETURNING id, nombre, email, rol, activo`,
-      [passwordHash, id]
-    );
-
-    if (actualizado.rows.length === 0) {
-      return res.status(404).json({
-        error: "Usuario no encontrado",
-      });
-    }
-
-    return res.json({
-      mensaje: "Contraseña actualizada correctamente",
-      usuario: actualizado.rows[0],
-    });
-  } catch (error) {
-    console.error("Error al resetear contrasena:", error);
-
-    return res.status(500).json({
-      error: "Error interno al resetear contrasena",
-    });
-  }
+  return res.status(403).json({
+    error:
+      "Por seguridad el administrador no puede definir ni conocer contrasenas. Usa el flujo de recuperacion de contrasena.",
+  });
 }
 
 async function solicitarRecuperacionPassword(req, res) {
   try {
-    const email = normalizarEmail(req.body?.email);
+    await asegurarColumnasDemoAuth(pool);
 
-    if (!email) {
+    const identificador = String(req.body?.email || req.body?.rut || "").trim();
+    const email = normalizarEmail(identificador);
+    const rutNormalizado = pareceRut(identificador)
+      ? normalizarRut(identificador).rut_normalizado
+      : "";
+
+    if (!identificador) {
       return res.status(400).json({
-        error: "El correo electrónico es obligatorio",
+        error: "El correo o RUT es obligatorio",
       });
     }
 
-    if (limiteRecuperacionExcedido(req, email)) {
+    if (limiteRecuperacionExcedido(req, email || rutNormalizado)) {
       return res.json({ mensaje: MENSAJE_RECUPERACION });
     }
 
     const usuarioResult = await pool.query(
       `SELECT id, nombre, email
        FROM usuarios
-       WHERE email = $1
-         AND activo = true
+       WHERE activo = true
+         AND (
+           email = $1
+           OR ($2 <> '' AND rut_normalizado = $2)
+         )
        LIMIT 1`,
-      [email]
+      [email, rutNormalizado]
     );
 
     const respuesta = {
@@ -1099,9 +1094,7 @@ async function solicitarRecuperacionPassword(req, res) {
         ]
       );
 
-      console.log(
-        `Solicitud de recuperacion de contrasena para ${usuario.email}. URL: ${resetUrl}`
-      );
+      console.log(`Solicitud de recuperacion de contrasena registrada para ${usuario.email}.`);
 
       if (process.env.NODE_ENV !== "production") {
         respuesta.url_reset_desarrollo = resetUrl;

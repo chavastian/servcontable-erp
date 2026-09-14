@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   ejecutarAccionCliente,
+  ejecutarAccionSolicitudWeb,
   guardarConfiguracion,
   guardarPlan,
   listarAuditoriaAdmin,
@@ -11,6 +12,7 @@ const {
   obtenerCliente,
   obtenerConfiguracion,
   obtenerDashboard,
+  obtenerDetalleSolicitudWeb,
   registrarPagoManual,
 } = require("../controllers/adminSuscripciones.controller");
 const { verificarToken, exigirAdminSistema } = require("../middleware/auth.middleware");
@@ -33,5 +35,7 @@ router.patch("/configuracion", guardarConfiguracion);
 router.get("/auditoria", listarAuditoriaAdmin);
 router.get("/notificaciones", listarNotificaciones);
 router.get("/solicitudes-web", listarSolicitudesWeb);
+router.get("/solicitudes-web/:tipo/:id", obtenerDetalleSolicitudWeb);
+router.post("/solicitudes-web/:tipo/:id/acciones", ejecutarAccionSolicitudWeb);
 
 module.exports = router;

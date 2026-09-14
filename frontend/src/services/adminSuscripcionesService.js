@@ -95,6 +95,25 @@ export function listarNotificacionesSuscripciones() {
   return request("/notificaciones");
 }
 
-export function listarSolicitudesWebSuscripciones() {
-  return request("/solicitudes-web");
+export function listarSolicitudesWebSuscripciones(filtros = {}) {
+  const params = new URLSearchParams();
+
+  Object.entries(filtros).forEach(([clave, valor]) => {
+    if (valor !== undefined && valor !== null && String(valor).trim() !== "") {
+      params.append(clave, valor);
+    }
+  });
+
+  return request(`/solicitudes-web${params.toString() ? `?${params.toString()}` : ""}`);
+}
+
+export function obtenerDetalleSolicitudWebSuscripcion(tipo, id) {
+  return request(`/solicitudes-web/${tipo}/${id}`);
+}
+
+export function ejecutarAccionSolicitudWebSuscripcion(tipo, id, datos) {
+  return request(`/solicitudes-web/${tipo}/${id}/acciones`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
 }
