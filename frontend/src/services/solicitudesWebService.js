@@ -58,6 +58,9 @@ export async function listarSolicitudesWeb() {
 
 function normalizarContacto(solicitud) {
   const estado = solicitud.estado || "pendiente";
+  const origen = String(solicitud.origen || "").toLowerCase();
+  const esPruebaGratis =
+    origen.includes("prueba") || origen.includes("trial") || origen.includes("demo");
   const estadoGestion = ["contactado", "demo_activado"].includes(
     String(estado).toLowerCase()
   )
@@ -69,9 +72,7 @@ function normalizarContacto(solicitud) {
     id: `contacto-${solicitud.id}`,
     id_original: solicitud.id,
     fuente: "contacto",
-    tipo_solicitud: String(solicitud.origen || "").includes("demo")
-      ? "Demo"
-      : "Contacto",
+    tipo_solicitud: esPruebaGratis ? "Prueba gratis" : "Contacto",
     periodicidad: solicitud.interes || "Solicitud web",
     total: 0,
     monto_neto: 0,

@@ -66,6 +66,11 @@ function estaContactado(solicitud) {
   return normalizar(solicitud?.gestion?.estado) === "contactado";
 }
 
+function esSolicitudPruebaGratis(solicitud) {
+  const origen = normalizar(solicitud?.origen);
+  return origen.includes("prueba") || origen.includes("trial") || origen.includes("demo");
+}
+
 function descripcionPago(solicitud) {
   const pago = solicitud?.pago_flow || {};
 
@@ -214,10 +219,13 @@ export default function SolicitudesWeb() {
 
       const data = await activarDemoDesdeSolicitud(solicitud);
       const claveTemporal = data?.demo?.password_temporal;
+      const mensajeActivacion = String(
+        data?.mensaje || "Prueba gratis activada correctamente."
+      ).replace(/demo/gi, "prueba gratis");
       setMensaje(
         claveTemporal
-          ? `${data?.mensaje || "Demo activada correctamente."} Clave temporal: ${claveTemporal}`
-          : data?.mensaje || "Demo activada correctamente."
+          ? `${mensajeActivacion} Clave temporal: ${claveTemporal}`
+          : mensajeActivacion
       );
       await cargarSolicitudes();
     } catch (err) {
@@ -231,7 +239,7 @@ export default function SolicitudesWeb() {
         <div>
           <h1 style={titulo}>Solicitudes Web</h1>
           <p style={subtitulo}>
-            Clientes, demos y pagos generados desde servcontablepro.cl.
+            Clientes, pruebas gratis y pagos generados desde servcontablepro.cl.
           </p>
         </div>
 
@@ -364,13 +372,13 @@ export default function SolicitudesWeb() {
                         </button>
 
                         {solicitud.fuente === "contacto" &&
-                          String(solicitud.origen || "").includes("demo") &&
+                          esSolicitudPruebaGratis(solicitud) &&
                           normalizar(solicitud.estado) !== "demo_activado" && (
                             <button
                               style={botonIconoDemo}
                               type="button"
-                              title="Activar demo 30 días"
-                              aria-label="Activar demo 30 días"
+                              title="Activar prueba gratis 30 días"
+                              aria-label="Activar prueba gratis 30 días"
                               onClick={() => activarDemo(solicitud)}
                             >
                               <Icono tipo="demo" />
@@ -411,8 +419,8 @@ export default function SolicitudesWeb() {
                               <Dato label="Actualizado" valor={formatoFecha(solicitud.actualizado_en)} />
                               <Dato label="Origen" valor={solicitud.origen} />
                               <Dato label="Mensaje" valor={solicitud.mensaje} />
-                              <Dato label="Demo inicio" valor={formatoFecha(solicitud.demo_inicio)} />
-                              <Dato label="Demo vence" valor={formatoFecha(solicitud.demo_vence)} />
+                              <Dato label="Prueba inicio" valor={formatoFecha(solicitud.demo_inicio)} />
+                              <Dato label="Prueba vence" valor={formatoFecha(solicitud.demo_vence)} />
                             </div>
                           </div>
                         </td>
