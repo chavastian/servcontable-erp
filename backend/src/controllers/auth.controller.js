@@ -9,10 +9,12 @@ const {
   usuarioPuedeAdministrarEmpresa,
   obtenerEmpresasPermitidas,
   asignarUsuarioEmpresa,
+  asegurarEsquemaAuth,
 } = require("../helpers/auth.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const { validarLimiteUsuariosCliente } = require("../helpers/suscripcion.helper");
 const { normalizarRut, pareceRut } = require("../helpers/rut.helper");
+const { enviarCorreoRecuperacionPassword } = require("../helpers/mail.helper");
 
 function registroPublicoHabilitado() {
   return process.env.ALLOW_PUBLIC_REGISTRATION === "true";
@@ -94,6 +96,34 @@ function normalizarActivo(valor, valorActual = true) {
   return Boolean(valorActual);
 }
 
+function normalizarListaEmpresas(valor) {
+  const lista = Array.isArray(valor) ? valor : valor ? [valor] : [];
+  return [
+    ...new Set(
+      lista
+        .map((item) => Number(item || 0))
+        .filter((item) => Number.isInteger(item) && item > 0)
+    ),
+  ];
+}
+
+function esRolAdminSistema(rol = "") {
+  return esAdminSistema(normalizarRol(rol || ""));
+}
+
+async function esUltimoAdminSistemaActivo(client, usuarioId) {
+  const resultado = await client.query(
+    `SELECT COUNT(*)::int AS total
+     FROM usuarios
+     WHERE activo = true
+       AND LOWER(rol) IN ('admin', 'superadmin', 'super_admin', 'administrador_sistema')
+       AND id <> $1`,
+    [Number(usuarioId)]
+  );
+
+  return Number(resultado.rows[0]?.total || 0) === 0;
+}
+
 function fechaISO(valor) {
   if (!valor) {
     return null;
@@ -132,6 +162,8 @@ function datosDemoPublico(usuario = {}) {
 }
 
 async function asegurarColumnasDemoAuth(conexion = pool) {
+  await asegurarEsquemaAuth(conexion);
+
   await conexion.query(`
     ALTER TABLE usuarios
       ADD COLUMN IF NOT EXISTS rut VARCHAR(30),
@@ -141,7 +173,11 @@ async function asegurarColumnasDemoAuth(conexion = pool) {
       ADD COLUMN IF NOT EXISTS demo_inicio DATE,
       ADD COLUMN IF NOT EXISTS demo_vence DATE,
       ADD COLUMN IF NOT EXISTS demo_empresa_limite INTEGER DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS demo_origen VARCHAR(80)
+      ADD COLUMN IF NOT EXISTS demo_origen VARCHAR(80),
+      ADD COLUMN IF NOT EXISTS suscripcion_estado VARCHAR(50) DEFAULT 'activa',
+      ADD COLUMN IF NOT EXISTS suscripcion_plan VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS suscripcion_vence DATE,
+      ADD COLUMN IF NOT EXISTS ultimo_acceso_en TIMESTAMP WITHOUT TIME ZONE
   `);
 
   await conexion.query(`
@@ -206,6 +242,36 @@ function construirUrlReset(req, token) {
   ).replace(/\/+$/, "");
 
   return `${base}?resetToken=${encodeURIComponent(token)}`;
+}
+
+async function crearTokenRecuperacionPassword(conexion, req, usuarioId) {
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashResetToken(token);
+  const minutosVigencia = Number(process.env.PASSWORD_RESET_MINUTES || 30);
+  const resetUrl = construirUrlReset(req, token);
+
+  await conexion.query(
+    `UPDATE password_reset_tokens
+     SET usado_en = NOW()
+     WHERE usuario_id = $1
+       AND usado_en IS NULL`,
+    [usuarioId]
+  );
+
+  await conexion.query(
+    `INSERT INTO password_reset_tokens
+     (usuario_id, token_hash, vence_en, ip_solicitud, user_agent)
+     VALUES ($1, $2, NOW() + ($3::int * INTERVAL '1 minute'), $4, $5)`,
+    [
+      usuarioId,
+      tokenHash,
+      minutosVigencia,
+      req.ip || req.headers["x-forwarded-for"] || null,
+      req.headers["user-agent"] || null,
+    ]
+  );
+
+  return { resetUrl, minutosVigencia };
 }
 
 function datosUsuarioPublico(usuario, empresas = []) {
@@ -561,6 +627,8 @@ async function obtenerSesion(req, res) {
 
 async function listarUsuarios(req, res) {
   try {
+    await asegurarColumnasDemoAuth(pool);
+
     const { empresa_id } = req.query;
     const valores = [];
     let filtroEmpresa = "";
@@ -602,9 +670,16 @@ async function listarUsuarios(req, res) {
         u.id,
         u.nombre,
         u.email,
+        u.rut,
+        u.rut_normalizado,
+        u.telefono,
         u.rol,
         u.activo,
         u.creado_en,
+        u.ultimo_acceso_en,
+        u.suscripcion_estado,
+        u.suscripcion_plan,
+        u.suscripcion_vence,
         COALESCE(
           json_agg(
             json_build_object(
@@ -644,20 +719,27 @@ async function listarUsuarios(req, res) {
 async function crearUsuarioCliente(req, res) {
   const client = await pool.connect();
   let transaccionIniciada = false;
+  let correoInvitacion = null;
 
   try {
-    const { nombre, email, password, rol, empresa_id, rol_empresa } = req.body;
+    await asegurarColumnasDemoAuth(client);
 
-    if (!nombre || !email || !password) {
+    const { nombre, email, rol, empresa_id, empresa_ids, rol_empresa, activo, rut, telefono } = req.body;
+    const adminSistema = esAdminSistema(req.usuario.rol);
+
+    if (!nombre || !email) {
       return res.status(400).json({
-        error: "Nombre, email y contrasena son obligatorios",
+        error: "Nombre y email son obligatorios",
       });
     }
 
     const rolNormalizado = normalizarRol(rol || "usuario_cliente");
-    const empresaId = Number(empresa_id || 0) || null;
+    const empresasIds = normalizarListaEmpresas(empresa_ids);
+    const empresaId = Number(empresa_id || empresasIds[0] || 0) || null;
+    const empresasAsignar = empresasIds.length > 0 ? empresasIds : empresaId ? [empresaId] : [];
+    const activoFinal = normalizarActivo(activo, true);
 
-    if (!esAdminSistema(req.usuario.rol) && rolNormalizado === "superadmin") {
+    if (!adminSistema && rolNormalizado === "superadmin") {
       return res.status(403).json({
         error: "Solo el administrador del sistema puede crear super administradores",
       });
@@ -665,19 +747,19 @@ async function crearUsuarioCliente(req, res) {
 
     if (
       rolNormalizado !== "superadmin" &&
-      !empresaId &&
-      !esAdminSistema(req.usuario.rol)
+      empresasAsignar.length === 0 &&
+      !adminSistema
     ) {
       return res.status(400).json({
         error: "Debe seleccionar la empresa del cliente",
       });
     }
 
-    if (empresaId) {
+    for (const empresaAsignadaId of empresasAsignar) {
       const puedeAdministrar = await usuarioPuedeAdministrarEmpresa(
         client,
         req.usuario,
-        empresaId
+        empresaAsignadaId
       );
 
       if (!puedeAdministrar) {
@@ -687,7 +769,7 @@ async function crearUsuarioCliente(req, res) {
       }
     }
 
-    if (!esAdminSistema(req.usuario.rol)) {
+    if (!adminSistema) {
       const limite = await validarLimiteUsuariosCliente(client, req.usuario);
 
       if (!limite.permitido) {
@@ -698,6 +780,15 @@ async function crearUsuarioCliente(req, res) {
     }
 
     const emailNormalizado = String(email).trim().toLowerCase();
+    const rutTexto = String(rut || "").trim();
+    const rutDatos = rutTexto ? normalizarRut(rutTexto) : null;
+    const telefonoNormalizado = String(telefono || "").trim();
+
+    if (rutTexto && !rutDatos.valido) {
+      return res.status(400).json({
+        error: "RUT invalido",
+      });
+    }
 
     const existe = await client.query("SELECT id FROM usuarios WHERE email = $1", [
       emailNormalizado,
@@ -709,31 +800,106 @@ async function crearUsuarioCliente(req, res) {
       });
     }
 
+    if (rutDatos?.rut_normalizado) {
+      const rutDuplicado = await client.query(
+        "SELECT id FROM usuarios WHERE rut_normalizado = $1 LIMIT 1",
+        [rutDatos.rut_normalizado]
+      );
+
+      if (rutDuplicado.rows.length > 0) {
+        return res.status(400).json({
+          error: "Ya existe un usuario con ese RUT",
+        });
+      }
+    }
+
     await client.query("BEGIN");
     transaccionIniciada = true;
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const claveInicialSegura = crypto.randomBytes(32).toString("hex");
+    const passwordHash = await bcrypt.hash(claveInicialSegura, 10);
     const usuario = await client.query(
-      `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-       VALUES ($1, $2, $3, $4, true)
-       RETURNING id, nombre, email, rol, activo, creado_en`,
-      [nombre, emailNormalizado, passwordHash, rolNormalizado]
+      `INSERT INTO usuarios (nombre, email, password_hash, rol, activo, rut, rut_normalizado, telefono)
+       VALUES ($1, $2, $3, $4, true, $5, $6, $7)
+       RETURNING id, nombre, email, rol, activo, rut, rut_normalizado, telefono, creado_en`,
+      [
+        String(nombre).trim(),
+        emailNormalizado,
+        passwordHash,
+        rolNormalizado,
+        rutDatos?.rut || rutTexto || null,
+        rutDatos?.rut_normalizado || null,
+        telefonoNormalizado || null,
+      ]
     );
 
-    if (empresaId) {
+    if (activoFinal === false) {
+      await client.query("UPDATE usuarios SET activo = false WHERE id = $1", [
+        usuario.rows[0].id,
+      ]);
+      usuario.rows[0].activo = false;
+    }
+
+    for (const empresaAsignadaId of empresasAsignar) {
       await asignarUsuarioEmpresa(
         client,
         usuario.rows[0].id,
-        empresaId,
+        empresaAsignadaId,
         rol_empresa || (rolNormalizado === "admin_cliente" ? "admin" : "usuario")
       );
     }
 
+    await registrarAuditoria({
+      client,
+      req,
+      empresaId,
+      modulo: "Administración",
+      accion: "Crear usuario",
+      detalle: `Usuario creado desde administracion: ${emailNormalizado}`,
+      tablaAfectada: "usuarios",
+      registroId: usuario.rows[0].id,
+      datos: {
+        usuario: {
+          nombre: String(nombre).trim(),
+          email: emailNormalizado,
+          rut: rutDatos?.rut_normalizado || null,
+          telefono: telefonoNormalizado || null,
+          rol: rolNormalizado,
+          activo: activoFinal,
+          empresas: empresasAsignar,
+        },
+      },
+    });
+
+    correoInvitacion = await crearTokenRecuperacionPassword(
+      client,
+      req,
+      usuario.rows[0].id
+    );
+
     await client.query("COMMIT");
     transaccionIniciada = false;
 
+    let resultadoCorreo;
+    try {
+      resultadoCorreo = await enviarCorreoRecuperacionPassword({
+        nombre: usuario.rows[0].nombre,
+        email: usuario.rows[0].email,
+        resetUrl: correoInvitacion.resetUrl,
+        minutosVigencia: correoInvitacion.minutosVigencia,
+        modo: "invitacion",
+      });
+    } catch (errorCorreo) {
+      console.error("Usuario creado, pero no se pudo enviar invitacion:", errorCorreo.message);
+      resultadoCorreo = { enviado: false, motivo: "Error al enviar correo" };
+    }
+
     return res.status(201).json({
-      mensaje: "Usuario creado correctamente",
+      mensaje: resultadoCorreo.enviado
+        ? "Usuario creado correctamente. Se envio invitacion para definir contrasena."
+        : `Usuario creado correctamente. No se envio correo: ${resultadoCorreo.motivo || "SMTP no disponible"}.`,
+      correo_enviado: resultadoCorreo.enviado,
+      correo_motivo: resultadoCorreo.motivo || null,
       usuario: usuario.rows[0],
     });
   } catch (error) {
@@ -756,8 +922,10 @@ async function actualizarUsuarioCliente(req, res) {
   let transaccionIniciada = false;
 
   try {
+    await asegurarColumnasDemoAuth(client);
+
     const { id } = req.params;
-    const { nombre, email, rol, empresa_id, rol_empresa, activo } = req.body;
+    const { nombre, email, rol, empresa_id, empresa_ids, rol_empresa, activo, rut, telefono } = req.body;
     const usuarioId = Number(id || 0);
 
     if (!usuarioId) {
@@ -773,7 +941,7 @@ async function actualizarUsuarioCliente(req, res) {
     }
 
     const usuarioActual = await client.query(
-      `SELECT id, nombre, email, rol, activo
+      `SELECT id, nombre, email, rut, rut_normalizado, telefono, rol, activo
        FROM usuarios
        WHERE id = $1
        LIMIT 1`,
@@ -789,12 +957,23 @@ async function actualizarUsuarioCliente(req, res) {
     const usuarioObjetivo = usuarioActual.rows[0];
     const rolNormalizado = normalizarRol(rol || usuarioObjetivo.rol);
     const emailNormalizado = normalizarEmail(email);
-    const empresaId = Number(empresa_id || 0) || null;
+    const empresasIds = normalizarListaEmpresas(empresa_ids);
+    const empresaId = Number(empresa_id || empresasIds[0] || 0) || null;
+    const empresasAsignar = empresasIds.length > 0 ? empresasIds : empresaId ? [empresaId] : [];
     const activoFinal = normalizarActivo(activo, usuarioObjetivo.activo);
+    const rutTexto = String(rut || "").trim();
+    const rutDatos = rutTexto ? normalizarRut(rutTexto) : null;
+    const telefonoNormalizado = String(telefono || "").trim();
 
     if (!emailNormalizado) {
       return res.status(400).json({
         error: "Correo invalido",
+      });
+    }
+
+    if (rutTexto && !rutDatos.valido) {
+      return res.status(400).json({
+        error: "RUT invalido",
       });
     }
 
@@ -807,6 +986,16 @@ async function actualizarUsuarioCliente(req, res) {
     if (Number(req.usuario.id) === usuarioId && activoFinal === false) {
       return res.status(400).json({
         error: "No puedes desactivar tu propio usuario",
+      });
+    }
+
+    if (
+      esRolAdminSistema(usuarioObjetivo.rol) &&
+      (!esRolAdminSistema(rolNormalizado) || activoFinal === false) &&
+      (await esUltimoAdminSistemaActivo(client, usuarioId))
+    ) {
+      return res.status(400).json({
+        error: "No se puede desactivar ni quitar el rol al ultimo Administrador del Sistema activo",
       });
     }
 
@@ -823,6 +1012,23 @@ async function actualizarUsuarioCliente(req, res) {
       return res.status(400).json({
         error: "Ya existe otro usuario con ese correo",
       });
+    }
+
+    if (rutDatos?.rut_normalizado) {
+      const rutDuplicado = await client.query(
+        `SELECT id
+         FROM usuarios
+         WHERE rut_normalizado = $1
+           AND id <> $2
+         LIMIT 1`,
+        [rutDatos.rut_normalizado, usuarioId]
+      );
+
+      if (rutDuplicado.rows.length > 0) {
+        return res.status(400).json({
+          error: "Ya existe otro usuario con ese RUT",
+        });
+      }
     }
 
     let empresasAdministrables = null;
@@ -860,11 +1066,11 @@ async function actualizarUsuarioCliente(req, res) {
       }
     }
 
-    if (empresaId) {
+    for (const empresaAsignadaId of empresasAsignar) {
       const puedeAdministrar = await usuarioPuedeAdministrarEmpresa(
         client,
         req.usuario,
-        empresaId
+        empresaAsignadaId
       );
 
       if (!puedeAdministrar) {
@@ -882,10 +1088,22 @@ async function actualizarUsuarioCliente(req, res) {
        SET nombre = $1,
            email = $2,
            rol = $3,
-           activo = $4
-       WHERE id = $5
-       RETURNING id, nombre, email, rol, activo, creado_en`,
-      [String(nombre).trim(), emailNormalizado, rolNormalizado, activoFinal, usuarioId]
+           activo = $4,
+           rut = $5,
+           rut_normalizado = $6,
+           telefono = $7
+       WHERE id = $8
+       RETURNING id, nombre, email, rol, activo, rut, rut_normalizado, telefono, creado_en`,
+      [
+        String(nombre).trim(),
+        emailNormalizado,
+        rolNormalizado,
+        activoFinal,
+        rutDatos?.rut || rutTexto || null,
+        rutDatos?.rut_normalizado || null,
+        telefonoNormalizado || null,
+        usuarioId,
+      ]
     );
 
     if (rolNormalizado === "superadmin") {
@@ -896,15 +1114,15 @@ async function actualizarUsuarioCliente(req, res) {
          WHERE usuario_id = $1`,
         [usuarioId]
       );
-    } else if (empresaId) {
+    } else if (empresasAsignar.length > 0) {
       if (esAdminSistema(req.usuario.rol)) {
         await client.query(
           `UPDATE usuarios_empresas
            SET activo = false,
                actualizado_en = NOW()
            WHERE usuario_id = $1
-             AND empresa_id <> $2`,
-          [usuarioId, empresaId]
+             AND NOT (empresa_id = ANY($2::int[]))`,
+          [usuarioId, empresasAsignar]
         );
       } else if (Array.isArray(empresasAdministrables) && empresasAdministrables.length > 0) {
         await client.query(
@@ -913,19 +1131,21 @@ async function actualizarUsuarioCliente(req, res) {
                actualizado_en = NOW()
            WHERE usuario_id = $1
              AND empresa_id = ANY($2::int[])
-             AND empresa_id <> $3`,
-          [usuarioId, empresasAdministrables, empresaId]
+             AND NOT (empresa_id = ANY($3::int[]))`,
+          [usuarioId, empresasAdministrables, empresasAsignar]
         );
       }
 
-      await asignarUsuarioEmpresa(
-        client,
-        usuarioId,
-        empresaId,
-        normalizarRolEmpresa(
-          rol_empresa || (rolNormalizado === "admin_cliente" ? "admin" : "usuario")
-        )
-      );
+      for (const empresaAsignadaId of empresasAsignar) {
+        await asignarUsuarioEmpresa(
+          client,
+          usuarioId,
+          empresaAsignadaId,
+          normalizarRolEmpresa(
+            rol_empresa || (rolNormalizado === "admin_cliente" ? "admin" : "usuario")
+          )
+        );
+      }
     } else if (esAdminSistema(req.usuario.rol)) {
       await client.query(
         `UPDATE usuarios_empresas
@@ -949,15 +1169,20 @@ async function actualizarUsuarioCliente(req, res) {
         antes: {
           nombre: usuarioObjetivo.nombre,
           email: usuarioObjetivo.email,
+          rut: usuarioObjetivo.rut_normalizado || usuarioObjetivo.rut || null,
+          telefono: usuarioObjetivo.telefono || null,
           rol: usuarioObjetivo.rol,
           activo: usuarioObjetivo.activo,
         },
         despues: {
           nombre: String(nombre).trim(),
           email: emailNormalizado,
+          rut: rutDatos?.rut_normalizado || null,
+          telefono: telefonoNormalizado || null,
           rol: rolNormalizado,
           activo: activoFinal,
           empresa_id: empresaId,
+          empresas: empresasAsignar,
           rol_empresa: rol_empresa || null,
         },
       },
@@ -986,40 +1211,91 @@ async function actualizarUsuarioCliente(req, res) {
 }
 
 async function cambiarEstadoUsuario(req, res) {
+  const client = await pool.connect();
+  let transaccionIniciada = false;
+
   try {
     const { id } = req.params;
     const { activo } = req.body;
+    const usuarioId = Number(id || 0);
+    const activoFinal = Boolean(activo);
 
-    if (Number(id) === Number(req.usuario.id) && activo === false) {
+    if (usuarioId === Number(req.usuario.id) && activoFinal === false) {
       return res.status(400).json({
         error: "No puedes desactivar tu propio usuario",
       });
     }
 
-    const actualizado = await pool.query(
-      `UPDATE usuarios
-       SET activo = $1
-       WHERE id = $2
-       RETURNING id, nombre, email, rol, activo`,
-      [Boolean(activo), id]
+    const usuarioActual = await client.query(
+      `SELECT id, nombre, email, rol, activo
+       FROM usuarios
+       WHERE id = $1
+       LIMIT 1`,
+      [usuarioId]
     );
 
-    if (actualizado.rows.length === 0) {
+    if (usuarioActual.rows.length === 0) {
       return res.status(404).json({
         error: "Usuario no encontrado",
       });
     }
+
+    if (
+      usuarioActual.rows[0].activo === true &&
+      activoFinal === false &&
+      esRolAdminSistema(usuarioActual.rows[0].rol) &&
+      (await esUltimoAdminSistemaActivo(client, usuarioId))
+    ) {
+      return res.status(400).json({
+        error: "No se puede desactivar al ultimo Administrador del Sistema activo",
+      });
+    }
+
+    await client.query("BEGIN");
+    transaccionIniciada = true;
+
+    const actualizado = await client.query(
+      `UPDATE usuarios
+       SET activo = $1
+       WHERE id = $2
+       RETURNING id, nombre, email, rol, activo`,
+      [activoFinal, usuarioId]
+    );
+
+    await registrarAuditoria({
+      client,
+      req,
+      empresaId: null,
+      modulo: "Administración",
+      accion: activoFinal ? "Reactivar usuario" : "Desactivar usuario",
+      detalle: `Cambio de estado usuario: ${usuarioActual.rows[0].email}`,
+      tablaAfectada: "usuarios",
+      registroId: usuarioId,
+      datos: {
+        antes: { activo: usuarioActual.rows[0].activo },
+        despues: { activo: activoFinal },
+      },
+    });
+
+    await client.query("COMMIT");
+    transaccionIniciada = false;
 
     return res.json({
       mensaje: "Estado actualizado correctamente",
       usuario: actualizado.rows[0],
     });
   } catch (error) {
+    if (transaccionIniciada) {
+      await client.query("ROLLBACK");
+    }
+
     console.error("Error al cambiar estado de usuario:", error);
 
     return res.status(500).json({
       error: "Error interno al cambiar estado de usuario",
     });
+  } finally {
+    client.release();
   }
 }
 
@@ -1028,6 +1304,85 @@ async function resetearPasswordUsuario(req, res) {
     error:
       "Por seguridad el administrador no puede definir ni conocer contrasenas. Usa el flujo de recuperacion de contrasena.",
   });
+}
+
+async function solicitarRecuperacionPasswordUsuario(req, res) {
+  try {
+    await asegurarColumnasDemoAuth(pool);
+
+    const usuarioId = Number(req.params?.id || 0);
+
+    if (!usuarioId) {
+      return res.status(400).json({
+        error: "Usuario invalido",
+      });
+    }
+
+    const usuarioResult = await pool.query(
+      `SELECT id, nombre, email
+       FROM usuarios
+       WHERE id = $1
+       LIMIT 1`,
+      [usuarioId]
+    );
+
+    if (usuarioResult.rows.length === 0) {
+      return res.status(404).json({
+        error: "Usuario no encontrado",
+      });
+    }
+
+    const usuario = usuarioResult.rows[0];
+    const tokenRecuperacion = await crearTokenRecuperacionPassword(pool, req, usuario.id);
+
+    let resultadoCorreo;
+    try {
+      resultadoCorreo = await enviarCorreoRecuperacionPassword({
+        nombre: usuario.nombre,
+        email: usuario.email,
+        resetUrl: tokenRecuperacion.resetUrl,
+        minutosVigencia: tokenRecuperacion.minutosVigencia,
+        modo: "recuperacion",
+      });
+    } catch (errorCorreo) {
+      console.error("No se pudo enviar recuperacion de contrasena:", errorCorreo.message);
+      resultadoCorreo = { enviado: false, motivo: "Error al enviar correo" };
+    }
+
+    await registrarAuditoria({
+      req,
+      empresaId: null,
+      modulo: "Administración",
+      accion: "Enviar recuperacion contrasena",
+      detalle: `Recuperacion de contrasena solicitada para ${usuario.email}`,
+      tablaAfectada: "usuarios",
+      registroId: usuario.id,
+      datos: {
+        usuario_id: usuario.id,
+        email: usuario.email,
+      },
+    });
+
+    const respuesta = {
+      mensaje: resultadoCorreo.enviado
+        ? "Se envio la recuperacion de contrasena al correo del usuario."
+        : `Recuperacion generada, pero no se envio correo: ${resultadoCorreo.motivo || "SMTP no disponible"}.`,
+      correo_enviado: resultadoCorreo.enviado,
+      correo_motivo: resultadoCorreo.motivo || null,
+    };
+
+    if (process.env.NODE_ENV !== "production") {
+      respuesta.url_reset_desarrollo = tokenRecuperacion.resetUrl;
+    }
+
+    return res.json(respuesta);
+  } catch (error) {
+    console.error("Error al solicitar recuperacion de contrasena de usuario:", error);
+
+    return res.status(500).json({
+      error: "Error interno al solicitar recuperacion de contrasena",
+    });
+  }
 }
 
 async function solicitarRecuperacionPassword(req, res) {
@@ -1068,36 +1423,28 @@ async function solicitarRecuperacionPassword(req, res) {
 
     if (usuarioResult.rows.length > 0) {
       const usuario = usuarioResult.rows[0];
-      const token = crypto.randomBytes(32).toString("hex");
-      const tokenHash = hashResetToken(token);
-      const minutosVigencia = Number(process.env.PASSWORD_RESET_MINUTES || 30);
-      const resetUrl = construirUrlReset(req, token);
+      const tokenRecuperacion = await crearTokenRecuperacionPassword(pool, req, usuario.id);
 
-      await pool.query(
-        `UPDATE password_reset_tokens
-         SET usado_en = NOW()
-         WHERE usuario_id = $1
-           AND usado_en IS NULL`,
-        [usuario.id]
-      );
+      try {
+        const resultadoCorreo = await enviarCorreoRecuperacionPassword({
+          nombre: usuario.nombre,
+          email: usuario.email,
+          resetUrl: tokenRecuperacion.resetUrl,
+          minutosVigencia: tokenRecuperacion.minutosVigencia,
+          modo: "recuperacion",
+        });
 
-      await pool.query(
-        `INSERT INTO password_reset_tokens
-         (usuario_id, token_hash, vence_en, ip_solicitud, user_agent)
-         VALUES ($1, $2, NOW() + ($3::int * INTERVAL '1 minute'), $4, $5)`,
-        [
-          usuario.id,
-          tokenHash,
-          minutosVigencia,
-          req.ip || req.headers["x-forwarded-for"] || null,
-          req.headers["user-agent"] || null,
-        ]
-      );
-
-      console.log(`Solicitud de recuperacion de contrasena registrada para ${usuario.email}.`);
+        if (!resultadoCorreo.enviado) {
+          console.warn(
+            `Solicitud de recuperacion registrada sin correo enviado: ${resultadoCorreo.motivo || "SMTP no disponible"}`
+          );
+        }
+      } catch (errorCorreo) {
+        console.error("No se pudo enviar correo de recuperacion:", errorCorreo.message);
+      }
 
       if (process.env.NODE_ENV !== "production") {
-        respuesta.url_reset_desarrollo = resetUrl;
+        respuesta.url_reset_desarrollo = tokenRecuperacion.resetUrl;
       }
     }
 
@@ -1200,6 +1547,7 @@ module.exports = {
   actualizarUsuarioCliente,
   cambiarEstadoUsuario,
   resetearPasswordUsuario,
+  solicitarRecuperacionPasswordUsuario,
   solicitarRecuperacionPassword,
   resetearPasswordConToken,
 };

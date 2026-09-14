@@ -4,14 +4,12 @@ import {
   crearUsuarioSistema,
   actualizarUsuarioSistema,
   cambiarEstadoUsuario,
-  resetearPasswordUsuario,
+  enviarRecuperacionPasswordUsuario,
   obtenerUsuarioActual,
 } from "../services/authService";
 import { listarEmpresas } from "../services/empresaService";
 
-const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "administrador_sistema"];
-const ROLES_ADMIN_CLIENTE = ["admin_cliente", "cliente_admin"];
-
+const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 function rolNormalizado(rol = "") {
   return String(rol || "").trim().toLowerCase();
 }
@@ -20,16 +18,11 @@ function esAdminSistema(rol = "") {
   return ROLES_ADMIN_SISTEMA.includes(rolNormalizado(rol));
 }
 
-function puedeGestionarUsuarios(rol = "") {
-  const rolActual = rolNormalizado(rol);
-  return esAdminSistema(rolActual) || ROLES_ADMIN_CLIENTE.includes(rolActual);
-}
-
 function nombreRol(rol = "") {
   const rolActual = rolNormalizado(rol);
 
   if (esAdminSistema(rolActual)) return "Administrador sistema";
-  if (ROLES_ADMIN_CLIENTE.includes(rolActual)) return "Administrador cliente";
+  if (["admin_cliente", "cliente_admin"].includes(rolActual)) return "Administrador empresa";
   return "Usuario cliente";
 }
 
@@ -47,6 +40,32 @@ function empresasAsignadas(usuario) {
       return `${nombre}${rolEmpresa}`;
     })
     .join(", ");
+}
+
+function formatearFecha(valor) {
+  if (!valor) {
+    return "-";
+  }
+
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) {
+    return String(valor).slice(0, 10);
+  }
+
+  return fecha.toLocaleDateString("es-CL");
+}
+
+function nombreSuscripcion(usuario) {
+  const estado = String(usuario?.suscripcion_estado || "").trim().toLowerCase();
+
+  if (!estado) return "-";
+  if (["trial", "prueba", "prueba_gratis"].includes(estado)) return "Prueba gratis";
+  if (["active", "activa"].includes(estado)) return "Activa";
+  if (["expired", "vencida"].includes(estado)) return "Vencida";
+  if (["suspended", "suspendida"].includes(estado)) return "Suspendida";
+  if (["cancelled", "cancelada"].includes(estado)) return "Cancelada";
+
+  return estado;
 }
 
 function empresaPrincipal(usuario) {
@@ -68,11 +87,11 @@ function normalizarRolEmpresa(rolEmpresa = "") {
 export default function UsuariosSistema() {
   const usuarioActual = obtenerUsuarioActual();
   const adminSistema = esAdminSistema(usuarioActual?.rol);
-  const puedeGestionar = puedeGestionarUsuarios(usuarioActual?.rol);
 
   const [usuarios, setUsuarios] = useState([]);
   const [empresas, setEmpresas] = useState([]);
   const [empresaFiltro, setEmpresaFiltro] = useState("");
+  const [busqueda, setBusqueda] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -81,25 +100,45 @@ export default function UsuariosSistema() {
   const [formulario, setFormulario] = useState({
     nombre: "",
     email: "",
-    password: "",
+    rut: "",
+    telefono: "",
     rol: "usuario_cliente",
-    empresa_id: "",
+    empresa_ids: [],
     rol_empresa: "usuario",
     activo: "true",
   });
 
   const rolesDisponibles = useMemo(() => {
     const roles = [
+      { valor: "superadmin", label: "Administrador sistema" },
+      { valor: "admin_cliente", label: "Administrador empresa" },
       { valor: "usuario_cliente", label: "Usuario cliente" },
-      { valor: "admin_cliente", label: "Administrador cliente" },
     ];
 
-    if (adminSistema) {
-      roles.unshift({ valor: "superadmin", label: "Administrador sistema" });
+    return roles;
+  }, []);
+
+  const usuariosFiltrados = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+
+    if (!texto) {
+      return usuarios;
     }
 
-    return roles;
-  }, [adminSistema]);
+    return usuarios.filter((usuario) => {
+      const empresasTexto = empresasAsignadas(usuario).toLowerCase();
+      return [
+        usuario.nombre,
+        usuario.email,
+        usuario.rut,
+        usuario.rut_normalizado,
+        usuario.telefono,
+        empresasTexto,
+      ]
+        .filter(Boolean)
+        .some((valor) => String(valor).toLowerCase().includes(texto));
+    });
+  }, [busqueda, usuarios]);
 
   useEffect(() => {
     cargarDatos();
@@ -123,12 +162,6 @@ export default function UsuariosSistema() {
       setEmpresas(listaEmpresas);
       setUsuarios(Array.isArray(datosUsuarios?.usuarios) ? datosUsuarios.usuarios : []);
 
-      if (!adminSistema && !formulario.empresa_id && listaEmpresas.length > 0) {
-        setFormulario((actual) => ({
-          ...actual,
-          empresa_id: String(listaEmpresas[0].id),
-        }));
-      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -160,14 +193,25 @@ export default function UsuariosSistema() {
     }));
   }
 
+  function manejarEmpresas(e) {
+    const seleccionadas = Array.from(e.target.selectedOptions).map((option) => option.value);
+
+    setFormulario((actual) => ({
+      ...actual,
+      empresa_ids: seleccionadas,
+    }));
+  }
+
   function limpiarFormulario() {
     setUsuarioEditandoId(null);
     setFormulario((actual) => ({
       ...actual,
       nombre: "",
       email: "",
-      password: "",
+      rut: "",
+      telefono: "",
       rol: "usuario_cliente",
+      empresa_ids: [],
       rol_empresa: "usuario",
       activo: "true",
     }));
@@ -182,9 +226,16 @@ export default function UsuariosSistema() {
     setFormulario({
       nombre: usuario.nombre || "",
       email: usuario.email || "",
-      password: "",
+      rut: usuario.rut || "",
+      telefono: usuario.telefono || "",
       rol: rolNormalizado(usuario.rol) || "usuario_cliente",
-      empresa_id: empresa ? String(empresa.empresa_id || empresa.id) : "",
+      empresa_ids: Array.isArray(usuario.empresas)
+        ? usuario.empresas
+            .map((empresaUsuario) => String(empresaUsuario.empresa_id || empresaUsuario.id || ""))
+            .filter(Boolean)
+        : empresa
+        ? [String(empresa.empresa_id || empresa.id)]
+        : [],
       rol_empresa: empresa ? normalizarRolEmpresa(empresa.rol_empresa) : "usuario",
       activo: usuario.activo ? "true" : "false",
     });
@@ -201,8 +252,10 @@ export default function UsuariosSistema() {
       const datos = {
         nombre: formulario.nombre.trim(),
         email: formulario.email.trim().toLowerCase(),
+        rut: formulario.rut.trim(),
+        telefono: formulario.telefono.trim(),
         rol: formulario.rol,
-        empresa_id: esSuperadmin ? null : formulario.empresa_id,
+        empresa_ids: esSuperadmin ? [] : formulario.empresa_ids,
         rol_empresa: esSuperadmin ? null : formulario.rol_empresa,
         activo: formulario.activo === "true",
       };
@@ -215,14 +268,11 @@ export default function UsuariosSistema() {
         return;
       }
 
-      await crearUsuarioSistema({
-        ...datos,
-        password: formulario.password,
-      });
+      const respuesta = await crearUsuarioSistema(datos);
 
       limpiarFormulario();
 
-      setMensaje("Usuario creado correctamente. Ya puede ingresar con su correo y clave inicial.");
+      setMensaje(respuesta?.mensaje || "Usuario creado correctamente. Envia recuperacion para que defina su contrasena.");
       await buscarUsuarios();
     } catch (err) {
       setError(err.message);
@@ -242,12 +292,12 @@ export default function UsuariosSistema() {
     }
   }
 
-  async function cambiarClave(usuario) {
-    const nuevaClave = window.prompt(
-      `Nueva contrasena temporal para ${usuario.email}. Minimo 6 caracteres:`
+  async function enviarRecuperacion(usuario) {
+    const confirmar = window.confirm(
+      `Enviar recuperacion de contrasena a ${usuario.email}?`
     );
 
-    if (!nuevaClave) {
+    if (!confirmar) {
       return;
     }
 
@@ -255,18 +305,18 @@ export default function UsuariosSistema() {
       setError("");
       setMensaje("");
 
-      await resetearPasswordUsuario(usuario.id, nuevaClave);
-      setMensaje("Contraseña temporal actualizada correctamente.");
+      const respuesta = await enviarRecuperacionPasswordUsuario(usuario.id);
+      setMensaje(respuesta?.mensaje || "Recuperacion de contrasena generada correctamente.");
     } catch (err) {
       setError(err.message);
     }
   }
 
-  if (!puedeGestionar) {
+  if (!adminSistema) {
     return (
       <div>
         <h1 style={titulo}>Usuarios y accesos</h1>
-        <p style={errorTexto}>No tienes permisos para administrar usuarios.</p>
+        <p style={errorTexto}>Solo el Administrador del Sistema puede administrar usuarios.</p>
       </div>
     );
   }
@@ -275,7 +325,7 @@ export default function UsuariosSistema() {
     <div>
       <h1 style={titulo}>Usuarios y accesos</h1>
       <p style={subtitulo}>
-        Crea accesos para clientes y asigna que empresas puede ver cada usuario.
+        Administra usuarios, perfiles y empresas asociadas del sistema completo.
       </p>
 
       {mensaje && <p style={ok}>{mensaje}</p>}
@@ -311,19 +361,27 @@ export default function UsuariosSistema() {
               />
             </div>
 
-            {!usuarioEditandoId && (
-              <div>
-                <label style={label}>Clave inicial</label>
-                <input
-                  style={input}
-                  name="password"
-                  type="password"
-                  value={formulario.password}
-                  onChange={manejarCambio}
-                  placeholder="Minimo 6 caracteres"
-                />
-              </div>
-            )}
+            <div>
+              <label style={label}>RUT</label>
+              <input
+                style={input}
+                name="rut"
+                value={formulario.rut}
+                onChange={manejarCambio}
+                placeholder="Opcional"
+              />
+            </div>
+
+            <div>
+              <label style={label}>Teléfono</label>
+              <input
+                style={input}
+                name="telefono"
+                value={formulario.telefono}
+                onChange={manejarCambio}
+                placeholder="Opcional"
+              />
+            </div>
 
             <div>
               <label style={label}>Rol del sistema</label>
@@ -344,16 +402,14 @@ export default function UsuariosSistema() {
             {formulario.rol !== "superadmin" && (
               <>
                 <div>
-                  <label style={label}>Empresa asignada</label>
+                  <label style={label}>Empresas asignadas</label>
                   <select
                     style={input}
-                    name="empresa_id"
-                    value={formulario.empresa_id}
-                    onChange={manejarCambio}
+                    name="empresa_ids"
+                    multiple
+                    value={formulario.empresa_ids}
+                    onChange={manejarEmpresas}
                   >
-                    {adminSistema && (
-                      <option value="">Sin empresa inicial</option>
-                    )}
                     {empresas.length === 0 && (
                       <option value="">No hay empresas disponibles</option>
                     )}
@@ -412,12 +468,12 @@ export default function UsuariosSistema() {
         <div style={cardInfo}>
           <h2 style={tituloSeccion}>Como queda el acceso</h2>
           <p style={textoInfo}>
-            El administrador general de ServContable ve todas las empresas. Un
-            cliente solo ve las empresas que se le asignen en esta pantalla.
+            El Administrador del Sistema ve la administracion global. Los usuarios
+            cliente solo trabajan con las empresas asociadas a su cuenta.
           </p>
           <p style={textoInfo}>
-            Recomendacion comercial: crear una clave temporal y pedir al cliente
-            cambiarla al primer ingreso.
+            Por seguridad no se crean ni muestran claves. El usuario define su
+            contrasena mediante recuperacion segura.
           </p>
         </div>
       </div>
@@ -427,6 +483,12 @@ export default function UsuariosSistema() {
           <h2 style={tituloSeccion}>Usuarios registrados</h2>
 
           <div style={filtros}>
+            <input
+              style={inputFiltro}
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar nombre, correo, RUT o empresa"
+            />
             <select
               style={inputFiltro}
               value={empresaFiltro}
@@ -454,20 +516,26 @@ export default function UsuariosSistema() {
               <tr>
                 <th style={th}>Usuario</th>
                 <th style={th}>Correo</th>
+                <th style={th}>RUT</th>
                 <th style={th}>Rol</th>
                 <th style={th}>Empresas</th>
+                <th style={th}>Ultimo acceso</th>
+                <th style={th}>Suscripcion</th>
                 <th style={th}>Estado</th>
                 <th style={th}>Accion</th>
               </tr>
             </thead>
 
             <tbody>
-              {usuarios.map((usuario) => (
+              {usuariosFiltrados.map((usuario) => (
                 <tr key={usuario.id}>
                   <td style={td}>{usuario.nombre}</td>
                   <td style={td}>{usuario.email}</td>
+                  <td style={td}>{usuario.rut || "-"}</td>
                   <td style={td}>{nombreRol(usuario.rol)}</td>
                   <td style={td}>{empresasAsignadas(usuario)}</td>
+                  <td style={td}>{formatearFecha(usuario.ultimo_acceso_en)}</td>
+                  <td style={td}>{nombreSuscripcion(usuario)}</td>
                   <td style={td}>
                     <span style={usuario.activo ? badgeActivo : badgeInactivo}>
                       {usuario.activo ? "Activo" : "Inactivo"}
@@ -485,10 +553,10 @@ export default function UsuariosSistema() {
                     </button>
                     <button
                       type="button"
-                      title="Cambiar clave"
-                      aria-label="Cambiar clave"
+                      title="Enviar recuperacion de contrasena"
+                      aria-label="Enviar recuperacion de contrasena"
                       style={botonIconoAzul}
-                      onClick={() => cambiarClave(usuario)}
+                      onClick={() => enviarRecuperacion(usuario)}
                     >
                       {"\uD83D\uDD11"}
                     </button>
@@ -505,9 +573,9 @@ export default function UsuariosSistema() {
                 </tr>
               ))}
 
-              {usuarios.length === 0 && !cargando && (
+              {usuariosFiltrados.length === 0 && !cargando && (
                 <tr>
-                  <td style={td} colSpan="6">
+                  <td style={td} colSpan="9">
                     No hay usuarios para el filtro seleccionado.
                   </td>
                 </tr>

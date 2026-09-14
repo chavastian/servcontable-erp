@@ -86,7 +86,7 @@ export async function listarUsuariosSistema(empresaId = "") {
     params.append("empresa_id", empresaId);
   }
 
-  const url = `${API_URL}/auth/usuarios${
+  const url = `${API_URL}/admin-usuarios${
     params.toString() ? `?${params.toString()}` : ""
   }`;
 
@@ -108,7 +108,7 @@ export async function listarUsuariosSistema(empresaId = "") {
 export async function crearUsuarioSistema(datosUsuario) {
   const token = obtenerToken();
 
-  const respuesta = await fetch(`${API_URL}/auth/usuarios`, {
+  const respuesta = await fetch(`${API_URL}/admin-usuarios`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -156,7 +156,7 @@ export function guardarSesionAutenticada(token, usuario) {
 export async function actualizarUsuarioSistema(id, datosUsuario) {
   const token = obtenerToken();
 
-  const respuesta = await fetch(`${API_URL}/auth/usuarios/${id}`, {
+  const respuesta = await fetch(`${API_URL}/admin-usuarios/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -177,7 +177,7 @@ export async function actualizarUsuarioSistema(id, datosUsuario) {
 export async function cambiarEstadoUsuario(id, activo) {
   const token = obtenerToken();
 
-  const respuesta = await fetch(`${API_URL}/auth/usuarios/${id}/estado`, {
+  const respuesta = await fetch(`${API_URL}/admin-usuarios/${id}/estado`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -211,6 +211,26 @@ export async function resetearPasswordUsuario(id, password) {
 
   if (!respuesta.ok) {
     throw new Error(data.error || "Error al actualizar contrasena");
+  }
+
+  return data;
+}
+
+export async function enviarRecuperacionPasswordUsuario(id) {
+  const token = obtenerToken();
+
+  const respuesta = await fetch(`${API_URL}/admin-usuarios/${id}/recuperacion-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(data.error || "Error al enviar recuperacion de contrasena");
   }
 
   return data;

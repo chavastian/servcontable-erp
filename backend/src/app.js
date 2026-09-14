@@ -42,6 +42,7 @@ const auditoriaRoutes = require("./routes/auditoria.routes");
 const pagosFlowRoutes = require("./routes/pagosFlow.routes");
 const contactoRoutes = require("./routes/contacto.routes");
 const adminSuscripcionesRoutes = require("./routes/adminSuscripciones.routes");
+const adminUsuariosRoutes = require("./routes/adminUsuarios.routes");
 
 
 const app = express();
@@ -130,6 +131,7 @@ app.use("/api/auditoria", auditoriaRoutes);
 app.use("/api/pagos-flow", pagosFlowRoutes);
 app.use("/api/contacto", contactoRoutes);
 app.use("/api/admin-suscripciones", adminSuscripcionesRoutes);
+app.use("/api/admin-usuarios", adminUsuariosRoutes);
 
 let frontendEstaticoConfigurado = false;
 

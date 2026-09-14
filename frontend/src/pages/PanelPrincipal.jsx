@@ -31,7 +31,6 @@ import UsuariosSistema from "./UsuariosSistema";
 import AdminSuscripciones from "./AdminSuscripciones";
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
-const ROLES_ADMIN_CLIENTE = ["admin_cliente", "cliente_admin"];
 const LOGO_SRC = "/servcontable-logo.png";
 
 const HEROES_CONTABLE = {
@@ -232,11 +231,6 @@ function rolNormalizado(rol = "") {
   return String(rol || "").trim().toLowerCase();
 }
 
-function puedeGestionarUsuarios(rol = "") {
-  const rolActual = rolNormalizado(rol);
-  return ROLES_ADMIN_SISTEMA.includes(rolActual) || ROLES_ADMIN_CLIENTE.includes(rolActual);
-}
-
 function vistaInicialPorModulo(moduloActivo) {
   if (moduloActivo === "administracion") return "adminSuscripciones";
   if (moduloActivo === "remuneraciones") return "remuneraciones";
@@ -258,7 +252,6 @@ export default function PanelPrincipal({
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [gruposAbiertos, setGruposAbiertos] = useState({});
   const usuarioEsAdminSistema = ROLES_ADMIN_SISTEMA.includes(rolNormalizado(usuario?.rol));
-  const usuarioPuedeGestionarUsuarios = puedeGestionarUsuarios(usuario?.rol);
   const esModuloAdministracion = moduloActivo === "administracion";
   const heroActual =
     esModuloAdministracion
@@ -387,6 +380,7 @@ export default function PanelPrincipal({
     grupo: "Administración",
     items: [
       { id: "adminSuscripciones", label: "Resumen" },
+      { id: "usuariosSistema", label: "Usuarios" },
       { id: "adminSuscripcionesClientes", label: "Clientes" },
       { id: "adminSuscripcionesGestion", label: "Suscripciones" },
       { id: "adminSuscripcionesSolicitudes", label: "Solicitudes" },
@@ -403,9 +397,7 @@ export default function PanelPrincipal({
       : moduloActivo === "simplificada"
       ? menuSimplificada
       : menuContable;
-  const menuActivo = !esModuloAdministracion && usuarioEsAdminSistema
-    ? [...menuBase, menuAdministracion]
-    : menuBase;
+  const menuActivo = menuBase;
   const tituloModulo =
     esModuloAdministracion
       ? "Administración"
@@ -551,7 +543,7 @@ export default function PanelPrincipal({
             {vistaActiva === "empresas" && <Empresas />}
             {vistaActiva === "planCuentas" && <PlanCuentas />}
             {vistaActiva === "auditoria" && <AuditoriaSistema />}
-            {vistaActiva === "usuariosSistema" && usuarioPuedeGestionarUsuarios && (
+            {vistaActiva === "usuariosSistema" && esModuloAdministracion && usuarioEsAdminSistema && (
               <UsuariosSistema />
             )}
             {vistaActiva === "adminSuscripciones" && usuarioEsAdminSistema && (
