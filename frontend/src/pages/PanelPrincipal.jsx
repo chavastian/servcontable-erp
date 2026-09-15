@@ -22,6 +22,7 @@ import Honorarios from "./Honorarios";
 import PagosCobros from "./PagosCobros";
 import ConciliacionBancaria from "./ConciliacionBancaria";
 import CuentasPendientes from "./CuentasPendientes";
+import CartolaRut from "./CartolaRut";
 import DashboardFinanciero from "./DashboardFinanciero";
 import Remuneraciones from "./Remuneraciones";
 import DashboardContable from "./contabilidad/DashboardContable";
@@ -65,6 +66,10 @@ const HEROES_CONTABLE = {
   cuentasPendientes: {
     titulo: "Cuentas por Cobrar/Pagar",
     descripcion: "Consulta saldos pendientes y movimientos asociados a clientes y proveedores.",
+  },
+  cartolaRut: {
+    titulo: "Cartola por RUT",
+    descripcion: "Consulta movimientos, saldos y documentos pendientes de un tercero en la empresa activa.",
   },
   libroDiario: {
     titulo: "Libro Diario",
@@ -310,6 +315,7 @@ export default function PanelPrincipal({
         { id: "honorarios", label: "Honorarios Recibidos" },
         { id: "pagosCobros", label: "Pagar / Cobrar Documento" },
         { id: "cuentasPendientes", label: "Cuentas por Cobrar/Pagar" },
+        { id: "cartolaRut", label: "Cartola por RUT" },
         { id: "conciliacionBancaria", label: "Conciliacion Bancaria" },
       ],
     },
@@ -591,6 +597,7 @@ export default function PanelPrincipal({
             {vistaActiva === "honorarios" && <Honorarios />}
             {vistaActiva === "pagosCobros" && <PagosCobros />}
             {vistaActiva === "cuentasPendientes" && <CuentasPendientes irVista={irVista} />}
+            {vistaActiva === "cartolaRut" && <CartolaRut irVista={irVista} />}
             {vistaActiva === "conciliacionBancaria" && <ConciliacionBancaria />}
             {vistaActiva === "analisisCuentas" && <AnalisisCuentas />}
 
