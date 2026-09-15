@@ -1,4 +1,6 @@
-const pdfParse = require("pdf-parse");
+const pdfParseModule = require("pdf-parse");
+
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 const AFP_NOMBRES = [
   "Capital",
@@ -91,6 +93,101 @@ const INDICADORES_PREVISIONALES_BASE = {
   ley_sanna_tasa: 0.03,
   tope_rebaja_zonas_extremas: 0,
 };
+
+function crearErrorUsuario(mensaje, statusCode = 400) {
+  const error = new Error(mensaje);
+  error.statusCode = statusCode;
+  error.expose = true;
+  return error;
+}
+
+function obtenerDiagnosticoPdfParser() {
+  return {
+    moduleType: typeof pdfParseModule,
+    keys: Object.keys(pdfParseModule || {}),
+    defaultType: typeof pdfParseModule?.default,
+    pdfParseClassType: typeof pdfParseModule?.PDFParse,
+  };
+}
+
+function obtenerPdfParseFuncionLegacy() {
+  if (typeof pdfParseModule === "function") {
+    return pdfParseModule;
+  }
+
+  if (typeof pdfParseModule?.default === "function") {
+    return pdfParseModule.default;
+  }
+
+  return null;
+}
+
+function obtenerPdfParseClase() {
+  if (typeof pdfParseModule?.PDFParse === "function") {
+    return pdfParseModule.PDFParse;
+  }
+
+  return null;
+}
+
+function esMimePdf(mimetype = "") {
+  const tipo = String(mimetype || "").toLowerCase();
+  return tipo === "application/pdf" || tipo === "application/octet-stream";
+}
+
+function validarArchivoPdfPrevired(archivo) {
+  if (!archivo?.buffer) {
+    throw crearErrorUsuario("Debe adjuntar el archivo de indicadores previsionales");
+  }
+
+  const nombre = String(archivo.originalname || "").toLowerCase();
+  const extensionPdf = nombre.endsWith(".pdf");
+
+  if (!extensionPdf || !esMimePdf(archivo.mimetype)) {
+    throw crearErrorUsuario("El archivo seleccionado no es un PDF valido.");
+  }
+
+  if (!archivo.size || archivo.size <= 0 || archivo.buffer.length <= 0) {
+    throw crearErrorUsuario("El archivo PDF esta vacio.");
+  }
+
+  if (archivo.size > MAX_PDF_BYTES || archivo.buffer.length > MAX_PDF_BYTES) {
+    throw crearErrorUsuario("El archivo PDF supera el tamano maximo permitido.");
+  }
+
+  const firmaPdf = archivo.buffer.subarray(0, 4).toString("latin1");
+  if (firmaPdf !== "%PDF") {
+    throw crearErrorUsuario("El archivo seleccionado no es un PDF valido.");
+  }
+}
+
+async function extraerTextoPdfDesdeBuffer(buffer) {
+  const parseLegacy = obtenerPdfParseFuncionLegacy();
+
+  if (parseLegacy) {
+    const resultado = await parseLegacy(buffer);
+    return String(resultado?.text || "");
+  }
+
+  const PDFParse = obtenerPdfParseClase();
+
+  if (!PDFParse) {
+    throw new Error(
+      `Modulo pdf-parse incompatible: ${JSON.stringify(obtenerDiagnosticoPdfParser())}`
+    );
+  }
+
+  const parser = new PDFParse({ data: buffer });
+
+  try {
+    const resultado = await parser.getText();
+    return String(resultado?.text || "");
+  } finally {
+    if (typeof parser.destroy === "function") {
+      await parser.destroy();
+    }
+  }
+}
 
 function normalizarTexto(texto = "") {
   return String(texto)
@@ -392,19 +489,68 @@ function crearConfiguracionDesdeIndicadores(indicadores) {
   };
 }
 
+function pareceIndicadoresPrevired(texto = "", indicadores = {}, afps = []) {
+  const textoNormalizado = normalizarTexto(texto).toLowerCase();
+  const pistasTexto = [
+    "previred",
+    "indicadores previsionales",
+    "para cotizaciones a pagar",
+    "tasa del seguro de invalidez",
+    "seguro de cesantia",
+  ];
+  const coincidenciasTexto = pistasTexto.filter((pista) =>
+    textoNormalizado.includes(pista)
+  ).length;
+  const camposConValor = [
+    indicadores.valor_uf,
+    indicadores.valor_utm,
+    indicadores.valor_uta,
+    indicadores.renta_tope_afp_uf,
+    indicadores.renta_tope_afp_monto,
+    indicadores.renta_tope_seguro_cesantia_uf,
+    indicadores.ingreso_minimo_dependientes,
+    indicadores.tasa_sis,
+  ].filter((valor) => Number(valor || 0) > 0).length;
+
+  return (
+    coincidenciasTexto >= 1 ||
+    Boolean(indicadores.periodo_remuneracion) ||
+    afps.length > 0 ||
+    camposConValor >= 4
+  );
+}
+
 async function parsearIndicadoresPrevisionalesDesdeBuffer(archivo) {
-  if (!archivo?.buffer) {
-    throw new Error("Debe adjuntar un archivo de indicadores previsionales");
+  validarArchivoPdfPrevired(archivo);
+
+  let texto = "";
+
+  try {
+    texto = await extraerTextoPdfDesdeBuffer(archivo.buffer);
+  } catch (error) {
+    error.message = `No fue posible leer el PDF de Previred: ${error.message}`;
+    throw error;
   }
 
-  const nombre = String(archivo.originalname || "").toLowerCase();
-  const esPdf =
-    archivo.mimetype === "application/pdf" || nombre.endsWith(".pdf");
-  const texto = esPdf
-    ? (await pdfParse(archivo.buffer)).text
-    : archivo.buffer.toString("utf8");
+  if (!texto.trim()) {
+    throw crearErrorUsuario(
+      "No fue posible leer texto del PDF de Previred. Verifica que sea el archivo de indicadores previsionales del periodo seleccionado."
+    );
+  }
 
   const resultado = extraerIndicadoresDesdeTexto(texto);
+
+  if (
+    !pareceIndicadoresPrevired(
+      texto,
+      resultado.indicadores,
+      resultado.afps || []
+    )
+  ) {
+    throw crearErrorUsuario(
+      "El PDF seleccionado no parece corresponder al documento de Indicadores Previsionales de Previred."
+    );
+  }
 
   return {
     ...resultado,
@@ -416,5 +562,8 @@ module.exports = {
   INDICADORES_PREVISIONALES_BASE,
   crearConfiguracionDesdeIndicadores,
   extraerIndicadoresDesdeTexto,
+  extraerTextoPdfDesdeBuffer,
+  obtenerDiagnosticoPdfParser,
   parsearIndicadoresPrevisionalesDesdeBuffer,
+  validarArchivoPdfPrevired,
 };

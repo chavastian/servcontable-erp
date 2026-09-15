@@ -20,12 +20,35 @@ const uploadIndicadores = multer({
   },
 });
 
+function cargarIndicadores(req, res, next) {
+  uploadIndicadores.single("archivo")(req, res, (error) => {
+    if (!error) {
+      return next();
+    }
+
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        error: "El archivo PDF supera el tamano maximo permitido.",
+      });
+    }
+
+    console.error("Error al recibir PDF de indicadores Previred:", {
+      mensaje: error.message,
+      codigo: error.code,
+    });
+
+    return res.status(400).json({
+      error: "No fue posible recibir el archivo PDF de Previred.",
+    });
+  });
+}
+
 router.get("/", verificarToken, obtenerConfiguracionRemuneraciones);
 router.post("/", verificarToken, guardarConfiguracionRemuneraciones);
 router.post(
   "/importar-indicadores",
   verificarToken,
-  uploadIndicadores.single("archivo"),
+  cargarIndicadores,
   importarIndicadoresPrevisionales
 );
 router.post("/afp", verificarToken, guardarAFP);

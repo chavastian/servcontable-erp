@@ -22,6 +22,7 @@ const MUTUALES_PREVIRED = [
 const SALUD_FONASA_LEGAL = 7;
 const SALUD_CCAF_PREVIRED_DEFECTO = 3.1;
 const SALUD_FONASA_CCAF_PREVIRED_DEFECTO = 3.9;
+const MAX_PDF_INDICADORES_BYTES = 10 * 1024 * 1024;
 
 const AFP_FORM_INICIAL = {
   nombre: "",
@@ -122,6 +123,31 @@ function booleanoConfig(valor) {
 
   const texto = String(valor).trim().toLowerCase();
   return ["si", "sí", "true", "1", "s"].includes(texto);
+}
+
+function validarArchivoIndicadores(archivo) {
+  if (!archivo) {
+    return "Debes seleccionar el PDF de indicadores Previred.";
+  }
+
+  const nombre = String(archivo.name || "").toLowerCase();
+  const esPdf =
+    nombre.endsWith(".pdf") &&
+    (!archivo.type || archivo.type === "application/pdf");
+
+  if (!esPdf) {
+    return "El archivo seleccionado no es un PDF valido.";
+  }
+
+  if (!archivo.size || archivo.size <= 0) {
+    return "El archivo PDF esta vacio.";
+  }
+
+  if (archivo.size > MAX_PDF_INDICADORES_BYTES) {
+    return "El archivo PDF supera el tamano maximo permitido.";
+  }
+
+  return "";
 }
 
 function redondearPorcentaje(valor) {
@@ -600,8 +626,10 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
       setMensaje("");
       setError("");
 
-      if (!archivoIndicadores) {
-        setError("Debes seleccionar el PDF de indicadores Previred.");
+      const errorArchivo = validarArchivoIndicadores(archivoIndicadores);
+
+      if (errorArchivo) {
+        setError(errorArchivo);
         return;
       }
 
@@ -699,6 +727,19 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
     }
   }
 
+  function cambiarArchivoIndicadores(e) {
+    const archivo = e.target.files?.[0] || null;
+    const errorArchivo = validarArchivoIndicadores(archivo);
+
+    setArchivoIndicadores(errorArchivo ? null : archivo);
+    setMensaje("");
+    setError(errorArchivo);
+
+    if (errorArchivo) {
+      e.target.value = "";
+    }
+  }
+
   function opcionesCuentas() {
     const lista = [...cuentas].sort((a, b) =>
       String(a.codigo || "").localeCompare(String(b.codigo || ""), "es-CL")
@@ -788,10 +829,8 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
             <input
               style={inputFile}
               type="file"
-              accept=".pdf,.txt"
-              onChange={(e) =>
-                setArchivoIndicadores(e.target.files?.[0] || null)
-              }
+              accept=".pdf,application/pdf"
+              onChange={cambiarArchivoIndicadores}
             />
 
             <button
@@ -800,7 +839,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
               onClick={importarIndicadoresClick}
               disabled={importandoIndicadores}
             >
-              {importandoIndicadores ? "Importando..." : "Importar indicadores"}
+              {importandoIndicadores ? "Procesando PDF..." : "Importar indicadores"}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 const pool = require("../database/db");
 const {
   INDICADORES_PREVISIONALES_BASE,
+  obtenerDiagnosticoPdfParser,
   parsearIndicadoresPrevisionalesDesdeBuffer,
 } = require("../helpers/indicadoresPrevisionales.helper");
 
@@ -648,6 +649,15 @@ async function importarIndicadoresPrevisionales(req, res) {
       });
     }
 
+    if (process.env.NODE_ENV !== "production") {
+      console.info("Importando PDF indicadores Previred", {
+        archivo: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        pdfParser: obtenerDiagnosticoPdfParser(),
+      });
+    }
+
     const resultado = await parsearIndicadoresPrevisionalesDesdeBuffer(req.file);
     const advertencias = [];
 
@@ -669,12 +679,22 @@ async function importarIndicadoresPrevisionales(req, res) {
       advertencias,
     });
   } catch (error) {
-    console.error("Error al importar indicadores previsionales:", error);
+    console.error("Error al importar indicadores previsionales:", {
+      mensaje: error.message,
+      nombre: error.name,
+      archivo: req.file?.originalname,
+      mimetype: req.file?.mimetype,
+      size: req.file?.size,
+      pdfParser: obtenerDiagnosticoPdfParser(),
+    });
 
-    return res.status(500).json({
-      error:
-        error.message ||
-        "Error interno al importar indicadores previsionales",
+    const statusCode = error.expose ? error.statusCode || 400 : 500;
+    const mensajeSeguro = error.expose
+      ? error.message
+      : "No fue posible leer el PDF de Previred. Verifica que corresponda al archivo de Indicadores Previsionales del periodo seleccionado.";
+
+    return res.status(statusCode).json({
+      error: mensajeSeguro,
     });
   }
 }
