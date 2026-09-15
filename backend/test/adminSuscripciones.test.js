@@ -4,6 +4,7 @@ const {
   ESTADOS_SUSCRIPCION,
   calcularMontoSuscripcion,
   calcularEstadoVigente,
+  tieneAccesoOperativo,
   normalizarEstadoSuscripcion,
 } = require("../src/helpers/suscripcion.helper");
 const { esAdminSistema, normalizarRol } = require("../src/helpers/auth.helper");
@@ -69,6 +70,22 @@ test("mantiene estados suspendido y cancelado sin reactivar por fecha", () => {
 
   assert.equal(suspendida.status, ESTADOS_SUSCRIPCION.SUSPENDED);
   assert.equal(cancelada.status, ESTADOS_SUSCRIPCION.CANCELLED);
+});
+
+test("centraliza acceso operativo de suscripciones", () => {
+  assert.equal(tieneAccesoOperativo(null), false);
+  assert.equal(tieneAccesoOperativo({ status: "ACTIVE" }), true);
+  assert.equal(
+    tieneAccesoOperativo({ status: "TRIAL", trial_ends_at: fechaEnDias(1) }),
+    true
+  );
+  assert.equal(
+    tieneAccesoOperativo({ status: "TRIAL", trial_ends_at: fechaEnDias(-10) }),
+    false
+  );
+  assert.equal(tieneAccesoOperativo({ status: "EXPIRED" }), false);
+  assert.equal(tieneAccesoOperativo({ status: "SUSPENDED" }), false);
+  assert.equal(tieneAccesoOperativo({ status: "CANCELLED" }), false);
 });
 
 test("solo roles globales califican como administrador de sistema", () => {

@@ -12,48 +12,18 @@ const {
   asegurarEsquemaAuth,
 } = require("../helpers/auth.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
-const { validarLimiteUsuariosCliente } = require("../helpers/suscripcion.helper");
+const {
+  ESTADOS_SUSCRIPCION,
+  calcularDiasRestantesTrial,
+  normalizarEstadoSuscripcion,
+  validarAccesoSuscripcion,
+  validarLimiteUsuariosCliente,
+} = require("../helpers/suscripcion.helper");
 const { normalizarRut, pareceRut } = require("../helpers/rut.helper");
 const { enviarCorreoRecuperacionPassword } = require("../helpers/mail.helper");
 
 function registroPublicoHabilitado() {
   return process.env.ALLOW_PUBLIC_REGISTRATION === "true";
-}
-
-function valorEnvBooleano(valor) {
-  const normalizado = String(valor || "").trim().toLowerCase();
-
-  if (["true", "1", "si", "sí", "yes"].includes(normalizado)) {
-    return true;
-  }
-
-  if (["false", "0", "no"].includes(normalizado)) {
-    return false;
-  }
-
-  return null;
-}
-
-function demoHabilitada(req) {
-  const demoModo = valorEnvBooleano(process.env.DEMO_MODE);
-
-  if (demoModo !== null) {
-    return demoModo;
-  }
-
-  const contextoLocal = [
-    req?.hostname,
-    req?.headers?.host,
-    req?.headers?.origin,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return (
-    process.env.NODE_ENV !== "production" &&
-    /(localhost|127\.0\.0\.1|\[::1\]|::1)/.test(contextoLocal)
-  );
 }
 
 const solicitudesRecuperacion = new Map();
@@ -136,31 +106,6 @@ function fechaISO(valor) {
   return String(valor).slice(0, 10);
 }
 
-function demoEstaVigente(usuario = {}) {
-  if (!usuario.demo_activo || !usuario.demo_vence) {
-    return false;
-  }
-
-  const venceTexto = fechaISO(usuario.demo_vence);
-  const vence = new Date(`${venceTexto}T23:59:59`);
-
-  if (Number.isNaN(vence.getTime())) {
-    return false;
-  }
-
-  return vence >= new Date();
-}
-
-function datosDemoPublico(usuario = {}) {
-  return {
-    activo: Boolean(usuario.demo_activo),
-    inicio: fechaISO(usuario.demo_inicio),
-    vence: fechaISO(usuario.demo_vence),
-    empresa_limite: Number(usuario.demo_empresa_limite || 1),
-    dias_restantes: Number(usuario.demo_dias_restantes || 0),
-  };
-}
-
 async function asegurarColumnasDemoAuth(conexion = pool) {
   await asegurarEsquemaAuth(conexion);
 
@@ -177,6 +122,7 @@ async function asegurarColumnasDemoAuth(conexion = pool) {
       ADD COLUMN IF NOT EXISTS suscripcion_estado VARCHAR(50) DEFAULT 'activa',
       ADD COLUMN IF NOT EXISTS suscripcion_plan VARCHAR(50),
       ADD COLUMN IF NOT EXISTS suscripcion_vence DATE,
+      ADD COLUMN IF NOT EXISTS suscripcion_usuarios_adicionales INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS ultimo_acceso_en TIMESTAMP WITHOUT TIME ZONE
   `);
 
@@ -185,30 +131,6 @@ async function asegurarColumnasDemoAuth(conexion = pool) {
     ON usuarios (rut_normalizado)
     WHERE rut_normalizado IS NOT NULL AND rut_normalizado <> ''
   `);
-}
-
-async function desvincularEmpresasDemoAutomaticas(conexion, usuarioId) {
-  if (!usuarioId) {
-    return;
-  }
-
-  await conexion.query(
-    `
-    UPDATE usuarios_empresas ue
-    SET activo = false,
-        actualizado_en = NOW()
-    FROM empresas e
-    WHERE ue.empresa_id = e.id
-      AND ue.usuario_id = $1
-      AND ue.activo = true
-      AND (
-        UPPER(COALESCE(e.rut, '')) LIKE 'DEMO-%'
-        OR e.razon_social ILIKE 'Empresa demo %'
-        OR e.razon_social ILIKE 'EMPRESA DEMO SERVCONTABLE%'
-      )
-    `,
-    [usuarioId]
-  );
 }
 
 function limiteRecuperacionExcedido(req, email) {
@@ -285,15 +207,44 @@ function datosUsuarioPublico(usuario, empresas = []) {
   };
 }
 
-function datosDemo() {
+function datosSuscripcionPublica(accesoSuscripcion = {}, usuario = {}) {
+  const subscription = accesoSuscripcion.subscription || {};
+  const estado = normalizarEstadoSuscripcion(
+    accesoSuscripcion.status ||
+      subscription.status ||
+      usuario.suscripcion_estado ||
+      (usuario.demo_activo ? ESTADOS_SUSCRIPCION.TRIAL : ESTADOS_SUSCRIPCION.ACTIVE)
+  );
+  const vence = fechaISO(
+    subscription.expires_at ||
+      subscription.trial_ends_at ||
+      usuario.suscripcion_vence ||
+      usuario.demo_vence
+  );
+  const trialVence = fechaISO(
+    subscription.trial_ends_at ||
+      (estado === ESTADOS_SUSCRIPCION.TRIAL ? vence : null)
+  );
+  const diasTrial =
+    estado === ESTADOS_SUSCRIPCION.TRIAL
+      ? calcularDiasRestantesTrial({ status: estado, trial_ends_at: trialVence })
+      : null;
+
   return {
-    email: (process.env.DEMO_EMAIL || "demo@servcontable.cl").trim().toLowerCase(),
-    nombre: (process.env.DEMO_NOMBRE || "Usuario Demo ServContable").trim(),
-    password: process.env.DEMO_PASSWORD || "demo-servcontable",
-    empresaRut: (process.env.DEMO_EMPRESA_RUT || "76.543.210-9").trim(),
-    empresaRazonSocial: (
-      process.env.DEMO_EMPRESA_RAZON_SOCIAL || "EMPRESA DEMO SERVCONTABLE SpA"
-    ).trim(),
+    estado,
+    status: estado.toLowerCase(),
+    operativo: accesoSuscripcion.permitido !== false,
+    plan: subscription.billing_cycle || usuario.suscripcion_plan || "mensual",
+    vence,
+    trial_inicio: fechaISO(subscription.trial_starts_at || usuario.demo_inicio),
+    trial_vence: trialVence,
+    dias_restantes:
+      diasTrial !== null
+        ? diasTrial
+        : accesoSuscripcion.days_remaining ?? null,
+    grace_remaining: accesoSuscripcion.grace_remaining ?? null,
+    usuarios_adicionales: Number(usuario.suscripcion_usuarios_adicionales || 0),
+    empresas_ilimitadas: true,
   };
 }
 
@@ -409,29 +360,13 @@ async function loginUsuario(req, res) {
       });
     }
 
-    const esDemo = Boolean(usuario.demo_activo);
-
-    if (esDemo && !demoEstaVigente(usuario)) {
-      return res.status(403).json({
-        error:
-          "Prueba gratuita vencida o no autorizada. Solicita activacion al administrador.",
-      });
-    }
+    const accesoSuscripcion = await validarAccesoSuscripcion(pool, usuario);
 
     const usuarioToken = {
       id: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
-      demo: esDemo,
-      demo_vence: esDemo ? fechaISO(usuario.demo_vence) : null,
-      demo_empresa_limite: esDemo
-        ? Number(usuario.demo_empresa_limite || 1)
-        : null,
     };
-
-    if (esDemo) {
-      await desvincularEmpresasDemoAutomaticas(pool, usuario.id);
-    }
 
     await pool.query("UPDATE usuarios SET ultimo_acceso_en = NOW() WHERE id = $1", [
       usuario.id,
@@ -440,7 +375,7 @@ async function loginUsuario(req, res) {
     const empresas = await obtenerEmpresasPermitidas(pool, usuarioToken);
 
     const token = jwt.sign(usuarioToken, obtenerJwtSecret(), {
-      expiresIn: esDemo ? "4h" : "8h",
+      expiresIn: "8h",
     });
 
     return res.json({
@@ -448,8 +383,24 @@ async function loginUsuario(req, res) {
       token,
       usuario: {
         ...datosUsuarioPublico(usuario, empresas),
-        demo: esDemo,
-        demo_info: esDemo ? datosDemoPublico(usuario) : null,
+        demo: false,
+        demo_info: null,
+        trial: accesoSuscripcion.status === ESTADOS_SUSCRIPCION.TRIAL,
+        trial_info:
+          accesoSuscripcion.status === ESTADOS_SUSCRIPCION.TRIAL
+            ? {
+                activo: accesoSuscripcion.permitido === true,
+                inicio: fechaISO(accesoSuscripcion.subscription?.trial_starts_at || usuario.demo_inicio),
+                vence: fechaISO(
+                  accesoSuscripcion.subscription?.trial_ends_at ||
+                    accesoSuscripcion.subscription?.expires_at ||
+                    usuario.demo_vence
+                ),
+                dias_restantes: accesoSuscripcion.days_remaining ?? null,
+                empresas_ilimitadas: true,
+              }
+            : null,
+        suscripcion: datosSuscripcionPublica(accesoSuscripcion, usuario),
       },
     });
   } catch (error) {
@@ -457,99 +408,6 @@ async function loginUsuario(req, res) {
 
     return res.status(500).json({
       error: "Error interno al iniciar sesion",
-    });
-  }
-}
-
-async function loginDemo(req, res) {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        error: "Correo y contrasena son obligatorios para ingresar a la prueba gratuita.",
-      });
-    }
-
-    const emailNormalizado = normalizarEmail(email);
-
-    await asegurarColumnasDemoAuth(pool);
-
-    const resultado = await pool.query(
-      `SELECT
-         u.*,
-         CASE
-           WHEN u.demo_vence IS NULL THEN 0
-           ELSE GREATEST((u.demo_vence - CURRENT_DATE), 0)::int
-         END AS demo_dias_restantes
-       FROM usuarios u
-       WHERE u.email = $1
-         AND u.activo = true
-         AND u.demo_activo = true
-       LIMIT 1`,
-      [emailNormalizado]
-    );
-
-    if (resultado.rows.length === 0) {
-      return res.status(403).json({
-        error:
-          "Prueba gratuita no autorizada. Solicita activacion al administrador del sistema.",
-      });
-    }
-
-    const usuario = resultado.rows[0];
-
-    if (!demoEstaVigente(usuario)) {
-      return res.status(403).json({
-        error: "Prueba gratuita vencida. Solicita renovacion o contratacion del plan.",
-      });
-    }
-
-    const passwordCorrecta = await bcrypt.compare(
-      password,
-      usuario.password_hash
-    );
-
-    if (!passwordCorrecta) {
-      return res.status(401).json({
-        error: "Credenciales incorrectas.",
-      });
-    }
-
-    const usuarioToken = {
-      id: usuario.id,
-      email: usuario.email,
-      rol: usuario.rol,
-      demo: true,
-      demo_vence: fechaISO(usuario.demo_vence),
-      demo_empresa_limite: Number(usuario.demo_empresa_limite || 1),
-    };
-
-    await desvincularEmpresasDemoAutomaticas(pool, usuario.id);
-
-    await pool.query("UPDATE usuarios SET ultimo_acceso_en = NOW() WHERE id = $1", [
-      usuario.id,
-    ]);
-
-    const empresas = await obtenerEmpresasPermitidas(pool, usuarioToken);
-    const token = jwt.sign(usuarioToken, obtenerJwtSecret(), {
-      expiresIn: "4h",
-    });
-
-    return res.json({
-      mensaje: "Prueba gratuita iniciada correctamente",
-      token,
-      usuario: {
-        ...datosUsuarioPublico(usuario, empresas),
-        demo: true,
-        demo_info: datosDemoPublico(usuario),
-      },
-    });
-  } catch (error) {
-    console.error("Error al iniciar prueba gratuita:", error);
-
-    return res.status(500).json({
-      error: "Error interno al iniciar prueba gratuita",
     });
   }
 }
@@ -570,6 +428,10 @@ async function obtenerSesion(req, res) {
          demo_inicio,
          demo_vence,
          demo_empresa_limite,
+         suscripcion_estado,
+         suscripcion_plan,
+         suscripcion_vence,
+         suscripcion_usuarios_adicionales,
          CASE
            WHEN demo_vence IS NULL THEN 0
            ELSE GREATEST((demo_vence - CURRENT_DATE), 0)::int
@@ -586,34 +448,37 @@ async function obtenerSesion(req, res) {
     }
 
     const usuario = resultado.rows[0];
-    const esDemo = req.usuario?.demo === true || Boolean(usuario.demo_activo);
-
-    if (esDemo && !demoEstaVigente(usuario)) {
-      return res.status(403).json({
-        error: "Prueba gratuita vencida. Solicita renovacion o contratacion del plan.",
-      });
-    }
-
     const usuarioToken = {
-      ...req.usuario,
-      demo: esDemo,
-      demo_vence: esDemo ? fechaISO(usuario.demo_vence) : null,
-      demo_empresa_limite: esDemo
-        ? Number(usuario.demo_empresa_limite || 1)
-        : null,
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
     };
 
-    if (esDemo) {
-      await desvincularEmpresasDemoAutomaticas(pool, usuario.id);
-    }
-
     const empresas = await obtenerEmpresasPermitidas(pool, usuarioToken);
+    const accesoSuscripcion =
+      req.suscripcion || (await validarAccesoSuscripcion(pool, usuarioToken));
 
     return res.json({
       usuario: {
         ...datosUsuarioPublico(usuario, empresas),
-        demo: esDemo,
-        demo_info: esDemo ? datosDemoPublico(usuario) : null,
+        demo: false,
+        demo_info: null,
+        trial: accesoSuscripcion.status === ESTADOS_SUSCRIPCION.TRIAL,
+        trial_info:
+          accesoSuscripcion.status === ESTADOS_SUSCRIPCION.TRIAL
+            ? {
+                activo: accesoSuscripcion.permitido === true,
+                inicio: fechaISO(accesoSuscripcion.subscription?.trial_starts_at || usuario.demo_inicio),
+                vence: fechaISO(
+                  accesoSuscripcion.subscription?.trial_ends_at ||
+                    accesoSuscripcion.subscription?.expires_at ||
+                    usuario.demo_vence
+                ),
+                dias_restantes: accesoSuscripcion.days_remaining ?? null,
+                empresas_ilimitadas: true,
+              }
+            : null,
+        suscripcion: datosSuscripcionPublica(accesoSuscripcion, usuario),
       },
     });
   } catch (error) {

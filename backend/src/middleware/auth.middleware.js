@@ -6,7 +6,10 @@ const {
   puedeAdministrarUsuarios,
   usuarioPuedeAccederEmpresa,
 } = require("../helpers/auth.helper");
-const { validarAccesoSuscripcion } = require("../helpers/suscripcion.helper");
+const {
+  ESTADOS_SUSCRIPCION,
+  validarAccesoSuscripcion,
+} = require("../helpers/suscripcion.helper");
 
 function obtenerEmpresaIdRequest(req) {
   return (
@@ -18,6 +21,26 @@ function obtenerEmpresaIdRequest(req) {
     req.params?.empresaId ||
     null
   );
+}
+
+function rutaAutenticadaSinAccesoOperativo(req, accesoSuscripcion) {
+  const ruta = `${req.baseUrl || ""}${req.path || ""}`.toLowerCase();
+  const metodo = String(req.method || "").toUpperCase();
+  const status = String(accesoSuscripcion?.status || "").toUpperCase();
+
+  if (metodo === "GET" && ruta === "/api/auth/me") {
+    return true;
+  }
+
+  if (
+    metodo === "POST" &&
+    ruta === "/api/pagos-flow/renovar" &&
+    [ESTADOS_SUSCRIPCION.EXPIRED, ESTADOS_SUSCRIPCION.PAST_DUE].includes(status)
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 async function verificarToken(req, res, next) {
@@ -45,14 +68,17 @@ async function verificarToken(req, res, next) {
 
     const accesoSuscripcion = await validarAccesoSuscripcion(pool, decoded);
 
-    if (!accesoSuscripcion.permitido) {
+    req.suscripcion = accesoSuscripcion;
+
+    if (
+      !accesoSuscripcion.permitido &&
+      !rutaAutenticadaSinAccesoOperativo(req, accesoSuscripcion)
+    ) {
       return res.status(402).json({
         error: accesoSuscripcion.mensaje || "Suscripcion no vigente",
         suscripcion_estado: accesoSuscripcion.status,
       });
     }
-
-    req.suscripcion = accesoSuscripcion;
 
     const empresaId = obtenerEmpresaIdRequest(req);
 
@@ -89,12 +115,6 @@ function exigirAdminSistema(req, res, next) {
 }
 
 function exigirAdministradorUsuarios(req, res, next) {
-  if (req.usuario?.demo === true) {
-    return res.status(403).json({
-      error: "La prueba gratuita no permite administrar usuarios",
-    });
-  }
-
   if (!puedeAdministrarUsuarios(req.usuario?.rol)) {
     return res.status(403).json({
       error: "No tienes permisos para administrar usuarios",

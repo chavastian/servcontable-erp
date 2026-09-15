@@ -103,6 +103,13 @@ function RenovarSuscripcion({
   }
 
   const fechaVence = usuario?.suscripcion?.vence;
+  const estadoSuscripcion = String(usuario?.suscripcion?.status || usuario?.suscripcion?.estado || "").toLowerCase();
+  const esTrialVencido =
+    Boolean(usuario?.suscripcion?.trial_vence) &&
+    ["expired", "trial"].includes(estadoSuscripcion);
+  const tituloEstado = esTrialVencido
+    ? "Tu período de prueba ha finalizado"
+    : "Tu acceso no está operativo";
 
   return (
     <div className="sc-page-shell">
@@ -113,8 +120,8 @@ function RenovarSuscripcion({
           <div className="sc-renewal-dialog">
             <div className="sc-renewal-question">?</div>
             <p>
-              Tu suscripción expir? el <strong>{formatearFecha(fechaVence)}</strong>.
-              ¿Deseas renovarla?
+              {tituloEstado}. La fecha registrada es{" "}
+              <strong>{formatearFecha(fechaVence)}</strong>.
             </p>
             <div className="sc-actions-row">
               <button
@@ -139,8 +146,8 @@ function RenovarSuscripcion({
           <div className="serv-modulo-hero__texto">
             <h1>Renovar suscripción</h1>
             <p>
-              Tu acceso está vencido. Activa el servicio para volver a utilizar los módulos
-              contables y de remuneraciones.
+              Tu información permanece guardada. Activa ServContable PRO para
+              volver a utilizar normalmente los módulos contables y de remuneraciones.
             </p>
           </div>
           <div className="sc-renewal-expiry">

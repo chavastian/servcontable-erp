@@ -26,8 +26,7 @@ export default function SelectorEjercicio({
   const [mostrarCrear, setMostrarCrear] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
-  const esUsuarioDemo = usuario?.demo === true;
-  const puedeCrearEjercicio = !esUsuarioDemo || ejercicios.length === 0;
+  const puedeCrearEjercicio = true;
 
   useEffect(() => {
     if (empresaActiva?.id) {
@@ -204,13 +203,6 @@ export default function SelectorEjercicio({
             Estás ingresando a <strong>{nombreModulo()}</strong>.
           </p>
 
-          {esUsuarioDemo && (
-            <div style={demoBox}>
-              Demo limitada: puedes trabajar con un año de prueba. El cierre,
-              reapertura y uso ilimitado se habilitan al contratar ServContable PRO.
-            </div>
-          )}
-
           {mensaje && <p style={mensajeOk}>{mensaje}</p>}
           {error && <p style={mensajeError}>{error}</p>}
 
@@ -264,13 +256,6 @@ export default function SelectorEjercicio({
               </button>
             )}
 
-            {esUsuarioDemo && ejercicios.length > 0 && (
-              <div style={demoNota}>
-                La demo ya tiene un año asignado. Para crear mas periodos,
-                contrata ServContable PRO.
-              </div>
-            )}
-
             {puedeCrearEjercicio && mostrarCrear && (
               <div style={cardCrear}>
                 <h3 style={tituloCrear}>Crear año de trabajo</h3>
@@ -302,13 +287,13 @@ export default function SelectorEjercicio({
               </div>
             )}
 
-            {!esUsuarioDemo && ejercicioSeleccionado?.estado === "abierto" && (
+            {ejercicioSeleccionado?.estado === "abierto" && (
               <button type="button" style={botonCerrarAnio} onClick={cerrarAnio}>
                 Cerrar año seleccionado
               </button>
             )}
 
-            {!esUsuarioDemo && ejercicioSeleccionado?.estado === "cerrado" && (
+            {ejercicioSeleccionado?.estado === "cerrado" && (
               <button type="button" style={botonReabrir} onClick={reabrirAnio}>
                 Reabrir año seleccionado
               </button>
@@ -521,26 +506,4 @@ const mensajeOk = {
   color: "#10b981",
   fontWeight: "bold",
   textAlign: "center",
-};
-
-const demoBox = {
-  background: "linear-gradient(135deg, #ecfeff, #f0fdf4)",
-  border: "1px solid #67e8f9",
-  color: "#075985",
-  borderRadius: "12px",
-  padding: "10px 12px",
-  fontSize: "13px",
-  fontWeight: "bold",
-  lineHeight: 1.35,
-  marginBottom: "12px",
-};
-
-const demoNota = {
-  background: "#f8fcff",
-  border: "1px dashed #67e8f9",
-  color: "#0369a1",
-  borderRadius: "10px",
-  padding: "9px 11px",
-  fontSize: "12px",
-  fontWeight: "bold",
 };

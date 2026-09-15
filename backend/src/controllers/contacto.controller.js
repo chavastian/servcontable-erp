@@ -133,8 +133,21 @@ function construirSesionTrial(usuario, empresas, suscripcion) {
         activo: true,
         inicio: suscripcion.trial_starts_at,
         vence: suscripcion.trial_ends_at || suscripcion.expires_at,
-        empresa_limite: 1,
+        empresas_ilimitadas: true,
         dias_restantes: 30,
+      },
+      demo: false,
+      demo_info: null,
+      suscripcion: {
+        estado: ESTADOS_SUSCRIPCION.TRIAL,
+        status: "trial",
+        operativo: true,
+        plan: suscripcion.billing_cycle || "mensual",
+        vence: suscripcion.trial_ends_at || suscripcion.expires_at,
+        trial_inicio: suscripcion.trial_starts_at,
+        trial_vence: suscripcion.trial_ends_at || suscripcion.expires_at,
+        dias_restantes: 30,
+        empresas_ilimitadas: true,
       },
       bienvenida_trial: true,
     },
@@ -306,6 +319,7 @@ async function crearPruebaGratisAutoservicio(req, res) {
 
     const sesion = construirSesionTrial(usuario, [], suscripcion);
     sesion.usuario.trial_info.dias_restantes = diasTrial;
+    sesion.usuario.suscripcion.dias_restantes = diasTrial;
 
     return res.status(201).json({
       ok: true,

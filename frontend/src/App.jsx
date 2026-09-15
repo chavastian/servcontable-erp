@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import PanelPrincipal from "./pages/PanelPrincipal";
+import RenovarSuscripcion from "./pages/RenovarSuscripcion";
 import SelectorModulo from "./pages/SelectorModulo";
 import SelectorEmpresaModulo from "./pages/SelectorEmpresaModulo";
 import SelectorEjercicio from "./pages/SelectorEjercicio";
@@ -50,6 +51,17 @@ function consumirSesionDesdeUrl() {
 
 function esModuloAdministracion(modulo) {
   return modulo === "administracion";
+}
+
+const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
+
+function esAdminSistema(usuario) {
+  return ROLES_ADMIN_SISTEMA.includes(String(usuario?.rol || "").trim().toLowerCase());
+}
+
+function requiereActivacionSuscripcion(usuario) {
+  if (!usuario || esAdminSistema(usuario)) return false;
+  return usuario?.suscripcion?.operativo === false;
 }
 
 function App() {
@@ -191,6 +203,22 @@ function App() {
     return (
       <Login
         loginCorrecto={loginCorrecto}
+      />
+    );
+  }
+
+  if (requiereActivacionSuscripcion(usuario)) {
+    return (
+      <RenovarSuscripcion
+        usuario={usuario}
+        alCerrarSesion={cerrarSesionVisual}
+        alSesionActualizada={(usuarioActualizado) => {
+          setUsuario(usuarioActualizado);
+
+          if (!requiereActivacionSuscripcion(usuarioActualizado)) {
+            setVista("selectorModulo");
+          }
+        }}
       />
     );
   }

@@ -1232,7 +1232,7 @@ async function ejecutarAccionSolicitudWeb(req, res) {
         await client.query(
           `
           UPDATE usuarios
-          SET activo = true, demo_activo = true, demo_vence = $1, suscripcion_estado = 'trial',
+          SET activo = true, demo_activo = false, demo_vence = NULL, suscripcion_estado = 'trial',
               suscripcion_vence = $1, suscripcion_actualizada_en = NOW()
           WHERE id = $2
           `,
@@ -1293,7 +1293,7 @@ async function ejecutarAccionSolicitudWeb(req, res) {
           [suscripcionId]
         );
         await client.query(
-          "UPDATE usuarios SET activo = true, demo_activo = true, suscripcion_estado = 'trial', suscripcion_actualizada_en = NOW() WHERE id = $1",
+          "UPDATE usuarios SET activo = true, demo_activo = false, demo_vence = NULL, suscripcion_estado = 'trial', suscripcion_actualizada_en = NOW() WHERE id = $1",
           [usuarioId]
         );
         await client.query(

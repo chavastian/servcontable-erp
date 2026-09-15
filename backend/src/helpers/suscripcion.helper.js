@@ -177,7 +177,10 @@ async function asegurarEsquemaSuscripcion(client) {
       ADD COLUMN IF NOT EXISTS suscripcion_vence DATE,
       ADD COLUMN IF NOT EXISTS suscripcion_usuarios_adicionales INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS suscripcion_actualizada_en TIMESTAMP WITHOUT TIME ZONE,
-      ADD COLUMN IF NOT EXISTS ultimo_acceso_en TIMESTAMP WITHOUT TIME ZONE
+      ADD COLUMN IF NOT EXISTS ultimo_acceso_en TIMESTAMP WITHOUT TIME ZONE,
+      ADD COLUMN IF NOT EXISTS demo_activo BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS demo_inicio DATE,
+      ADD COLUMN IF NOT EXISTS demo_vence DATE
   `);
 
   await client.query(`
@@ -516,9 +519,15 @@ async function crearSuscripcionDesdeUsuarioLegacy(client, usuario) {
   const plan =
     (await obtenerPlanPorCodigo(client, planCode)) ||
     (await obtenerPlanPorCodigo(client, config.default_plan_code));
-  const estado = normalizarEstadoSuscripcion(usuario.suscripcion_estado);
-  const inicio = fechaISO(usuario.suscripcion_inicio) || new Date().toISOString().slice(0, 10);
-  const vence = fechaISO(usuario.suscripcion_vence) || sumarDias(inicio, config.trial_days);
+  const estado = usuario.demo_activo
+    ? ESTADOS_SUSCRIPCION.TRIAL
+    : normalizarEstadoSuscripcion(usuario.suscripcion_estado);
+  const inicio =
+    fechaISO(usuario.suscripcion_inicio || usuario.demo_inicio) ||
+    new Date().toISOString().slice(0, 10);
+  const vence =
+    fechaISO(usuario.suscripcion_vence || usuario.demo_vence) ||
+    sumarDias(inicio, config.trial_days);
 
   const resultado = await client.query(
     `
@@ -595,6 +604,60 @@ function calcularEstadoVigente(suscripcion, config) {
   return { status: ESTADOS_SUSCRIPCION.EXPIRED, days_remaining: diff, grace_remaining: 0 };
 }
 
+function calcularDiasRestantesTrial(suscripcion, fechaReferencia = new Date()) {
+  if (!suscripcion) return null;
+
+  const status = normalizarEstadoSuscripcion(suscripcion.status);
+
+  if (status !== ESTADOS_SUSCRIPCION.TRIAL) return null;
+
+  const trialEnd = fechaISO(
+    suscripcion.trial_ends_at ||
+      suscripcion.trial_end ||
+      suscripcion.trial_vence ||
+      suscripcion.expires_at
+  );
+
+  if (!trialEnd) return null;
+
+  const referenciaISO = fechaISO(fechaReferencia) || new Date().toISOString().slice(0, 10);
+  const referencia = new Date(`${referenciaISO}T00:00:00`);
+  const vence = new Date(`${trialEnd}T00:00:00`);
+
+  if (Number.isNaN(referencia.getTime()) || Number.isNaN(vence.getTime())) {
+    return null;
+  }
+
+  return Math.ceil((vence.getTime() - referencia.getTime()) / 86400000);
+}
+
+function tieneAccesoOperativo(suscripcion, opciones = {}) {
+  if (!suscripcion) return false;
+
+  const estadoCalculado =
+    Object.prototype.hasOwnProperty.call(suscripcion, "days_remaining") ||
+    Object.prototype.hasOwnProperty.call(suscripcion, "grace_remaining")
+      ? suscripcion
+      : calcularEstadoVigente(suscripcion, opciones.config || {});
+  const status = normalizarEstadoSuscripcion(estadoCalculado.status);
+
+  if (status === ESTADOS_SUSCRIPCION.ACTIVE) return true;
+  if (status === ESTADOS_SUSCRIPCION.PAST_DUE) return true;
+
+  if (status === ESTADOS_SUSCRIPCION.TRIAL) {
+    if (estadoCalculado.days_remaining !== null && estadoCalculado.days_remaining !== undefined) {
+      return Number(estadoCalculado.days_remaining) >= 0;
+    }
+
+    const diasRestantes = calcularDiasRestantesTrial(suscripcion, opciones.fechaReferencia);
+    return diasRestantes !== null && diasRestantes >= 0;
+  }
+
+  return false;
+}
+
+const hasOperationalAccess = tieneAccesoOperativo;
+
 async function sincronizarEstadoVencido(client, suscripcion, estadoCalculado) {
   if (!suscripcion || suscripcion.status === estadoCalculado.status) return suscripcion;
 
@@ -633,7 +696,8 @@ async function validarAccesoSuscripcion(client, usuario) {
 
   const usuarioDb = await client.query(
     `
-    SELECT id, activo, suscripcion_estado, suscripcion_plan, suscripcion_inicio, suscripcion_vence
+    SELECT id, activo, suscripcion_estado, suscripcion_plan, suscripcion_inicio, suscripcion_vence,
+           demo_activo, demo_inicio, demo_vence
     FROM usuarios
     WHERE id = $1
     LIMIT 1
@@ -655,16 +719,15 @@ async function validarAccesoSuscripcion(client, usuario) {
   const estadoCalculado = calcularEstadoVigente(suscripcion, config);
   await sincronizarEstadoVencido(client, suscripcion, estadoCalculado);
 
-  const estadosPermitidos = [
-    ESTADOS_SUSCRIPCION.TRIAL,
-    ESTADOS_SUSCRIPCION.ACTIVE,
-    ESTADOS_SUSCRIPCION.PAST_DUE,
-  ];
+  const accesoOperativo = tieneAccesoOperativo(estadoCalculado, { config });
 
-  if (!estadosPermitidos.includes(estadoCalculado.status)) {
+  if (!accesoOperativo) {
     return {
       permitido: false,
       status: estadoCalculado.status,
+      subscription: suscripcion,
+      days_remaining: estadoCalculado.days_remaining,
+      grace_remaining: estadoCalculado.grace_remaining,
       mensaje:
         estadoCalculado.status === ESTADOS_SUSCRIPCION.SUSPENDED
           ? "La cuenta esta suspendida. Contacta al administrador."
@@ -676,6 +739,7 @@ async function validarAccesoSuscripcion(client, usuario) {
     permitido: true,
     status: estadoCalculado.status,
     subscription: suscripcion,
+    operational_access: true,
     days_remaining: estadoCalculado.days_remaining,
     grace_remaining: estadoCalculado.grace_remaining,
   };
@@ -804,6 +868,9 @@ module.exports = {
   registrarAuditoriaAdmin,
   normalizarEstadoSuscripcion,
   calcularEstadoVigente,
+  calcularDiasRestantesTrial,
+  tieneAccesoOperativo,
+  hasOperationalAccess,
   validarAccesoSuscripcion,
   validarLimiteEmpresasUsuario,
   validarLimiteUsuariosCliente,

@@ -140,7 +140,6 @@ async function obtenerEmpresasPermitidas(client, usuario) {
      WHERE ue.usuario_id = $1
        AND ue.activo = true
        AND e.activa = true
-       ${usuario.demo === true ? `AND ${esEmpresaDemoSistemaCondicion("e")}` : ""}
      ORDER BY e.razon_social ASC`,
     [usuario.id]
   );
