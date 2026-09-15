@@ -1,4 +1,11 @@
 const pool = require("../database/db");
+const {
+  insertarDetallesComprobante,
+} = require("../helpers/comprobante.helper");
+const {
+  normalizarRutDocumento,
+  normalizarNombreTercero,
+} = require("../helpers/trazabilidadRut.helper");
 
 function obtenerPeriodo(fecha) {
   if (!fecha) return "";
@@ -43,6 +50,11 @@ async function crearHonorario(req, res) {
 
     const brutoNum = Number(bruto || 0);
     const tasaNum = Number(tasa_retencion || 0);
+    const rutPrestadorNormalizado = normalizarRutDocumento(
+      rut_prestador,
+      "RUT del prestador"
+    );
+    const nombrePrestador = normalizarNombreTercero(nombre_prestador);
 
     if (brutoNum <= 0) {
       return res.status(400).json({
@@ -85,8 +97,8 @@ async function crearHonorario(req, res) {
         fecha_pago || null,
         tipo_documento || "Boleta de Honorarios",
         folio || "",
-        rut_prestador || "",
-        nombre_prestador || "",
+        rutPrestadorNormalizado,
+        nombrePrestador,
         glosa || "",
         brutoNum,
         tasaNum,
@@ -109,7 +121,7 @@ async function crearHonorario(req, res) {
       });
     }
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: error.message || "Error interno al crear honorario",
     });
   }
@@ -292,41 +304,26 @@ async function contabilizarHonorario(req, res) {
         glosa,
         debe: bruto,
         haber: 0,
+        folio: honorario.folio || "",
       },
       {
         cuenta_id: cuentaRetencion,
         glosa,
         debe: 0,
         haber: retencion,
+        folio: honorario.folio || "",
       },
       {
         cuenta_id: cuentaPago,
         glosa,
         debe: 0,
         haber: liquido,
+        folio: honorario.folio || "",
+        rut_auxiliar: honorario.rut_prestador || "",
       },
     ];
 
-    for (const detalle of detalles) {
-      if (Number(detalle.debe || 0) === 0 && Number(detalle.haber || 0) === 0) {
-        continue;
-      }
-
-      await client.query(
-        `
-        INSERT INTO comprobante_detalle
-        (comprobante_id, cuenta_id, glosa, debe, haber)
-        VALUES ($1,$2,$3,$4,$5)
-        `,
-        [
-          comprobante.id,
-          detalle.cuenta_id,
-          detalle.glosa,
-          Number(detalle.debe || 0),
-          Number(detalle.haber || 0),
-        ]
-      );
-    }
+    await insertarDetallesComprobante(client, comprobante.id, detalles);
 
     await client.query(
       `

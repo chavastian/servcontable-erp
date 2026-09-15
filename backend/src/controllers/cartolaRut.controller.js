@@ -451,7 +451,7 @@ function movimientosContablesCte() {
         cd.rut_auxiliar AS rut_tercero,
         '' AS nombre_tercero,
         c.tipo AS documento_tipo,
-        c.numero::text AS folio,
+        COALESCE(NULLIF(cd.folio::text, ''), c.numero::text) AS folio,
         COALESCE(NULLIF(cd.glosa, ''), c.glosa) AS glosa,
         COALESCE(cd.debe, 0)::numeric AS cargo,
         COALESCE(cd.haber, 0)::numeric AS abono,
@@ -763,6 +763,22 @@ function sqlBuscarTerceros(incluirRemuneraciones) {
         ${expresionRutSql("pc.rut_tercero")} AS rut_limpio
       FROM pagos_cobros pc
       GROUP BY pc.empresa_id, pc.rut_tercero, pc.nombre_tercero, pc.tipo_documento, pc.tipo_movimiento
+    `,
+    `
+      SELECT
+        comp.empresa_id,
+        cd.rut_auxiliar AS rut,
+        COALESCE(NULLIF(cd.glosa, ''), comp.glosa, 'Sin nombre') AS nombre,
+        'Auxiliar' AS rol,
+        'contabilidad' AS origen,
+        MAX(comp.fecha::date) AS ultima_fecha,
+        ${expresionRutSql("cd.rut_auxiliar")} AS rut_limpio
+      FROM comprobantes comp
+      INNER JOIN comprobante_detalle cd
+        ON cd.comprobante_id = comp.id
+      WHERE COALESCE(comp.estado, 'vigente') = 'vigente'
+        AND COALESCE(cd.rut_auxiliar, '') <> ''
+      GROUP BY comp.empresa_id, cd.rut_auxiliar, cd.glosa, comp.glosa
     `,
   ];
 

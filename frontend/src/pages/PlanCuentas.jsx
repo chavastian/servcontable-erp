@@ -8,10 +8,19 @@ import {
 } from "../services/cuentaService";
 import { cargarPlanCuentasBase } from "../services/planCuentasBaseService";
 
+function normalizarBusqueda(valor = "") {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 export default function PlanCuentas() {
   const empresaActiva = obtenerEmpresaActiva();
 
   const [cuentas, setCuentas] = useState([]);
+  const [busquedaCuenta, setBusquedaCuenta] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [cuentaEditandoId, setCuentaEditandoId] = useState(null);
@@ -191,6 +200,18 @@ export default function PlanCuentas() {
     }
   }
 
+  const busquedaNormalizada = normalizarBusqueda(busquedaCuenta);
+  const cuentasFiltradas = busquedaNormalizada
+    ? cuentas.filter((cuenta) => {
+        const codigo = normalizarBusqueda(cuenta.codigo);
+        const nombre = normalizarBusqueda(cuenta.nombre);
+        return (
+          codigo.includes(busquedaNormalizada) ||
+          nombre.includes(busquedaNormalizada)
+        );
+      })
+    : cuentas;
+
   if (!empresaActiva) {
     return (
       <div>
@@ -313,6 +334,18 @@ export default function PlanCuentas() {
         <div style={tablaBox}>
           <h2 style={tituloSeccion}>Cuentas registradas</h2>
 
+          <div style={barraBusqueda}>
+            <input
+              style={inputBusqueda}
+              value={busquedaCuenta}
+              onChange={(e) => setBusquedaCuenta(e.target.value)}
+              placeholder="Buscar por codigo o nombre de cuenta..."
+            />
+            <span style={contadorBusqueda}>
+              {cuentasFiltradas.length} de {cuentas.length} cuentas
+            </span>
+          </div>
+
           <table style={tabla}>
             <thead>
               <tr>
@@ -328,7 +361,7 @@ export default function PlanCuentas() {
             </thead>
 
             <tbody>
-              {cuentas.map((cuenta) => (
+              {cuentasFiltradas.map((cuenta) => (
                 <tr key={cuenta.id}>
                   <td style={td}>{cuenta.codigo}</td>
                   <td style={td}>{cuenta.nombre}</td>
@@ -367,10 +400,10 @@ export default function PlanCuentas() {
                 </tr>
               ))}
 
-              {cuentas.length === 0 && (
+              {cuentasFiltradas.length === 0 && (
                 <tr>
                   <td style={td} colSpan="8">
-                    No hay cuentas registradas.
+                    No hay cuentas coincidentes.
                   </td>
                 </tr>
               )}
@@ -496,6 +529,24 @@ const tablaBox = {
 const tabla = {
   width: "100%",
   borderCollapse: "collapse",
+};
+
+const barraBusqueda = {
+  display: "flex",
+  gap: "12px",
+  alignItems: "center",
+  marginBottom: "16px",
+  flexWrap: "wrap",
+};
+
+const inputBusqueda = {
+  ...input,
+  maxWidth: "420px",
+};
+
+const contadorBusqueda = {
+  color: "#64748b",
+  fontWeight: "bold",
 };
 
 const th = {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
+import AccountSelector from "../components/AccountSelector";
 import {
   crearVenta,
   listarVentas,
@@ -136,11 +137,35 @@ export default function Ventas() {
     });
   }
 
+  function formularioVentaHabilitado() {
+    const neto = Number(formulario.neto || 0);
+    const exento = Number(formulario.exento || 0);
+    const iva = Number(formulario.iva || 0);
+    const total = Number(formulario.total || 0);
+
+    const tieneMonto = neto > 0 || exento > 0 || iva > 0 || total > 0;
+    const camposObligatorios =
+      String(formulario.fecha || "").trim() !== "" &&
+      String(formulario.tipo_documento || "").trim() !== "" &&
+      String(formulario.folio || "").trim() !== "" &&
+      String(formulario.rut_cliente || "").trim() !== "" &&
+      String(formulario.razon_social_cliente || "").trim() !== "";
+
+    return tieneMonto && camposObligatorios;
+  }
+
+  const puedeGuardarVenta = formularioVentaHabilitado();
+
   async function guardarVenta(e) {
     e.preventDefault();
 
     if (!empresaActiva) {
       setError("Debes seleccionar una empresa activa.");
+      return;
+    }
+
+    if (!puedeGuardarVenta) {
+      setError("Completa los datos obligatorios y agrega montos para guardar la venta.");
       return;
     }
 
@@ -384,19 +409,14 @@ export default function Ventas() {
           />
 
           <label style={label}>Cuenta de ingreso</label>
-          <select
+          <AccountSelector
+            cuentas={cuentasIngreso}
             style={input}
             name="cuenta_ingreso_id"
             value={formulario.cuenta_ingreso_id}
             onChange={manejarCambio}
-          >
-            <option value="">Seleccionar cuenta</option>
-            {cuentasIngreso.map((cuenta) => (
-              <option key={cuenta.id} value={cuenta.id}>
-                {cuenta.codigo} - {cuenta.nombre}
-              </option>
-            ))}
-          </select>
+            placeholder="Buscar por codigo o nombre de cuenta..."
+          />
 
           <label style={label}>Neto afecto</label>
           <input
@@ -436,7 +456,11 @@ export default function Ventas() {
             onChange={manejarCambio}
           />
 
-          <button style={botonGuardar} type="submit">
+          <button
+            style={puedeGuardarVenta ? botonGuardar : botonGuardarDeshabilitado}
+            type="submit"
+            disabled={!puedeGuardarVenta}
+          >
             Guardar venta
           </button>
         </form>
@@ -606,6 +630,13 @@ const botonGuardar = {
   borderRadius: "12px",
   fontWeight: "bold",
   cursor: "pointer",
+};
+
+const botonGuardarDeshabilitado = {
+  ...botonGuardar,
+  background: "#94a3b8",
+  cursor: "not-allowed",
+  opacity: 0.75,
 };
 
 const botonBuscar = {

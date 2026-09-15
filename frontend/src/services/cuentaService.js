@@ -4,13 +4,33 @@ import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
-export async function listarCuentas(empresaId, incluirInactivas = false) {
+export async function listarCuentas(empresaId, incluirInactivas = false, opciones = {}) {
   const token = obtenerToken();
+
+  if (typeof incluirInactivas === "object" && incluirInactivas !== null) {
+    opciones = incluirInactivas;
+    incluirInactivas = Boolean(opciones.incluirInactivas);
+  }
 
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
   if (incluirInactivas) {
     params.append("incluir_inactivas", "true");
+  }
+  if (opciones.buscar) {
+    params.append("buscar", opciones.buscar);
+  }
+  if (opciones.tipos) {
+    params.append(
+      "tipos",
+      Array.isArray(opciones.tipos) ? opciones.tipos.join(",") : opciones.tipos
+    );
+  }
+  if (opciones.soloImputables) {
+    params.append("solo_imputables", "true");
+  }
+  if (opciones.limit) {
+    params.append("limit", opciones.limit);
   }
 
   const respuesta = await fetch(`${API_URL}/cuentas?${params.toString()}`, {

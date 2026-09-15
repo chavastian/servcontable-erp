@@ -10,9 +10,19 @@ const {
   obtenerPeriodoDesdeFecha,
   mapearTipoDocumentoSII,
 } = require("../helpers/siiCsv.helper");
+const {
+  normalizarRutDocumento,
+  normalizarNombreTercero,
+} = require("../helpers/trazabilidadRut.helper");
+const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
 
 function esVerdadero(valor) {
   return String(valor).toLowerCase() === "true";
+}
+
+function convertirCuentaId(valor) {
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero > 0 ? numero : null;
 }
 
 async function obtenerCuentaPorTipos(client, empresaId, tipos = []) {
@@ -59,13 +69,39 @@ async function crearVenta(req, res) {
       });
     }
 
+    if (!String(folio || "").trim()) {
+      return res.status(400).json({
+        error: "Debes ingresar el folio del documento.",
+      });
+    }
+
+    if (!String(razon_social_cliente || "").trim()) {
+      return res.status(400).json({
+        error: "Debes ingresar la razon social del cliente.",
+      });
+    }
+
     const periodoVenta = periodo || obtenerPeriodoDesdeFecha(fecha);
     const netoNum = Number(neto || 0);
     const exentoNum = Number(exento || 0);
     const ivaNum = Number(iva || 0);
     const totalNum = Number(total || netoNum + exentoNum + ivaNum);
+    const cuentaIngresoId = convertirCuentaId(cuenta_ingreso_id);
+    const rutClienteNormalizado = normalizarRutDocumento(
+      rut_cliente,
+      "RUT del cliente"
+    );
+    const razonSocialCliente = normalizarNombreTercero(razon_social_cliente);
 
     await client.query("BEGIN");
+
+    if (cuentaIngresoId) {
+      await validarCuentaOperativa(client, {
+        empresaId: empresa_id,
+        cuentaId: cuentaIngresoId,
+        etiqueta: "cuenta de ingreso",
+      });
+    }
 
     const ventaResult = await client.query(
       `INSERT INTO ventas
@@ -79,13 +115,13 @@ async function crearVenta(req, res) {
         fecha,
         tipo_documento,
         folio || "",
-        rut_cliente || "",
-        razon_social_cliente || "",
+        rutClienteNormalizado,
+        razonSocialCliente,
         netoNum,
         exentoNum,
         ivaNum,
         totalNum,
-        cuenta_ingreso_id || null,
+        cuentaIngresoId,
       ]
     );
 
@@ -137,7 +173,7 @@ async function crearVenta(req, res) {
 
     console.error("Error al crear venta:", error);
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: error.message || "Error interno al crear venta",
     });
   } finally {
@@ -315,6 +351,11 @@ async function importarVentasSII(req, res) {
           continue;
         }
 
+        const rutClienteNormalizado = normalizarRutDocumento(
+          fila["Rut cliente"],
+          "RUT del cliente"
+        );
+        const razonSocialCliente = normalizarNombreTercero(fila["Razon Social"]);
         const fecha = convertirFechaSII(fila["Fecha Docto"]);
 
         if (!fecha) {
@@ -336,7 +377,18 @@ async function importarVentasSII(req, res) {
         );
 
         if (existe.rows.length > 0) {
-          const ventaExistente = existe.rows[0];
+          const ventaActualizadaResult = await client.query(
+            `
+            UPDATE ventas
+            SET rut_cliente = $1,
+                razon_social_cliente = $2
+            WHERE id = $3
+            RETURNING *
+            `,
+            [rutClienteNormalizado, razonSocialCliente, existe.rows[0].id]
+          );
+
+          const ventaExistente = ventaActualizadaResult.rows[0];
 
           if (generarComprobante && !ventaExistente.comprobante_id) {
             const comprobante = await crearComprobanteAutomaticoVenta(
@@ -378,8 +430,8 @@ async function importarVentasSII(req, res) {
             mapearTipoDocumentoSII(siiTipoDoc),
             siiTipoDoc,
             folio,
-            fila["Rut cliente"] || "",
-            fila["Razon Social"] || "",
+            rutClienteNormalizado,
+            razonSocialCliente,
             neto,
             exento,
             iva,

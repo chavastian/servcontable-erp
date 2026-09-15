@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
+import AccountSelector from "../components/AccountSelector";
 import {
   listarDocumentosPendientes,
   listarPagosCobros,
@@ -391,20 +392,6 @@ export default function PagosCobros() {
     }
     }
 
-  function cuentasPorTipo(tipo = "") {
-    let lista = cuentas;
-
-    if (tipo) {
-      lista = cuentas.filter((cuenta) => cuenta.tipo === tipo);
-    }
-
-    return lista.map((cuenta) => (
-      <option key={cuenta.id} value={cuenta.id}>
-        {cuenta.codigo} - {cuenta.nombre}
-      </option>
-    ));
-  }
-
   const esSeleccionMasiva =
     formulario.documento_id === VALOR_TODOS_DOCUMENTOS;
   const totalPendienteDocumentos = documentos.reduce(
@@ -504,32 +491,27 @@ export default function PagosCobros() {
 
           <div>
             <label style={label}>Cuenta Caja / Banco</label>
-            <select
+            <AccountSelector
+              cuentas={cuentas}
               style={input}
               name="cuenta_banco_id"
               value={formulario.cuenta_banco_id}
               onChange={cambiarFormulario}
-            >
-              <option value="">Seleccionar cuenta</option>
-              {cuentasPorTipo("Activo")}
-            </select>
+              tiposPermitidos={["Activo"]}
+              placeholder="Buscar caja, banco o cuenta activo..."
+            />
           </div>
 
           <div>
             <label style={label}>Cuenta contraparte</label>
-            <select
+            <AccountSelector
+              cuentas={cuentas}
               style={input}
               name="cuenta_contraparte_id"
               value={formulario.cuenta_contraparte_id}
               onChange={cambiarFormulario}
-            >
-              <option value="">Seleccionar cuenta</option>
-              {cuentas.map((cuenta) => (
-                <option key={cuenta.id} value={cuenta.id}>
-                  {cuenta.codigo} - {cuenta.nombre}
-                </option>
-              ))}
-            </select>
+              placeholder="Buscar por codigo o nombre de cuenta..."
+            />
           </div>
 
           <div>

@@ -78,7 +78,16 @@ async function crearCuenta(req, res) {
 
 async function listarCuentas(req, res) {
   try {
-    const { empresa_id, incluir_inactivas } = req.query;
+    const {
+      empresa_id,
+      incluir_inactivas,
+      buscar,
+      q,
+      tipos,
+      solo_imputables,
+      solo_operativas,
+      limit,
+    } = req.query;
 
     if (!empresa_id) {
       return res.status(400).json({
@@ -87,20 +96,82 @@ async function listarCuentas(req, res) {
     }
 
     const incluirInactivas = esTrue(incluir_inactivas);
+    const busqueda = String(q || buscar || "").trim();
+    const tiposFiltro = String(tipos || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const filtrarImputables =
+      esTrue(solo_imputables) || esTrue(solo_operativas);
 
     let query = `
-      SELECT *
-      FROM plan_cuentas
-      WHERE empresa_id = $1
+      SELECT pc.*
+      FROM plan_cuentas pc
+      WHERE pc.empresa_id = $1
     `;
 
+    const valores = [empresa_id];
+
     if (!incluirInactivas) {
-      query += " AND activo = true";
+      query += " AND COALESCE(pc.activo, true) = true";
     }
 
-    query += " ORDER BY activo DESC, codigo ASC";
+    if (tiposFiltro.length > 0) {
+      valores.push(tiposFiltro);
+      query += ` AND pc.tipo = ANY($${valores.length}::text[])`;
+    }
 
-    const resultado = await pool.query(query, [empresa_id]);
+    let ordenBusqueda = "";
+    if (busqueda) {
+      const busquedaLower = busqueda.toLowerCase();
+
+      valores.push(`%${busquedaLower}%`);
+      const indiceContiene = valores.length;
+      query += ` AND (
+        LOWER(COALESCE(pc.codigo, '')) LIKE $${indiceContiene}
+        OR LOWER(COALESCE(pc.nombre, '')) LIKE $${indiceContiene}
+      )`;
+
+      valores.push(busquedaLower);
+      const indiceExacto = valores.length;
+      valores.push(`${busquedaLower}%`);
+      const indiceInicio = valores.length;
+
+      ordenBusqueda = `
+        CASE
+          WHEN LOWER(COALESCE(pc.codigo, '')) = $${indiceExacto} THEN 0
+          WHEN LOWER(COALESCE(pc.codigo, '')) LIKE $${indiceInicio} THEN 1
+          WHEN LOWER(COALESCE(pc.nombre, '')) LIKE $${indiceInicio} THEN 2
+          WHEN LOWER(COALESCE(pc.nombre, '')) LIKE $${indiceContiene} THEN 3
+          ELSE 4
+        END,
+      `;
+    }
+
+    if (filtrarImputables) {
+      query += `
+        AND NOT EXISTS (
+          SELECT 1
+          FROM plan_cuentas hija
+          WHERE hija.empresa_id = pc.empresa_id
+            AND hija.id <> pc.id
+            AND COALESCE(hija.activo, true) = true
+            AND hija.codigo LIKE pc.codigo || '%'
+            AND LENGTH(hija.codigo) > LENGTH(pc.codigo)
+          LIMIT 1
+        )
+      `;
+    }
+
+    query += ` ORDER BY ${ordenBusqueda} COALESCE(pc.activo, true) DESC, pc.codigo ASC`;
+
+    const limite = Math.min(Math.max(Number(limit || 0), 0), 200);
+    if (limite > 0) {
+      valores.push(limite);
+      query += ` LIMIT $${valores.length}`;
+    }
+
+    const resultado = await pool.query(query, valores);
 
     return res.json({
       total: resultado.rows.length,

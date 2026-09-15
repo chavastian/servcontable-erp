@@ -5,6 +5,11 @@ const {
   actualizarComprobanteAutomaticoCompra,
 } = require("../helpers/comprobante.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
+const {
+  normalizarRutDocumento,
+  normalizarNombreTercero,
+} = require("../helpers/trazabilidadRut.helper");
+const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
 
 const { parse } = require("csv-parse/sync");
 
@@ -137,6 +142,18 @@ async function crearCompra(req, res) {
       });
     }
 
+    if (!String(folio || "").trim()) {
+      return res.status(400).json({
+        error: "Debes ingresar el folio del documento.",
+      });
+    }
+
+    if (!String(razon_social_proveedor || "").trim()) {
+      return res.status(400).json({
+        error: "Debes ingresar la razon social del proveedor.",
+      });
+    }
+
     const periodoCompra = periodo || obtenerPeriodoDesdeFecha(fecha);
     const netoNum = Number(neto || 0);
     const exentoNum = Number(exento || 0);
@@ -147,10 +164,32 @@ async function crearCompra(req, res) {
       total || netoNum + exentoNum + ivaCreditoNum + ivaNoRecNum + otrosImpuestosNum
     );
     const cuentaOtrosImpuestosId = convertirCuentaId(cuenta_otros_impuestos_id);
+    const cuentaGastoId = convertirCuentaId(cuenta_gasto_id);
+    const rutProveedorNormalizado = normalizarRutDocumento(
+      rut_proveedor,
+      "RUT del proveedor"
+    );
+    const razonSocialProveedor = normalizarNombreTercero(razon_social_proveedor);
 
     await asegurarColumnasCompraExtras(client);
 
     await client.query("BEGIN");
+
+    if (cuentaGastoId) {
+      await validarCuentaOperativa(client, {
+        empresaId: empresa_id,
+        cuentaId: cuentaGastoId,
+        etiqueta: "cuenta de gasto/activo",
+      });
+    }
+
+    if (cuentaOtrosImpuestosId) {
+      await validarCuentaOperativa(client, {
+        empresaId: empresa_id,
+        cuentaId: cuentaOtrosImpuestosId,
+        etiqueta: "cuenta de otros impuestos",
+      });
+    }
 
     const compraResult = await client.query(
       `INSERT INTO compras
@@ -165,15 +204,15 @@ async function crearCompra(req, res) {
         fecha,
         tipo_documento,
         folio || "",
-        rut_proveedor || "",
-        razon_social_proveedor || "",
+        rutProveedorNormalizado,
+        razonSocialProveedor,
         netoNum,
         exentoNum,
         ivaCreditoNum,
         ivaNoRecNum,
         otrosImpuestosNum,
         totalNum,
-        cuenta_gasto_id || null,
+        cuentaGastoId,
         cuentaOtrosImpuestosId,
       ]
     );
@@ -228,7 +267,9 @@ async function crearCompra(req, res) {
         iva_no_recuperable: ivaNoRecNum,
         otros_impuestos: otrosImpuestosNum,
         total: totalNum,
+        cuenta_gasto_id: cuentaGastoId,
         comprobante_id: compra.comprobante_id || null,
+        rut_proveedor: rutProveedorNormalizado,
       },
     });
 
@@ -246,7 +287,7 @@ async function crearCompra(req, res) {
 
     console.error("Error al crear compra:", error);
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: error.message || "Error interno al crear compra",
     });
   } finally {
@@ -439,6 +480,11 @@ async function importarComprasSII(req, res) {
           continue;
         }
 
+        const rutProveedorNormalizado = normalizarRutDocumento(
+          fila["RUT Proveedor"],
+          "RUT del proveedor"
+        );
+        const razonSocialProveedor = normalizarNombreTercero(fila["Razon Social"]);
         const fecha = convertirFechaSII(fila["Fecha Docto"]);
 
         if (!fecha) {
@@ -504,8 +550,8 @@ async function importarComprasSII(req, res) {
               periodoCompra,
               fecha,
               mapearTipoDocumentoSII(siiTipoDoc),
-              fila["RUT Proveedor"] || "",
-              fila["Razon Social"] || "",
+              rutProveedorNormalizado,
+              razonSocialProveedor,
               neto,
               exento,
               ivaCredito,
@@ -578,8 +624,8 @@ async function importarComprasSII(req, res) {
             mapearTipoDocumentoSII(siiTipoDoc),
             siiTipoDoc,
             folio,
-            fila["RUT Proveedor"] || "",
-            fila["Razon Social"] || "",
+            rutProveedorNormalizado,
+            razonSocialProveedor,
             neto,
             exento,
             ivaCredito,

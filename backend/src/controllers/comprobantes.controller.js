@@ -1,6 +1,10 @@
 const pool = require("../database/db");
 const { obtenerPeriodoDesdeFecha } = require("../helpers/siiCsv.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
+const {
+  insertarDetallesComprobante,
+} = require("../helpers/comprobante.helper");
+const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
 
 async function obtenerSiguienteNumeroPorTipo(client, empresaId, tipo) {
   const resultado = await client.query(
@@ -59,6 +63,14 @@ async function crearComprobante(req, res) {
 
     await client.query("BEGIN");
 
+    for (const detalle of detalles) {
+      await validarCuentaOperativa(client, {
+        empresaId: empresa_id,
+        cuentaId: detalle.cuenta_id,
+        etiqueta: "cuenta del asiento",
+      });
+    }
+
     const numeroFinal =
       numero && Number(numero) > 0
         ? Number(numero)
@@ -95,34 +107,7 @@ async function crearComprobante(req, res) {
 
     const comprobante = comprobanteResult.rows[0];
 
-    for (const item of detalles) {
-      await client.query(
-        `
-        INSERT INTO comprobante_detalle
-        (
-          comprobante_id,
-          cuenta_id,
-          glosa,
-          debe,
-          haber,
-          folio,
-          centro_costo,
-          rut_auxiliar
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        `,
-        [
-          comprobante.id,
-          Number(item.cuenta_id),
-          item.glosa || "",
-          Number(item.debe || 0),
-          Number(item.haber || 0),
-          item.folio || "",
-          item.centro_costo || "",
-          item.rut_auxiliar || "",
-        ]
-      );
-    }
+    await insertarDetallesComprobante(client, comprobante.id, detalles);
 
     await registrarAuditoria({
       client,
@@ -159,7 +144,7 @@ async function crearComprobante(req, res) {
       });
     }
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: error.message || "Error interno al crear comprobante",
     });
   } finally {
@@ -351,6 +336,14 @@ async function actualizarComprobante(req, res) {
 
     await client.query("BEGIN");
 
+    for (const detalle of detalles) {
+      await validarCuentaOperativa(client, {
+        empresaId: empresa_id,
+        cuentaId: detalle.cuenta_id,
+        etiqueta: "cuenta del asiento",
+      });
+    }
+
     const existe = await client.query(
       `
       SELECT *
@@ -408,34 +401,7 @@ async function actualizarComprobante(req, res) {
       [id]
     );
 
-    for (const detalle of detalles) {
-      await client.query(
-        `
-        INSERT INTO comprobante_detalle
-        (
-          comprobante_id,
-          cuenta_id,
-          glosa,
-          debe,
-          haber,
-          folio,
-          centro_costo,
-          rut_auxiliar
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        `,
-        [
-          id,
-          Number(detalle.cuenta_id),
-          detalle.glosa || "",
-          Number(detalle.debe || 0),
-          Number(detalle.haber || 0),
-          detalle.folio || "",
-          detalle.centro_costo || "",
-          detalle.rut_auxiliar || "",
-        ]
-      );
-    }
+    await insertarDetallesComprobante(client, id, detalles);
 
     await registrarAuditoria({
       client,
@@ -472,7 +438,7 @@ async function actualizarComprobante(req, res) {
       });
     }
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: error.message || "Error interno al actualizar comprobante",
     });
   } finally {

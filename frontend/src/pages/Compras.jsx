@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
+import AccountSelector from "../components/AccountSelector";
 import {
   crearCompra,
   listarCompras,
@@ -450,19 +451,14 @@ export default function Compras() {
           />
 
           <label style={label}>Cuenta gasto/activo</label>
-          <select
+          <AccountSelector
+            cuentas={cuentasGasto}
             style={input}
             name="cuenta_gasto_id"
             value={formulario.cuenta_gasto_id}
             onChange={manejarCambio}
-          >
-            <option value="">Seleccionar cuenta</option>
-            {cuentasGasto.map((cuenta) => (
-              <option key={cuenta.id} value={cuenta.id}>
-                {cuenta.codigo} - {cuenta.nombre}
-              </option>
-            ))}
-          </select>
+            placeholder="Buscar por codigo o nombre de cuenta..."
+          />
 
           <label style={label}>Neto afecto</label>
           <input

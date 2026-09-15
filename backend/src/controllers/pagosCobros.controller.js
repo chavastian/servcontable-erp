@@ -1,6 +1,14 @@
 ﻿const pool = require("../database/db");
 
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
+const {
+  insertarDetallesComprobante,
+} = require("../helpers/comprobante.helper");
+const {
+  normalizarRutDocumentoOpcional,
+  normalizarNombreTercero,
+} = require("../helpers/trazabilidadRut.helper");
+const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
 
 function obtenerPeriodo(fecha) {
   if (!fecha) return "";
@@ -48,11 +56,16 @@ async function crearComprobantePagoCobro(client, datos) {
     glosa,
     cuenta_banco_id,
     cuenta_contraparte_id,
+    rut_tercero,
+    nombre_tercero,
+    folio,
   } = datos;
 
   const montoNum = Number(monto || 0);
   const periodo = obtenerPeriodo(fecha);
   const tipoComprobante = tipo_movimiento === "Cobro" ? "Ingreso" : "Egreso";
+  const rutAuxiliar = normalizarRutDocumentoOpcional(rut_tercero);
+  const folioDocumento = String(folio || "").trim();
   const numero = await obtenerSiguienteNumeroComprobante(
     client,
     empresa_id,
@@ -98,11 +111,14 @@ async function crearComprobantePagoCobro(client, datos) {
         cuenta_id: cuenta_banco_id,
         debe: montoNum,
         haber: 0,
+        folio: folioDocumento,
       },
       {
         cuenta_id: cuenta_contraparte_id,
         debe: 0,
         haber: montoNum,
+        folio: folioDocumento,
+        rut_auxiliar: rutAuxiliar,
       },
     ];
   } else {
@@ -111,31 +127,30 @@ async function crearComprobantePagoCobro(client, datos) {
         cuenta_id: cuenta_contraparte_id,
         debe: montoNum,
         haber: 0,
+        folio: folioDocumento,
+        rut_auxiliar: rutAuxiliar,
       },
       {
         cuenta_id: cuenta_banco_id,
         debe: 0,
         haber: montoNum,
+        folio: folioDocumento,
       },
     ];
   }
 
-  for (const detalle of detalles) {
-    await client.query(
-      `
-      INSERT INTO comprobante_detalle
-      (comprobante_id, cuenta_id, glosa, debe, haber)
-      VALUES ($1,$2,$3,$4,$5)
-      `,
-      [
-        comprobante.id,
-        detalle.cuenta_id,
-        glosa || "",
-        Number(detalle.debe || 0),
-        Number(detalle.haber || 0),
-      ]
-    );
-  }
+  await insertarDetallesComprobante(
+    client,
+    comprobante.id,
+    detalles.map((detalle) => ({
+      ...detalle,
+      glosa:
+        glosa ||
+        `${tipo_movimiento || ""} folio ${folioDocumento || ""} ${
+          normalizarNombreTercero(nombre_tercero) || ""
+        }`.trim(),
+    }))
+  );
 
   return comprobante;
 }
@@ -542,6 +557,18 @@ async function registrarPagoCobro(req, res) {
       });
     }
 
+    await validarCuentaOperativa(client, {
+      empresaId: empresa_id,
+      cuentaId: cuentaBancoId,
+      etiqueta: "cuenta banco/caja",
+    });
+
+    await validarCuentaOperativa(client, {
+      empresaId: empresa_id,
+      cuentaId: cuentaContraparteId,
+      etiqueta: "cuenta contraparte",
+    });
+
     if (procesarTodos) {
       if (
         tipo_operacion !== "Cobro" &&
@@ -598,11 +625,15 @@ async function registrarPagoCobro(req, res) {
             ? fechaDocumento
             : normalizarFechaISO(fecha || fechaDocumento);
         const periodoMovimiento = obtenerPeriodo(fechaMovimiento);
+        const rutTerceroNormalizado = normalizarRutDocumentoOpcional(
+          doc.rut_tercero
+        );
+        const nombreTercero = normalizarNombreTercero(doc.nombre_tercero);
         const glosaMovimiento =
           glosa ||
           `${tipoMovimientoMasivo} ${doc.tipo_documento} folio ${
             doc.folio || ""
-          } ${doc.nombre_tercero || ""}`.trim();
+          } ${nombreTercero || ""}`.trim();
 
         const movimientoResult = await client.query(
           `
@@ -635,8 +666,8 @@ async function registrarPagoCobro(req, res) {
             doc.id,
             fechaMovimiento,
             periodoMovimiento,
-            doc.rut_tercero || "",
-            doc.nombre_tercero || "",
+            rutTerceroNormalizado,
+            nombreTercero,
             doc.folio || "",
             glosaMovimiento,
             montoDoc,
@@ -678,6 +709,18 @@ async function registrarPagoCobro(req, res) {
             glosa: glosaComprobanteUnico,
             cuenta_banco_id: cuentaBancoId,
             cuenta_contraparte_id: cuentaContraparteId,
+            rut_tercero:
+              movimientosCreados.length === 1
+                ? movimientosCreados[0].rut_tercero
+                : "",
+            nombre_tercero:
+              movimientosCreados.length === 1
+                ? movimientosCreados[0].nombre_tercero
+                : "",
+            folio:
+              movimientosCreados.length === 1
+                ? movimientosCreados[0].folio
+                : "",
           });
 
           await client.query(
@@ -709,6 +752,9 @@ async function registrarPagoCobro(req, res) {
               glosa: glosaComprobante,
               cuenta_banco_id: cuentaBancoId,
               cuenta_contraparte_id: cuentaContraparteId,
+              rut_tercero: movimiento.rut_tercero,
+              nombre_tercero: movimiento.nombre_tercero,
+              folio: movimiento.folio,
             });
 
             await client.query(
@@ -773,6 +819,8 @@ async function registrarPagoCobro(req, res) {
     }
 
     const periodo = obtenerPeriodo(fecha);
+    const rutTerceroNormalizado = normalizarRutDocumentoOpcional(rut_tercero);
+    const nombreTercero = normalizarNombreTercero(nombre_tercero);
 
     await client.query("BEGIN");
 
@@ -807,8 +855,8 @@ async function registrarPagoCobro(req, res) {
         documento_id || null,
         fecha,
         periodo,
-        rut_tercero || "",
-        nombre_tercero || "",
+        rutTerceroNormalizado,
+        nombreTercero,
         folio || "",
         glosa || "",
         montoNum,
@@ -825,7 +873,7 @@ async function registrarPagoCobro(req, res) {
         glosa ||
         `${tipo_movimiento} ${tipo_documento || ""} folio ${
           folio || ""
-        } ${nombre_tercero || ""}`.trim();
+        } ${nombreTercero || ""}`.trim();
 
       comprobante = await crearComprobantePagoCobro(client, {
         empresa_id,
@@ -835,6 +883,9 @@ async function registrarPagoCobro(req, res) {
         glosa: glosaComprobante,
         cuenta_banco_id: cuentaBancoId,
         cuenta_contraparte_id: cuentaContraparteId,
+        rut_tercero: rutTerceroNormalizado,
+        nombre_tercero: nombreTercero,
+        folio,
       });
 
       await client.query(
@@ -878,7 +929,7 @@ async function registrarPagoCobro(req, res) {
 
     console.error("Error al registrar pago/cobro:", error);
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: error.message || "Error interno al registrar pago/cobro",
     });
   } finally {

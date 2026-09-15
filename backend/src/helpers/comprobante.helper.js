@@ -1,5 +1,36 @@
 ﻿const pool = require("../database/db");
 
+const {
+  normalizarRutDocumentoOpcional,
+} = require("./trazabilidadRut.helper");
+
+let columnasDetalleComprobanteAseguradas = false;
+
+function texto(valor = "") {
+  return String(valor || "").trim();
+}
+
+async function asegurarColumnasDetalleComprobante(client) {
+  if (columnasDetalleComprobanteAseguradas) return;
+
+  await client.query(`
+    ALTER TABLE comprobante_detalle
+    ADD COLUMN IF NOT EXISTS folio VARCHAR(100) DEFAULT ''
+  `);
+
+  await client.query(`
+    ALTER TABLE comprobante_detalle
+    ADD COLUMN IF NOT EXISTS centro_costo VARCHAR(100) DEFAULT ''
+  `);
+
+  await client.query(`
+    ALTER TABLE comprobante_detalle
+    ADD COLUMN IF NOT EXISTS rut_auxiliar VARCHAR(30) DEFAULT ''
+  `);
+
+  columnasDetalleComprobanteAseguradas = true;
+}
+
 async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo) {
   const resultado = await client.query(
     `
@@ -21,8 +52,10 @@ async function crearComprobanteAutomaticoVenta(client, venta, configuracion) {
     periodo,
     fecha,
     folio,
+    rut_cliente,
     razon_social_cliente,
     neto,
+    exento,
     iva,
     total,
     cuenta_ingreso_id,
@@ -37,8 +70,9 @@ async function crearComprobanteAutomaticoVenta(client, venta, configuracion) {
   const cuentaIvaDebito = configuracion.cuenta_iva_debito_id;
 
   const netoNum = Number(neto || 0);
+  const exentoNum = Number(exento || 0);
   const ivaNum = Number(iva || 0);
-  const totalNum = Number(total || netoNum + ivaNum);
+  const totalNum = Number(total || netoNum + exentoNum + ivaNum);
 
   if (!cuentaClientes || !cuentaIngreso || (ivaNum > 0 && !cuentaIvaDebito)) {
     throw new Error(
@@ -54,7 +88,9 @@ async function crearComprobanteAutomaticoVenta(client, venta, configuracion) {
     tipo
   );
 
-  const glosa = `Folio ${folio || ""} ${razon_social_cliente || ""}`.trim();
+  const folioDocumento = texto(folio);
+  const rutAuxiliar = normalizarRutDocumentoOpcional(rut_cliente);
+  const glosa = `Folio ${folioDocumento || ""} ${razon_social_cliente || ""}`.trim();
 
   const comprobanteResult = await client.query(
     `
@@ -83,18 +119,22 @@ async function crearComprobanteAutomaticoVenta(client, venta, configuracion) {
       glosa,
       debe: totalNum,
       haber: 0,
+      folio: folioDocumento,
+      rut_auxiliar: rutAuxiliar,
     },
     {
       cuenta_id: cuentaIngreso,
       glosa,
       debe: 0,
-      haber: netoNum,
+      haber: netoNum + exentoNum,
+      folio: folioDocumento,
     },
     {
       cuenta_id: cuentaIvaDebito,
       glosa,
       debe: 0,
       haber: ivaNum,
+      folio: folioDocumento,
     },
   ];
 
@@ -108,6 +148,7 @@ function construirAsientoCompra(compra, configuracion = {}) {
     periodo,
     fecha,
     folio,
+    rut_proveedor,
     razon_social_proveedor,
     neto,
     exento,
@@ -156,7 +197,9 @@ function construirAsientoCompra(compra, configuracion = {}) {
 
   const totalDebe =
     netoNum + exentoNum + ivaCreditoNum + ivaNoRecNum + otrosImpuestosNum;
-  const glosa = `Folio ${folio || ""} ${razon_social_proveedor || ""}`.trim();
+  const folioDocumento = texto(folio);
+  const rutAuxiliar = normalizarRutDocumentoOpcional(rut_proveedor);
+  const glosa = `Folio ${folioDocumento || ""} ${razon_social_proveedor || ""}`.trim();
 
   return {
     empresa_id,
@@ -172,30 +215,37 @@ function construirAsientoCompra(compra, configuracion = {}) {
         glosa,
         debe: netoNum + exentoNum + ivaNoRecNum,
         haber: 0,
+        folio: folioDocumento,
       },
       {
         cuenta_id: cuentaIvaCredito,
         glosa,
         debe: ivaCreditoNum,
         haber: 0,
+        folio: folioDocumento,
       },
       {
         cuenta_id: cuentaOtrosImpuestos,
         glosa,
         debe: otrosImpuestosNum,
         haber: 0,
+        folio: folioDocumento,
       },
       {
         cuenta_id: cuentaProveedores,
         glosa,
         debe: 0,
         haber: totalNum,
+        folio: folioDocumento,
+        rut_auxiliar: rutAuxiliar,
       },
     ],
   };
 }
 
 async function insertarDetallesComprobante(client, comprobanteId, detalles = []) {
+  await asegurarColumnasDetalleComprobante(client);
+
   for (const detalle of detalles) {
     if (Number(detalle.debe || 0) === 0 && Number(detalle.haber || 0) === 0) {
       continue;
@@ -204,8 +254,8 @@ async function insertarDetallesComprobante(client, comprobanteId, detalles = [])
     await client.query(
       `
       INSERT INTO comprobante_detalle
-      (comprobante_id, cuenta_id, glosa, debe, haber)
-      VALUES ($1, $2, $3, $4, $5)
+      (comprobante_id, cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
       [
         comprobanteId,
@@ -213,6 +263,9 @@ async function insertarDetallesComprobante(client, comprobanteId, detalles = [])
         detalle.glosa,
         Number(detalle.debe || 0),
         Number(detalle.haber || 0),
+        texto(detalle.folio),
+        texto(detalle.centro_costo),
+        normalizarRutDocumentoOpcional(detalle.rut_auxiliar),
       ]
     );
   }
@@ -303,8 +356,14 @@ async function actualizarComprobanteAutomaticoCompra(
 
 module.exports = {
   obtenerSiguienteNumeroComprobante,
+  asegurarColumnasDetalleComprobante,
+  insertarDetallesComprobante,
   crearComprobanteAutomaticoVenta,
   crearComprobanteAutomaticoCompra,
   actualizarComprobanteAutomaticoCompra,
+  __comprobanteInternals: {
+    construirAsientoCompra,
+    normalizarRutDocumentoOpcional,
+  },
 };
 

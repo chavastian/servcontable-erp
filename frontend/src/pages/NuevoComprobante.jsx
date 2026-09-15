@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
+import AccountSelector from "../components/AccountSelector";
 import {
   crearComprobante,
   listarComprobantes,
@@ -504,21 +505,16 @@ export default function NuevoComprobante() {
               {detalle.map((linea, index) => (
                 <tr key={index}>
                   <td style={tdCompacto}>
-                    <select
+                    <AccountSelector
+                      cuentas={cuentas}
                       style={inputCuentaCompacto}
+                      name="cuenta_id"
                       value={linea.cuenta_id}
                       onChange={(e) =>
                         actualizarLinea(index, "cuenta_id", e.target.value)
                       }
-                    >
-                      <option value="">Seleccionar cuenta</option>
-
-                      {cuentas.map((cuenta) => (
-                        <option key={cuenta.id} value={cuenta.id}>
-                          {cuenta.codigo} - {cuenta.nombre}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Codigo o nombre"
+                    />
                   </td>
 
                   <td style={tdCompacto}>
