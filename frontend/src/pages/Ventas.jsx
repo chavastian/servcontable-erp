@@ -523,7 +523,9 @@ export default function Ventas() {
                   <td style={tdNumero}>{formato(venta.iva)}</td>
                   <td style={tdNumero}>{formato(venta.total)}</td>
                   <td style={td}>
-                    {venta.comprobante_id ? "✅ Creado" : "❌ Sin comprobante"}
+                    {venta.comprobante_id
+                      ? `✅ Comp. #${venta.comprobante_numero || venta.comprobante_id}`
+                      : "❌ Sin comprobante"}
                   </td>
                 </tr>
               ))}

@@ -55,13 +55,6 @@ export default function PagosCobros() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (empresaActiva) {
-        cargarInicial();
-        cargarDocumentoDesdePendientes();
-    }
-  }, []);
-
   async function cargarInicial() {
     try {
       setError("");
@@ -121,6 +114,33 @@ export default function PagosCobros() {
     const partes = texto.split("-");
     if (partes.length !== 3) return texto;
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  }
+
+  function glosaDocumento(tipoOperacion, doc) {
+    const prefijo = tipoOperacion === "Cobro" ? "COBRO" : "PAGO";
+    const folio = String(doc?.folio || "").trim();
+    const referencia = folio ? `FOLIO ${folio}` : `DOC ${doc?.id || ""}`;
+    const glosaBase =
+      String(doc?.glosa_original || "").trim() ||
+      String(doc?.nombre_tercero || "").trim() ||
+      String(doc?.tipo_documento || "Documento").trim();
+
+    return `${prefijo} ${referencia} - ${glosaBase}`.trim();
+  }
+
+  function glosaMasiva(tipoOperacion, docs) {
+    const prefijo = tipoOperacion === "Cobro" ? "COBRO MASIVO" : "PAGO MASIVO";
+    const folios = docs
+      .map((doc) => String(doc.folio || "").trim())
+      .filter(Boolean)
+      .slice(0, 5);
+    const sufijoFolios = folios.length
+      ? ` - FOLIOS ${folios.join(", ")}${
+          docs.length > folios.length ? ", ..." : ""
+        }`
+      : "";
+
+    return `${prefijo} - ${docs.length} DOCUMENTOS${sufijoFolios}`;
   }
 
   function cambiarFormulario(e) {
@@ -195,9 +215,7 @@ export default function PagosCobros() {
         cuenta_contraparte_id:
           prev.cuenta_contraparte_id ||
           obtenerCuentaContraparteSugerida(prev.tipo_operacion),
-        glosa:
-          prev.glosa ||
-          `${prev.tipo_operacion} masivo (${documentos.length} documentos)`,
+        glosa: glosaMasiva(prev.tipo_operacion, documentos),
       }));
       return;
     }
@@ -229,9 +247,7 @@ export default function PagosCobros() {
       folio: doc.folio || "",
       monto: Number(doc.saldo || 0),
       cuenta_contraparte_id: cuentaContraparte,
-      glosa: `${prev.tipo_operacion} ${doc.tipo_documento} folio ${
-        doc.folio || ""
-      } ${doc.nombre_tercero || ""}`.trim(),
+      glosa: glosaDocumento(prev.tipo_operacion, doc),
     }));
   }
 
@@ -379,9 +395,12 @@ export default function PagosCobros() {
         nombre_tercero: doc.nombre_tercero || "",
         folio: doc.folio || "",
         monto: Number(doc.saldo_pendiente || 0),
-        glosa: `${doc.tipo} ${doc.tipo_documento} folio ${doc.folio || ""} ${
-            doc.nombre_tercero || ""
-        }`.trim(),
+        glosa: glosaDocumento(tipoOperacion, {
+            id: doc.documento_id,
+            folio: doc.folio,
+            tipo_documento: doc.tipo_documento,
+            nombre_tercero: doc.nombre_tercero,
+        }),
         }));
 
         await cargarDocumentos(tipoOperacion);
@@ -391,6 +410,13 @@ export default function PagosCobros() {
         console.error("Error al cargar documento pendiente:", error);
     }
     }
+
+  useEffect(() => {
+    if (empresaActiva) {
+        cargarInicial();
+        cargarDocumentoDesdePendientes();
+    }
+  }, []);
 
   const esSeleccionMasiva =
     formulario.documento_id === VALOR_TODOS_DOCUMENTOS;
@@ -700,7 +726,9 @@ export default function PagosCobros() {
                     )}
 
                     {item.contabilizado && (
-                      <span style={textoSuave}>Comp. #{item.comprobante_id}</span>
+                      <span style={textoSuave}>
+                        Comp. #{item.comprobante_numero || item.comprobante_id}
+                      </span>
                     )}
                   </td>
                 </tr>

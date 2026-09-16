@@ -650,7 +650,9 @@ function TablaMovimientos({ movimientos, fechaCL, formato, onDeshacer }) {
                 )}
               </td>
               <td style={td}>
-                {item.comprobante_id ? `Comp. #${item.comprobante_id}` : "-"}
+                {item.comprobante_id
+                  ? `Comp. #${item.comprobante_numero || item.comprobante_id}`
+                  : "-"}
               </td>
               <td style={tdAccion}>
                 {item.estado === "vigente" ? (

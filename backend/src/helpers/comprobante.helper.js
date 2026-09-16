@@ -31,16 +31,20 @@ async function asegurarColumnasDetalleComprobante(client) {
   columnasDetalleComprobanteAseguradas = true;
 }
 
-async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo) {
+async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo = "") {
+  // Bloqueo transaccional por empresa: evita que dos procesos automaticos
+  // tomen el mismo correlativo cuando se contabiliza en paralelo.
+  await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+    `comprobantes:${empresaId}`,
+  ]);
+
   const resultado = await client.query(
     `
     SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
     FROM comprobantes
     WHERE empresa_id = $1
-      AND tipo = $2
-      AND estado = 'vigente'
     `,
-    [empresaId, tipo]
+    [empresaId]
   );
 
   return Number(resultado.rows[0]?.siguiente || 1);

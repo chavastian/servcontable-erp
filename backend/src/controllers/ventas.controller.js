@@ -194,9 +194,13 @@ async function listarVentas(req, res) {
     let query = `
       SELECT
         v.*,
+        comp.numero AS comprobante_numero,
+        comp.glosa AS comprobante_glosa,
+        comp.fecha AS comprobante_fecha,
         pc.codigo AS cuenta_codigo,
         pc.nombre AS cuenta_nombre
       FROM ventas v
+      LEFT JOIN comprobantes comp ON comp.id = v.comprobante_id
       LEFT JOIN plan_cuentas pc ON pc.id = v.cuenta_ingreso_id
       WHERE v.empresa_id = $1
         AND v.estado = 'vigente'

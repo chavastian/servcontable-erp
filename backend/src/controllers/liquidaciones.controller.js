@@ -2,6 +2,9 @@ const pool = require("../database/db");
 const {
   obtenerAusenciasLiquidacion,
 } = require("../helpers/ausenciasLiquidacion.helper");
+const {
+  obtenerSiguienteNumeroComprobante,
+} = require("../helpers/comprobante.helper");
 
 function calcularMonto(base, tasa) {
   return Math.round(Number(base || 0) * (Number(tasa || 0) / 100));
@@ -1196,6 +1199,7 @@ async function listarLiquidaciones(req, res) {
     let query = `
       SELECT
         l.*,
+        comp.numero AS comprobante_numero,
         t.rut,
         t.nombres,
         t.apellidos,
@@ -1221,6 +1225,8 @@ async function listarLiquidaciones(req, res) {
         t.fecha_movimiento_desde,
         t.fecha_movimiento_hasta
       FROM liquidaciones l
+      LEFT JOIN comprobantes comp
+        ON comp.id = l.comprobante_id
       INNER JOIN trabajadores t
         ON t.id = l.trabajador_id
       WHERE l.empresa_id = $1
@@ -1272,20 +1278,6 @@ async function listarLiquidaciones(req, res) {
       error: "Error interno al listar liquidaciones",
     });
   }
-}
-
-async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo) {
-  const resultado = await client.query(
-    `
-    SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
-    FROM comprobantes
-    WHERE empresa_id = $1
-      AND tipo = $2
-    `,
-    [empresaId, tipo]
-  );
-
-  return Number(resultado.rows[0].siguiente || 1);
 }
 
 async function contabilizarLiquidaciones(req, res) {

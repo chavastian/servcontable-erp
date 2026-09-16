@@ -3,23 +3,9 @@ const { obtenerPeriodoDesdeFecha } = require("../helpers/siiCsv.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const {
   insertarDetallesComprobante,
+  obtenerSiguienteNumeroComprobante,
 } = require("../helpers/comprobante.helper");
 const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
-
-async function obtenerSiguienteNumeroPorTipo(client, empresaId, tipo) {
-  const resultado = await client.query(
-    `
-    SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
-    FROM comprobantes
-    WHERE empresa_id = $1
-      AND tipo = $2
-      AND estado = 'vigente'
-    `,
-    [empresaId, tipo]
-  );
-
-  return Number(resultado.rows[0]?.siguiente || 1);
-}
 
 async function crearComprobante(req, res) {
   const client = await pool.connect();
@@ -74,7 +60,7 @@ async function crearComprobante(req, res) {
     const numeroFinal =
       numero && Number(numero) > 0
         ? Number(numero)
-        : await obtenerSiguienteNumeroPorTipo(client, empresa_id, tipo);
+        : await obtenerSiguienteNumeroComprobante(client, empresa_id, tipo);
 
     const comprobanteResult = await client.query(
       `
@@ -361,12 +347,39 @@ async function actualizarComprobante(req, res) {
       });
     }
 
+    const comprobanteAnterior = existe.rows[0];
+
     const numeroFinal =
       numero && Number(numero) > 0
         ? Number(numero)
-        : Number(existe.rows[0].numero);
+        : Number(comprobanteAnterior.numero);
 
     const periodoComprobante = periodo || obtenerPeriodoDesdeFecha(fecha);
+    const cambios = [];
+    const valorAuditable = (valor) => {
+      if (valor instanceof Date && !Number.isNaN(valor.getTime())) {
+        return valor.toISOString().substring(0, 10);
+      }
+
+      return String(valor ?? "");
+    };
+    const agregarCambio = (campo, anterior, nuevo) => {
+      if (valorAuditable(anterior) !== valorAuditable(nuevo)) {
+        cambios.push({
+          campo,
+          anterior,
+          nuevo,
+        });
+      }
+    };
+
+    agregarCambio("periodo", comprobanteAnterior.periodo, periodoComprobante);
+    agregarCambio("fecha", comprobanteAnterior.fecha, fecha);
+    agregarCambio("tipo", comprobanteAnterior.tipo, tipo);
+    agregarCambio("numero", comprobanteAnterior.numero, numeroFinal);
+    agregarCambio("glosa", comprobanteAnterior.glosa, glosa || "");
+    agregarCambio("total_debe", comprobanteAnterior.total_debe, totalDebe);
+    agregarCambio("total_haber", comprobanteAnterior.total_haber, totalHaber);
 
     const actualizado = await client.query(
       `
@@ -413,11 +426,25 @@ async function actualizarComprobante(req, res) {
       tablaAfectada: "comprobantes",
       registroId: Number(id),
       datos: {
-        fecha,
-        tipo,
-        numero: numeroFinal,
-        total_debe: totalDebe,
-        total_haber: totalHaber,
+        anterior: {
+          periodo: comprobanteAnterior.periodo,
+          fecha: comprobanteAnterior.fecha,
+          tipo: comprobanteAnterior.tipo,
+          numero: comprobanteAnterior.numero,
+          glosa: comprobanteAnterior.glosa,
+          total_debe: comprobanteAnterior.total_debe,
+          total_haber: comprobanteAnterior.total_haber,
+        },
+        nuevo: {
+          periodo: periodoComprobante,
+          fecha,
+          tipo,
+          numero: numeroFinal,
+          glosa: glosa || "",
+          total_debe: totalDebe,
+          total_haber: totalHaber,
+        },
+        cambios,
       },
     });
 
@@ -591,7 +618,11 @@ async function obtenerSiguienteNumero(req, res) {
       });
     }
 
-    const siguiente = await obtenerSiguienteNumeroPorTipo(client, empresa_id, tipo);
+    const siguiente = await obtenerSiguienteNumeroComprobante(
+      client,
+      empresa_id,
+      tipo
+    );
 
     return res.json({
       tipo,
@@ -615,5 +646,5 @@ module.exports = {
   actualizarComprobante,
   anularComprobante,
   obtenerSiguienteNumero,
-  obtenerSiguienteNumeroPorTipo,
+  obtenerSiguienteNumeroPorTipo: obtenerSiguienteNumeroComprobante,
 };

@@ -1,6 +1,7 @@
 const pool = require("../database/db");
 const {
   insertarDetallesComprobante,
+  obtenerSiguienteNumeroComprobante,
 } = require("../helpers/comprobante.helper");
 const {
   normalizarRutDocumento,
@@ -10,20 +11,6 @@ const {
 function obtenerPeriodo(fecha) {
   if (!fecha) return "";
   return String(fecha).substring(0, 7);
-}
-
-async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo) {
-  const resultado = await client.query(
-    `
-    SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
-    FROM comprobantes
-    WHERE empresa_id = $1
-      AND tipo = $2
-    `,
-    [empresaId, tipo]
-  );
-
-  return Number(resultado.rows[0]?.siguiente || 1);
 }
 
 async function crearHonorario(req, res) {
@@ -139,12 +126,16 @@ async function listarHonorarios(req, res) {
 
     const resultado = await pool.query(
       `
-      SELECT *
-      FROM honorarios
-      WHERE empresa_id = $1
-        AND estado = 'vigente'
-        AND fecha_emision BETWEEN $2 AND $3
-      ORDER BY fecha_emision ASC, id ASC
+      SELECT
+        h.*,
+        comp.numero AS comprobante_numero
+      FROM honorarios h
+      LEFT JOIN comprobantes comp
+        ON comp.id = h.comprobante_id
+      WHERE h.empresa_id = $1
+        AND h.estado = 'vigente'
+        AND h.fecha_emision BETWEEN $2 AND $3
+      ORDER BY h.fecha_emision ASC, h.id ASC
       `,
       [empresa_id, fecha_desde, fecha_hasta]
     );

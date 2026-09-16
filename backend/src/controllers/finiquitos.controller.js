@@ -3,6 +3,9 @@
 const {
   calcularVacacionesPendientesFiniquito,
 } = require("../helpers/vacaciones.helper");
+const {
+  obtenerSiguienteNumeroComprobante,
+} = require("../helpers/comprobante.helper");
 
 function numero(valor) {
   return Number(valor || 0);
@@ -617,17 +620,11 @@ async function contabilizarFiniquito(req, res) {
       finiquito.trabajador_rut || ""
     } periodo ${periodoContable}`;
 
-    const numeroResult = await client.query(
-      `
-      SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
-      FROM comprobantes
-      WHERE empresa_id = $1
-        AND tipo = 'Traspaso'
-      `,
-      [empresa_id]
+    const numeroComprobante = await obtenerSiguienteNumeroComprobante(
+      client,
+      empresa_id,
+      "Traspaso"
     );
-
-    const numeroComprobante = numeroResult.rows[0]?.siguiente || 1;
 
     const totalDebe = totalGastoSueldos + totalIndemnizaciones;
     const totalHaber = totalFiniquito + totalDescuentos;
@@ -862,17 +859,11 @@ async function pagarFiniquito(req, res) {
         finiquito.trabajador_rut || ""
       } periodo ${periodoContable}`;
 
-    const numeroResult = await client.query(
-      `
-      SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
-      FROM comprobantes
-      WHERE empresa_id = $1
-        AND tipo = 'Egreso'
-      `,
-      [empresa_id]
+    const numeroComprobante = await obtenerSiguienteNumeroComprobante(
+      client,
+      empresa_id,
+      "Egreso"
     );
-
-    const numeroComprobante = numeroResult.rows[0]?.siguiente || 1;
 
     const comprobanteResult = await client.query(
       `

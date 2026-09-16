@@ -582,7 +582,7 @@ export default function Compras() {
                     {compra.comprobante_id ? (
                       <span style={estadoComprobanteCreado}>
                         <span style={iconoComprobanteCreado}>✓</span>
-                        Creado
+                        Comp. #{compra.comprobante_numero || compra.comprobante_id}
                       </span>
                     ) : (
                       <span style={estadoComprobantePendiente}>

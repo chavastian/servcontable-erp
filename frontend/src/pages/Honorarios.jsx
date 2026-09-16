@@ -609,7 +609,7 @@ export default function Honorarios() {
 
                     {item.contabilizado && (
                         <span style={textoSuave}>
-                        Comp. #{item.comprobante_id}
+                        Comp. #{item.comprobante_numero || item.comprobante_id}
                         </span>
                     )}
                   </td>

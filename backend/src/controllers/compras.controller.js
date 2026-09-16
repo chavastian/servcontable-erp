@@ -308,9 +308,13 @@ async function listarCompras(req, res) {
     let query = `
       SELECT
         c.*,
+        comp.numero AS comprobante_numero,
+        comp.glosa AS comprobante_glosa,
+        comp.fecha AS comprobante_fecha,
         pc.codigo AS cuenta_codigo,
         pc.nombre AS cuenta_nombre
       FROM compras c
+      LEFT JOIN comprobantes comp ON comp.id = c.comprobante_id
       LEFT JOIN plan_cuentas pc ON pc.id = c.cuenta_gasto_id
       WHERE c.empresa_id = $1
         AND c.estado = 'vigente'

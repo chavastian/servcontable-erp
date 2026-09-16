@@ -1,18 +1,8 @@
 const pool = require("../database/db");
 
-async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo) {
-  const resultado = await client.query(
-    `
-    SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
-    FROM comprobantes
-    WHERE empresa_id = $1
-      AND tipo = $2
-    `,
-    [empresaId, tipo]
-  );
-
-  return Number(resultado.rows[0]?.siguiente || 1);
-}
+const {
+  obtenerSiguienteNumeroComprobante,
+} = require("../helpers/comprobante.helper");
 
 function obtenerDescripcionTipo(tipoPago) {
   const mapa = {
@@ -111,11 +101,13 @@ async function obtenerResumenPagosRemuneraciones(req, res) {
       `
       SELECT
         pr.*,
+        comp.numero AS comprobante_numero,
         cd.codigo AS cuenta_debe_codigo,
         cd.nombre AS cuenta_debe_nombre,
         ch.codigo AS cuenta_haber_codigo,
         ch.nombre AS cuenta_haber_nombre
       FROM pagos_remuneraciones pr
+      LEFT JOIN comprobantes comp ON comp.id = pr.comprobante_id
       LEFT JOIN plan_cuentas cd ON cd.id = pr.cuenta_debe_id
       LEFT JOIN plan_cuentas ch ON ch.id = pr.cuenta_haber_id
       WHERE pr.empresa_id = $1

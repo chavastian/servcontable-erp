@@ -255,7 +255,11 @@ export default function PagosRemuneraciones() {
                   <td style={td}>
                     {item.cuenta_haber_codigo} - {item.cuenta_haber_nombre}
                   </td>
-                  <td style={td}>{item.comprobante_id || "-"}</td>
+                  <td style={td}>
+                    {item.comprobante_id
+                      ? item.comprobante_numero || item.comprobante_id
+                      : "-"}
+                  </td>
                   <td style={tdAccion}>
                     <button
                       style={botonEliminar}

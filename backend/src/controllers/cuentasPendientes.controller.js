@@ -24,8 +24,11 @@ async function obtenerCuentasPorCobrar(req, res) {
         v.total AS total_documento,
         COALESCE(SUM(pc.monto), 0) AS total_pagado,
         v.total - COALESCE(SUM(pc.monto), 0) AS saldo_pendiente,
-        v.comprobante_id
+        v.comprobante_id,
+        comp.numero AS comprobante_numero
       FROM ventas v
+      LEFT JOIN comprobantes comp
+        ON comp.id = v.comprobante_id
       LEFT JOIN pagos_cobros pc
         ON pc.empresa_id = v.empresa_id
        AND pc.tipo_documento = 'Venta'
@@ -43,7 +46,8 @@ async function obtenerCuentasPorCobrar(req, res) {
         v.rut_cliente,
         v.razon_social_cliente,
         v.total,
-        v.comprobante_id
+        v.comprobante_id,
+        comp.numero
       HAVING v.total - COALESCE(SUM(pc.monto), 0) > 0
       ORDER BY v.fecha ASC, v.folio ASC
       `,
@@ -108,8 +112,11 @@ async function obtenerCuentasPorPagar(req, res) {
         c.total AS total_documento,
         COALESCE(SUM(pc.monto), 0) AS total_pagado,
         c.total - COALESCE(SUM(pc.monto), 0) AS saldo_pendiente,
-        c.comprobante_id
+        c.comprobante_id,
+        comp.numero AS comprobante_numero
       FROM compras c
+      LEFT JOIN comprobantes comp
+        ON comp.id = c.comprobante_id
       LEFT JOIN pagos_cobros pc
         ON pc.empresa_id = c.empresa_id
        AND pc.tipo_documento = 'Compra'
@@ -127,7 +134,8 @@ async function obtenerCuentasPorPagar(req, res) {
         c.rut_proveedor,
         c.razon_social_proveedor,
         c.total,
-        c.comprobante_id
+        c.comprobante_id,
+        comp.numero
       HAVING c.total - COALESCE(SUM(pc.monto), 0) > 0
       `,
       [empresa_id, fecha_desde, fecha_hasta]
@@ -147,8 +155,11 @@ async function obtenerCuentasPorPagar(req, res) {
         h.liquido AS total_documento,
         COALESCE(SUM(pc.monto), 0) AS total_pagado,
         h.liquido - COALESCE(SUM(pc.monto), 0) AS saldo_pendiente,
-        h.comprobante_id
+        h.comprobante_id,
+        comp.numero AS comprobante_numero
       FROM honorarios h
+      LEFT JOIN comprobantes comp
+        ON comp.id = h.comprobante_id
       LEFT JOIN pagos_cobros pc
         ON pc.empresa_id = h.empresa_id
        AND pc.tipo_documento = 'Honorario'
@@ -166,7 +177,8 @@ async function obtenerCuentasPorPagar(req, res) {
         h.rut_prestador,
         h.nombre_prestador,
         h.liquido,
-        h.comprobante_id
+        h.comprobante_id,
+        comp.numero
       HAVING h.liquido - COALESCE(SUM(pc.monto), 0) > 0
       `,
       [empresa_id, fecha_desde, fecha_hasta]

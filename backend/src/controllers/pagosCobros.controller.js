@@ -3,6 +3,7 @@
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const {
   insertarDetallesComprobante,
+  obtenerSiguienteNumeroComprobante,
 } = require("../helpers/comprobante.helper");
 const {
   normalizarRutDocumentoOpcional,
@@ -33,18 +34,70 @@ function normalizarFechaISO(fecha) {
   return String(fecha).substring(0, 10);
 }
 
-async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo) {
-  const resultado = await client.query(
-    `
-    SELECT COALESCE(MAX(numero), 0) + 1 AS siguiente
-    FROM comprobantes
-    WHERE empresa_id = $1
-      AND tipo = $2
-    `,
-    [empresaId, tipo]
-  );
+function texto(valor = "") {
+  return String(valor || "").trim();
+}
 
-  return Number(resultado.rows[0]?.siguiente || 1);
+function referenciaDocumento(doc = {}) {
+  const folioDocumento = texto(doc.folio);
+
+  if (folioDocumento) {
+    return `FOLIO ${folioDocumento}`;
+  }
+
+  if (doc.id) {
+    return `DOC ${doc.id}`;
+  }
+
+  return texto(doc.tipo_documento || "DOCUMENTO").toUpperCase();
+}
+
+function glosaBaseDocumento(doc = {}) {
+  return (
+    texto(doc.glosa_original) ||
+    texto(doc.glosa_documento) ||
+    texto(doc.glosa) ||
+    texto(doc.descripcion) ||
+    texto(doc.nombre_tercero) ||
+    texto(doc.tipo_documento) ||
+    "Documento"
+  );
+}
+
+function glosaDocumentoMovimiento(tipoMovimiento, doc = {}) {
+  const prefijo = tipoMovimiento === "Cobro" ? "COBRO" : "PAGO";
+  return `${prefijo} ${referenciaDocumento(doc)} - ${glosaBaseDocumento(doc)}`;
+}
+
+function glosaMasiva(tipoMovimiento, documentos = []) {
+  const prefijo = tipoMovimiento === "Cobro" ? "COBRO MASIVO" : "PAGO MASIVO";
+  const folios = documentos
+    .map((doc) => texto(doc.folio))
+    .filter(Boolean)
+    .slice(0, 5);
+  const sufijoFolios = folios.length
+    ? ` - FOLIOS ${folios.join(", ")}${
+        documentos.length > folios.length ? ", ..." : ""
+      }`
+    : "";
+
+  return `${prefijo} - ${documentos.length} DOCUMENTOS${sufijoFolios}`;
+}
+
+function tipoOperacionDesdeDocumento(tipoMovimiento, tipoDocumento) {
+  if (tipoDocumento === "Venta" || tipoMovimiento === "Cobro") {
+    return "Cobro";
+  }
+
+  if (tipoDocumento === "Honorario") {
+    return "PagoHonorario";
+  }
+
+  if (tipoDocumento === "Compra") {
+    return "PagoCompra";
+  }
+
+  return "";
 }
 
 async function crearComprobantePagoCobro(client, datos) {
@@ -59,6 +112,7 @@ async function crearComprobantePagoCobro(client, datos) {
     rut_tercero,
     nombre_tercero,
     folio,
+    documentos_detalle = [],
   } = datos;
 
   const montoNum = Number(monto || 0);
@@ -104,8 +158,51 @@ async function crearComprobantePagoCobro(client, datos) {
   const comprobante = comprobanteResult.rows[0];
 
   let detalles = [];
+  const documentosDetalle = Array.isArray(documentos_detalle)
+    ? documentos_detalle
+    : [];
 
-  if (tipo_movimiento === "Cobro") {
+  if (documentosDetalle.length > 1) {
+    const detalleContraparte = documentosDetalle
+      .map((documento) => {
+        const montoDocumento = Number(documento.monto || 0);
+
+        if (montoDocumento <= 0) {
+          return null;
+        }
+
+        return {
+          cuenta_id: cuenta_contraparte_id,
+          debe: tipo_movimiento === "Pago" ? montoDocumento : 0,
+          haber: tipo_movimiento === "Cobro" ? montoDocumento : 0,
+          folio: String(documento.folio || "").trim(),
+          rut_auxiliar: normalizarRutDocumentoOpcional(documento.rut_tercero),
+          glosa: documento.glosa || glosa || "",
+        };
+      })
+      .filter(Boolean);
+
+    detalles =
+      tipo_movimiento === "Cobro"
+        ? [
+            {
+              cuenta_id: cuenta_banco_id,
+              debe: montoNum,
+              haber: 0,
+              glosa: glosa || "",
+            },
+            ...detalleContraparte,
+          ]
+        : [
+            ...detalleContraparte,
+            {
+              cuenta_id: cuenta_banco_id,
+              debe: 0,
+              haber: montoNum,
+              glosa: glosa || "",
+            },
+          ];
+  } else if (tipo_movimiento === "Cobro") {
     detalles = [
       {
         cuenta_id: cuenta_banco_id,
@@ -145,6 +242,7 @@ async function crearComprobantePagoCobro(client, datos) {
     detalles.map((detalle) => ({
       ...detalle,
       glosa:
+        detalle.glosa ||
         glosa ||
         `${tipo_movimiento || ""} folio ${folioDocumento || ""} ${
           normalizarNombreTercero(nombre_tercero) || ""
@@ -187,6 +285,7 @@ async function obtenerDocumentosPendientesPorOperacion(
         v.folio,
         v.rut_cliente AS rut_tercero,
         v.razon_social_cliente AS nombre_tercero,
+        CONCAT_WS(' ', 'Venta', NULLIF(v.razon_social_cliente, '')) AS glosa_original,
         v.total,
         COALESCE(SUM(pc.monto), 0) AS pagado,
         v.total - COALESCE(SUM(pc.monto), 0) AS saldo
@@ -232,6 +331,7 @@ async function obtenerDocumentosPendientesPorOperacion(
         c.folio,
         c.rut_proveedor AS rut_tercero,
         c.razon_social_proveedor AS nombre_tercero,
+        CONCAT_WS(' ', 'Compra', NULLIF(c.razon_social_proveedor, '')) AS glosa_original,
         COALESCE(c.exento, 0) AS exento,
         COALESCE(NULLIF(c.total, 0), COALESCE(c.neto, 0) + COALESCE(c.exento, 0) + COALESCE(c.iva_credito, 0) + COALESCE(c.iva_no_recuperable, 0) + COALESCE(c.otros_impuestos, 0)) AS total,
         COALESCE(SUM(pc.monto), 0) AS pagado,
@@ -283,6 +383,7 @@ async function obtenerDocumentosPendientesPorOperacion(
         h.folio,
         h.rut_prestador AS rut_tercero,
         h.nombre_prestador AS nombre_tercero,
+        CONCAT_WS(' ', 'Honorario', NULLIF(h.nombre_prestador, '')) AS glosa_original,
         h.liquido AS total,
         COALESCE(SUM(pc.monto), 0) AS pagado,
         h.liquido - COALESCE(SUM(pc.monto), 0) AS saldo
@@ -335,6 +436,7 @@ async function listarDocumentosPendientes(req, res) {
           v.folio,
           v.rut_cliente AS rut_tercero,
           v.razon_social_cliente AS nombre_tercero,
+          CONCAT_WS(' ', 'Venta', NULLIF(v.razon_social_cliente, '')) AS glosa_original,
           v.total,
           COALESCE(SUM(pc.monto), 0) AS pagado,
           v.total - COALESCE(SUM(pc.monto), 0) AS saldo
@@ -367,6 +469,7 @@ async function listarDocumentosPendientes(req, res) {
           c.folio,
           c.rut_proveedor AS rut_tercero,
           c.razon_social_proveedor AS nombre_tercero,
+          CONCAT_WS(' ', 'Compra', NULLIF(c.razon_social_proveedor, '')) AS glosa_original,
         COALESCE(c.exento, 0) AS exento,
           COALESCE(NULLIF(c.total, 0), COALESCE(c.neto, 0) + COALESCE(c.exento, 0) + COALESCE(c.iva_credito, 0) + COALESCE(c.iva_no_recuperable, 0) + COALESCE(c.otros_impuestos, 0)) AS total,
         COALESCE(SUM(pc.monto), 0) AS pagado,
@@ -405,6 +508,7 @@ async function listarDocumentosPendientes(req, res) {
           h.folio,
           h.rut_prestador AS rut_tercero,
           h.nombre_prestador AS nombre_tercero,
+          CONCAT_WS(' ', 'Honorario', NULLIF(h.nombre_prestador, '')) AS glosa_original,
           h.liquido AS total,
           COALESCE(SUM(pc.monto), 0) AS pagado,
           h.liquido - COALESCE(SUM(pc.monto), 0) AS saldo
@@ -462,11 +566,18 @@ async function listarPagosCobros(req, res) {
       `
       SELECT
         pc.*,
+        comp.numero AS comprobante_numero,
+        comp.tipo AS comprobante_tipo,
+        comp.fecha AS comprobante_fecha,
+        comp.glosa AS comprobante_glosa,
+        comp.estado AS comprobante_estado,
         cb.codigo AS banco_codigo,
         cb.nombre AS banco_nombre,
         cc.codigo AS contraparte_codigo,
         cc.nombre AS contraparte_nombre
       FROM pagos_cobros pc
+      LEFT JOIN comprobantes comp
+        ON comp.id = pc.comprobante_id
       LEFT JOIN plan_cuentas cb
         ON cb.id = pc.cuenta_banco_id
       LEFT JOIN plan_cuentas cc
@@ -629,11 +740,10 @@ async function registrarPagoCobro(req, res) {
           doc.rut_tercero
         );
         const nombreTercero = normalizarNombreTercero(doc.nombre_tercero);
-        const glosaMovimiento =
-          glosa ||
-          `${tipoMovimientoMasivo} ${doc.tipo_documento} folio ${
-            doc.folio || ""
-          } ${nombreTercero || ""}`.trim();
+        const glosaMovimiento = glosaDocumentoMovimiento(
+          tipoMovimientoMasivo,
+          doc
+        );
 
         const movimientoResult = await client.query(
           `
@@ -697,9 +807,10 @@ async function registrarPagoCobro(req, res) {
 
       if (contabilizarAutomatico) {
         if (modoComprobante === "unico") {
-          const glosaComprobanteUnico =
-            glosa ||
-            `${tipoMovimientoMasivo} masivo (${movimientosCreados.length} documentos)`;
+          const glosaComprobanteUnico = glosaMasiva(
+            tipoMovimientoMasivo,
+            movimientosCreados
+          );
 
           comprobanteUnico = await crearComprobantePagoCobro(client, {
             empresa_id,
@@ -721,6 +832,12 @@ async function registrarPagoCobro(req, res) {
               movimientosCreados.length === 1
                 ? movimientosCreados[0].folio
                 : "",
+            documentos_detalle: movimientosCreados.map((movimiento) => ({
+              monto: movimiento.monto,
+              glosa: movimiento.glosa,
+              folio: movimiento.folio,
+              rut_tercero: movimiento.rut_tercero,
+            })),
           });
 
           await client.query(
@@ -736,11 +853,7 @@ async function registrarPagoCobro(req, res) {
           comprobantesCreados = 1;
         } else {
           for (const movimiento of movimientosCreados) {
-            const glosaComprobante =
-              movimiento.glosa ||
-              `${tipoMovimientoMasivo} ${movimiento.tipo_documento} folio ${
-                movimiento.folio || ""
-              } ${movimiento.nombre_tercero || ""}`.trim();
+            const glosaComprobante = movimiento.glosa;
 
             const comprobante = await crearComprobantePagoCobro(client, {
               empresa_id,
@@ -818,9 +931,34 @@ async function registrarPagoCobro(req, res) {
       });
     }
 
+    const operacionDocumento =
+      tipo_operacion || tipoOperacionDesdeDocumento(tipo_movimiento, tipo_documento);
+    let documentoOrigen = null;
+
+    if (documento_id && operacionDocumento) {
+      const documentosOrigen = await obtenerDocumentosPendientesPorOperacion(
+        client,
+        empresa_id,
+        operacionDocumento,
+        [documento_id]
+      );
+      documentoOrigen = documentosOrigen[0] || null;
+    }
+
     const periodo = obtenerPeriodo(fecha);
-    const rutTerceroNormalizado = normalizarRutDocumentoOpcional(rut_tercero);
-    const nombreTercero = normalizarNombreTercero(nombre_tercero);
+    const rutTerceroNormalizado = normalizarRutDocumentoOpcional(
+      rut_tercero || documentoOrigen?.rut_tercero
+    );
+    const nombreTercero = normalizarNombreTercero(
+      nombre_tercero || documentoOrigen?.nombre_tercero
+    );
+    const folioMovimiento = texto(folio || documentoOrigen?.folio);
+    const glosaMovimiento = documentoOrigen
+      ? glosaDocumentoMovimiento(tipo_movimiento, documentoOrigen)
+      : texto(glosa) ||
+        `${tipo_movimiento} ${tipo_documento || ""} folio ${
+          folioMovimiento || ""
+        } ${nombreTercero || ""}`.trim();
 
     await client.query("BEGIN");
 
@@ -857,8 +995,8 @@ async function registrarPagoCobro(req, res) {
         periodo,
         rutTerceroNormalizado,
         nombreTercero,
-        folio || "",
-        glosa || "",
+        folioMovimiento,
+        glosaMovimiento,
         montoNum,
         cuentaBancoId,
         cuentaContraparteId,
@@ -869,11 +1007,7 @@ async function registrarPagoCobro(req, res) {
     let comprobante = null;
 
     if (contabilizarAutomatico) {
-      const glosaComprobante =
-        glosa ||
-        `${tipo_movimiento} ${tipo_documento || ""} folio ${
-          folio || ""
-        } ${nombreTercero || ""}`.trim();
+      const glosaComprobante = glosaMovimiento;
 
       comprobante = await crearComprobantePagoCobro(client, {
         empresa_id,
@@ -885,7 +1019,7 @@ async function registrarPagoCobro(req, res) {
         cuenta_contraparte_id: cuentaContraparteId,
         rut_tercero: rutTerceroNormalizado,
         nombre_tercero: nombreTercero,
-        folio,
+        folio: folioMovimiento,
       });
 
       await client.query(
@@ -905,7 +1039,7 @@ async function registrarPagoCobro(req, res) {
       empresaId: Number(empresa_id),
       modulo: "Pagos y Cobros",
       accion: "Cobro/Pago",
-      detalle: `${tipo_movimiento} ${tipo_documento || ""} folio ${folio || ""}`.trim(),
+      detalle: glosaMovimiento,
       tablaAfectada: "pagos_cobros",
       registroId: Number(movimiento.id),
       datos: {

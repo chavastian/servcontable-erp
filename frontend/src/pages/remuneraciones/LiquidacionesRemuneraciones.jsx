@@ -885,7 +885,11 @@ export default function LiquidacionesRemuneraciones() {
                       <span style={badgePendiente}>No</span>
                     )}
                   </td>
-                  <td style={td}>{item.comprobante_id || "-"}</td>
+                  <td style={td}>
+                    {item.comprobante_id
+                      ? item.comprobante_numero || item.comprobante_id
+                      : "-"}
+                  </td>
                   <td style={td}>
                     <div style={accionesFila}>
                       <button
