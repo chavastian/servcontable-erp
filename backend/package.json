@@ -12,7 +12,10 @@
     "migrate:create": "node-pg-migrate --config-file .migraterc.json create --migration-file-language js",
     "migrate:status": "node-pg-migrate --config-file .migraterc.json --dry-run up",
     "schema:dump": "node scripts/dump-schema.js",
-    "migrate:deploy": "node-pg-migrate --config-file .migraterc.json up --no-lock"
+    "migrate:deploy": "node-pg-migrate --config-file .migraterc.json up --no-lock",
+    "smoke": "node scripts/smoke-carga.js",
+    "smoke:api": "node scripts/smoke-api.js",
+    "respaldo": "node scripts/respaldo.js"
   },
   "keywords": [],
   "author": "",
