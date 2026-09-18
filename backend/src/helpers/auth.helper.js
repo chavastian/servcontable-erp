@@ -34,54 +34,6 @@ function esEmpresaDemoSistemaCondicion(alias = "e") {
   )`;
 }
 
-async function asegurarEsquemaAuth(client) {
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS usuarios_empresas (
-      id SERIAL PRIMARY KEY,
-      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-      empresa_id INTEGER NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-      rol_empresa VARCHAR(50) NOT NULL DEFAULT 'usuario',
-      activo BOOLEAN NOT NULL DEFAULT true,
-      creado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-      actualizado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-      UNIQUE (usuario_id, empresa_id)
-    )
-  `);
-
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_usuarios_empresas_usuario
-    ON usuarios_empresas (usuario_id)
-  `);
-
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_usuarios_empresas_empresa
-    ON usuarios_empresas (empresa_id)
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS password_reset_tokens (
-      id SERIAL PRIMARY KEY,
-      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-      token_hash VARCHAR(128) NOT NULL UNIQUE,
-      vence_en TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-      usado_en TIMESTAMP WITHOUT TIME ZONE,
-      solicitado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-      ip_solicitud VARCHAR(120),
-      user_agent TEXT
-    )
-  `);
-
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_usuario
-    ON password_reset_tokens (usuario_id)
-  `);
-
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_vigencia
-    ON password_reset_tokens (token_hash, vence_en, usado_en)
-  `);
-}
-
 async function asegurarAdministradorInicial(client) {
   const email = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD || "";
@@ -213,7 +165,6 @@ async function inicializarAuth(pool) {
   const client = await pool.connect();
 
   try {
-    await asegurarEsquemaAuth(client);
     await asegurarAdministradorInicial(client);
   } finally {
     client.release();
@@ -225,7 +176,6 @@ module.exports = {
   esAdminSistema,
   esAdminCliente,
   puedeAdministrarUsuarios,
-  asegurarEsquemaAuth,
   inicializarAuth,
   obtenerEmpresasPermitidas,
   usuarioPuedeAccederEmpresa,

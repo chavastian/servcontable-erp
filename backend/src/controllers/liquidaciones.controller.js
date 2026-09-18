@@ -141,47 +141,6 @@ function calcularHorasExtras({
   };
 }
 
-async function asegurarColumnaRecurrenteHaberes(client) {
-  await client.query(`
-    ALTER TABLE haberes_descuentos_remuneraciones
-    ADD COLUMN IF NOT EXISTS recurrente BOOLEAN DEFAULT false
-  `);
-}
-
-async function asegurarColumnasContabilizacionRemuneraciones(client) {
-  await client.query(`
-    ALTER TABLE configuracion_remuneraciones
-    ADD COLUMN IF NOT EXISTS cuenta_sis_empleador_id INTEGER,
-    ADD COLUMN IF NOT EXISTS cuenta_afc_empleador_id INTEGER,
-    ADD COLUMN IF NOT EXISTS cuenta_mutual_empleador_id INTEGER,
-    ADD COLUMN IF NOT EXISTS cuenta_otros_descuentos_id INTEGER
-  `);
-
-  await client.query(`
-    ALTER TABLE comprobante_detalle
-    ADD COLUMN IF NOT EXISTS rut_auxiliar VARCHAR(30) DEFAULT ''
-  `);
-
-  await asegurarColumnasLiquidacionSeguroSocial(client);
-}
-
-async function asegurarColumnasLiquidacionSeguroSocial(db) {
-  await db.query(`
-    ALTER TABLE liquidaciones
-    ADD COLUMN IF NOT EXISTS tasa_seguro_social NUMERIC(12,4) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS aporte_seguro_social_empleador NUMERIC(14,2) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS tipo_calculo_horas_extras VARCHAR(30) DEFAULT 'MENSUAL',
-    ADD COLUMN IF NOT EXISTS horas_extras NUMERIC(12,2) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS base_horas_extras NUMERIC(14,2) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS jornada_horas_semanal NUMERIC(8,2) DEFAULT 42,
-    ADD COLUMN IF NOT EXISTS aplica_semana_corrida_horas_extras BOOLEAN DEFAULT false,
-    ADD COLUMN IF NOT EXISTS semana_corrida_horas_extras NUMERIC(14,2) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS recargo_horas_extras NUMERIC(8,4) DEFAULT 50,
-    ADD COLUMN IF NOT EXISTS valor_hora_extra NUMERIC(14,2) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS monto_horas_extras NUMERIC(14,2) DEFAULT 0
-  `);
-}
-
 async function obtenerConfiguracion(client, empresaId, periodo) {
   const resultado = await client.query(
     `
@@ -333,7 +292,6 @@ async function calcularLiquidacionBase(req, res) {
       });
     }
 
-    await asegurarColumnaRecurrenteHaberes(client);
 
     const variablesDetalleResult = await client.query(
       `
@@ -710,7 +668,6 @@ async function guardarLiquidacion(req, res) {
       });
     }
 
-    await asegurarColumnasLiquidacionSeguroSocial(pool);
 
     const resultado = await pool.query(
       `
@@ -962,7 +919,6 @@ async function actualizarLiquidacion(req, res) {
       });
     }
 
-    await asegurarColumnasLiquidacionSeguroSocial(pool);
 
     const resultado = await pool.query(
       `
@@ -1194,7 +1150,6 @@ async function listarLiquidaciones(req, res) {
       });
     }
 
-    await asegurarColumnasLiquidacionSeguroSocial(pool);
 
     let query = `
       SELECT
@@ -1294,7 +1249,6 @@ async function contabilizarLiquidaciones(req, res) {
 
     await client.query("BEGIN");
 
-    await asegurarColumnasContabilizacionRemuneraciones(client);
 
     const configResult = await client.query(
       `

@@ -1,7 +1,6 @@
-﻿const pool = require("../database/db");
+const pool = require("../database/db");
 const crypto = require("crypto");
 const {
-  asegurarEsquemaSuscripcion,
   NOMBRE_SERVICIO_UNICO,
   calcularMontoSuscripcion,
   extenderSuscripcionUsuario,
@@ -165,50 +164,6 @@ async function llamarFlow(path, params, metodo = "POST") {
   return data;
 }
 
-async function asegurarTablaContrataciones() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS contrataciones_web (
-      id SERIAL PRIMARY KEY,
-      nombre VARCHAR(180) NOT NULL,
-      correo VARCHAR(220) NOT NULL,
-      telefono VARCHAR(80),
-      rut VARCHAR(40),
-      empresa VARCHAR(220),
-      periodicidad VARCHAR(30) NOT NULL DEFAULT 'mensual',
-      monto_neto INTEGER NOT NULL DEFAULT 0,
-      iva INTEGER NOT NULL DEFAULT 0,
-      total INTEGER NOT NULL DEFAULT 0,
-      estado VARCHAR(60) NOT NULL DEFAULT 'pendiente',
-      origen VARCHAR(80) DEFAULT 'web',
-      creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await pool.query(`
-    ALTER TABLE contrataciones_web
-    ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
-  `);
-
-  await pool.query(`
-    ALTER TABLE contrataciones_web
-    ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
-    ADD COLUMN IF NOT EXISTS rut VARCHAR(40),
-    ADD COLUMN IF NOT EXISTS empresa VARCHAR(220),
-    ADD COLUMN IF NOT EXISTS periodicidad VARCHAR(30) NOT NULL DEFAULT 'mensual',
-    ADD COLUMN IF NOT EXISTS monto_neto INTEGER NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS iva INTEGER NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS total INTEGER NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS estado VARCHAR(60) NOT NULL DEFAULT 'pendiente',
-    ADD COLUMN IF NOT EXISTS flow_token VARCHAR(220),
-    ADD COLUMN IF NOT EXISTS flow_order VARCHAR(120),
-    ADD COLUMN IF NOT EXISTS flow_status VARCHAR(80),
-    ADD COLUMN IF NOT EXISTS origen VARCHAR(80) DEFAULT 'web',
-    ADD COLUMN IF NOT EXISTS creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-  `);
-}
-
 function mapearEstadoFlow(status) {
   const estado = String(status || "");
   if (estado === "2") return "activo";
@@ -236,7 +191,6 @@ async function registrarPagoFlow({
   mensaje = "",
   metadataExtra = {},
 }) {
-  await asegurarTablaContrataciones();
 
   const totales = await calcularTotales(periodicidad, usuariosAdicionales, meses);
 
@@ -367,7 +321,6 @@ async function registrarPagoFlow({
 
 async function crearPagoContratacion(req, res) {
   try {
-    await asegurarTablaContrataciones();
 
     const nombre = limpiarTexto(req.body.nombre);
     const correo = limpiarTexto(req.body.correo || req.body.email).toLowerCase();
@@ -450,8 +403,6 @@ async function crearPagoContratacion(req, res) {
 
 async function crearRenovacionSuscripcionFlow(req, res) {
   try {
-    await asegurarTablaContrataciones();
-    await asegurarEsquemaSuscripcion(pool);
 
     const usuarioId = req.usuario?.id;
 
@@ -553,7 +504,6 @@ async function activarSuscripcionSiCorresponde(contratacion, estadoFlow) {
     return null;
   }
 
-  await asegurarEsquemaSuscripcion(pool);
 
   const meses = normalizarEnteroPositivo(metadata.meses_cobrados) || 1;
   const usuariosAdicionales = normalizarEnteroPositivo(metadata.usuarios_adicionales);
@@ -642,7 +592,6 @@ async function actualizarContratacionConEstadoFlow(token, estadoFlow) {
 
 async function obtenerContratacion(req, res) {
   try {
-    await asegurarTablaContrataciones();
 
     const resultado = await pool.query(
       `
@@ -691,7 +640,6 @@ function obtenerResumenPagoFlow(metadata = {}) {
 
 async function listarContratacionesWeb(req, res) {
   try {
-    await asegurarTablaContrataciones();
 
     const resultado = await pool.query(`
       SELECT
@@ -741,7 +689,6 @@ async function listarContratacionesWeb(req, res) {
 
 async function actualizarGestionContratacion(req, res) {
   try {
-    await asegurarTablaContrataciones();
 
     const estadoGestion = limpiarTexto(req.body?.estado_gestion || "contactado");
 
@@ -783,7 +730,6 @@ async function actualizarGestionContratacion(req, res) {
 
 async function recibirWebhookFlow(req, res) {
   try {
-    await asegurarTablaContrataciones();
 
     const token = limpiarTexto(req.body?.token || req.query?.token);
 
@@ -805,7 +751,6 @@ async function procesarRetornoFlow(req, res) {
   const frontendBase = obtenerBaseFrontend();
 
   try {
-    await asegurarTablaContrataciones();
 
     const token = limpiarTexto(req.body?.token || req.query?.token);
 

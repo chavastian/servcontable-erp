@@ -1,12 +1,5 @@
 const pool = require("../database/db");
 
-async function asegurarColumnaOtrosImpuestosConfig() {
-  await pool.query(`
-    ALTER TABLE configuracion_contable
-    ADD COLUMN IF NOT EXISTS cuenta_otros_impuestos_id INTEGER
-  `);
-}
-
 async function obtenerConfiguracionContable(req, res) {
   try {
     const { empresa_id } = req.query;
@@ -17,7 +10,6 @@ async function obtenerConfiguracionContable(req, res) {
       });
     }
 
-    await asegurarColumnaOtrosImpuestosConfig();
 
     const resultado = await pool.query(
       `
@@ -73,7 +65,6 @@ async function guardarConfiguracionContable(req, res) {
       });
     }
 
-    await asegurarColumnaOtrosImpuestosConfig();
 
     const existe = await pool.query(
       `

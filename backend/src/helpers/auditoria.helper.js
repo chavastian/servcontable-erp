@@ -1,23 +1,5 @@
 const pool = require("../database/db");
 
-async function asegurarTablaAuditoria(client) {
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS auditoria_movimientos (
-      id SERIAL PRIMARY KEY,
-      empresa_id INTEGER,
-      usuario_id INTEGER,
-      usuario_email TEXT,
-      modulo VARCHAR(120) NOT NULL,
-      accion VARCHAR(120) NOT NULL,
-      detalle TEXT NOT NULL DEFAULT '',
-      tabla_afectada VARCHAR(120),
-      registro_id INTEGER,
-      datos JSONB NOT NULL DEFAULT '{}'::jsonb,
-      creado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-}
-
 async function registrarAuditoria({
   client = null,
   req = null,
@@ -33,7 +15,6 @@ async function registrarAuditoria({
   const requiereRelease = !client;
 
   try {
-    await asegurarTablaAuditoria(queryClient);
 
     const usuarioId = Number(req?.usuario?.id || 0) || null;
     const usuarioEmail = req?.usuario?.email || "";
@@ -66,6 +47,5 @@ async function registrarAuditoria({
 }
 
 module.exports = {
-  asegurarTablaAuditoria,
   registrarAuditoria,
 };

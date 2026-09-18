@@ -8,7 +8,6 @@ const {
   calcularMontoSuscripcion,
   calcularEstadoVigente,
   fechaISO,
-  inicializarSuscripciones,
   normalizarEstadoSuscripcion,
   obtenerConfiguracionSuscripcion,
   registrarAuditoriaAdmin,
@@ -40,10 +39,6 @@ function normalizarCiclo(valor = "") {
   const texto = limpiarTexto(valor).toLowerCase();
   if (["annual", "anual"].includes(texto)) return "annual";
   return "monthly";
-}
-
-async function asegurarListo() {
-  await inicializarSuscripciones(pool);
 }
 
 function filtrosClientes(query = {}) {
@@ -205,7 +200,6 @@ function serializarCliente(fila, config) {
 
 async function obtenerDashboard(req, res) {
   try {
-    await asegurarListo();
     const config = await obtenerConfiguracionSuscripcion(pool);
 
     const clientesResult = await pool.query(
@@ -309,7 +303,6 @@ async function obtenerDashboard(req, res) {
 
 async function listarClientes(req, res) {
   try {
-    await asegurarListo();
     const config = await obtenerConfiguracionSuscripcion(pool);
     const { where, valores } = filtrosClientes(req.query);
     const sort = ordenarClientes(req.query.sort);
@@ -332,7 +325,6 @@ async function listarClientes(req, res) {
 
 async function obtenerCliente(req, res) {
   try {
-    await asegurarListo();
     const config = await obtenerConfiguracionSuscripcion(pool);
     const clienteId = numeroEntero(req.params.id);
     const clienteResult = await pool.query(
@@ -383,7 +375,6 @@ async function obtenerCliente(req, res) {
 
 async function listarPlanes(req, res) {
   try {
-    await asegurarListo();
     const resultado = await pool.query("SELECT * FROM subscription_plans WHERE code = $1 ORDER BY id ASC", [
       CODIGO_PLAN_UNICO,
     ]);
@@ -432,7 +423,6 @@ async function ejecutarAccionCliente(req, res) {
   const client = await pool.connect();
 
   try {
-    await inicializarSuscripciones(pool);
     const usuarioId = numeroEntero(req.params.id);
     const accion = limpiarTexto(req.body.accion).toUpperCase();
     const observacion = limpiarTexto(req.body.observacion);
@@ -572,7 +562,6 @@ async function registrarPagoManual(req, res) {
   const client = await pool.connect();
 
   try {
-    await inicializarSuscripciones(pool);
     const usuarioId = numeroEntero(req.params.id);
     await client.query("BEGIN");
     const suscripcion = await asegurarSuscripcionCliente(client, usuarioId);
@@ -710,7 +699,6 @@ async function registrarPagoManual(req, res) {
 
 async function obtenerConfiguracion(req, res) {
   try {
-    await asegurarListo();
     const resultado = await pool.query("SELECT key, value, description FROM subscription_settings ORDER BY key ASC");
     return res.json({ ok: true, configuracion: resultado.rows });
   } catch (error) {
@@ -723,7 +711,6 @@ async function guardarConfiguracion(req, res) {
   const client = await pool.connect();
 
   try {
-    await inicializarSuscripciones(pool);
     const items = Array.isArray(req.body.configuracion) ? req.body.configuracion : [];
     await client.query("BEGIN");
 
@@ -761,7 +748,6 @@ async function guardarConfiguracion(req, res) {
 
 async function listarAuditoriaAdmin(req, res) {
   try {
-    await asegurarListo();
     const resultado = await pool.query(
       "SELECT * FROM admin_audit_logs ORDER BY created_at DESC LIMIT 300"
     );
@@ -774,7 +760,6 @@ async function listarAuditoriaAdmin(req, res) {
 
 async function listarNotificaciones(req, res) {
   try {
-    await asegurarListo();
     const resultado = await pool.query(
       "SELECT * FROM subscription_notifications ORDER BY scheduled_at ASC NULLS LAST, created_at DESC LIMIT 300"
     );
@@ -790,28 +775,16 @@ async function tablaExiste(nombreTabla) {
   return Boolean(resultado.rows[0]?.tabla);
 }
 
-async function asegurarEsquemaSolicitudesWeb() {
-  const existeContacto = await tablaExiste("solicitudes_contacto");
+// Las tablas de solicitudes web se crean en database/migrations/. Acá solo se
+// consulta si existen, para que el panel no falle en una instalación donde
+// todavía no se aplicaron las migraciones.
+async function tablasSolicitudesWebDisponibles() {
+  const [contacto, contrataciones] = await Promise.all([
+    tablaExiste("solicitudes_contacto"),
+    tablaExiste("contrataciones_web"),
+  ]);
 
-  if (existeContacto) {
-    await pool.query(`
-      ALTER TABLE solicitudes_contacto
-        ADD COLUMN IF NOT EXISTS rut VARCHAR(30),
-        ADD COLUMN IF NOT EXISTS rut_normalizado VARCHAR(20),
-        ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
-        ADD COLUMN IF NOT EXISTS usuario_id INTEGER,
-        ADD COLUMN IF NOT EXISTS empresa_id INTEGER,
-        ADD COLUMN IF NOT EXISTS subscription_id INTEGER,
-        ADD COLUMN IF NOT EXISTS trial_inicio DATE,
-        ADD COLUMN IF NOT EXISTS trial_vence DATE,
-        ADD COLUMN IF NOT EXISTS archivado BOOLEAN DEFAULT false
-    `);
-  }
-
-  return {
-    contacto: existeContacto,
-    contrataciones: await tablaExiste("contrataciones_web"),
-  };
+  return { contacto, contrataciones };
 }
 
 function diasEntreHoy(fecha) {
@@ -930,10 +903,9 @@ function calcularResumenSolicitudes(solicitudes) {
 
 async function listarSolicitudesWeb(req, res) {
   try {
-    await asegurarListo();
 
     const { contacto: existeContacto, contrataciones: existeContrataciones } =
-      await asegurarEsquemaSolicitudesWeb();
+      await tablasSolicitudesWebDisponibles();
 
     const [contactosResult, contratacionesResult] = await Promise.all([
       existeContacto
@@ -1117,8 +1089,6 @@ async function obtenerDetalleSolicitudWeb(req, res) {
   const client = await pool.connect();
 
   try {
-    await asegurarListo();
-    await asegurarEsquemaSolicitudesWeb();
 
     const solicitud = await obtenerSolicitudWebBase(client, req.params.tipo, req.params.id);
     if (!solicitud) {
@@ -1171,8 +1141,6 @@ async function ejecutarAccionSolicitudWeb(req, res) {
   const client = await pool.connect();
 
   try {
-    await asegurarListo();
-    await asegurarEsquemaSolicitudesWeb();
 
     const accion = limpiarTexto(req.body.accion).toUpperCase();
     const motivo = limpiarTexto(req.body.motivo || req.body.observacion);

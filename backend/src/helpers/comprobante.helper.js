@@ -1,34 +1,11 @@
-﻿const pool = require("../database/db");
+const pool = require("../database/db");
 
 const {
   normalizarRutDocumentoOpcional,
 } = require("./trazabilidadRut.helper");
 
-let columnasDetalleComprobanteAseguradas = false;
-
 function texto(valor = "") {
   return String(valor || "").trim();
-}
-
-async function asegurarColumnasDetalleComprobante(client) {
-  if (columnasDetalleComprobanteAseguradas) return;
-
-  await client.query(`
-    ALTER TABLE comprobante_detalle
-    ADD COLUMN IF NOT EXISTS folio VARCHAR(100) DEFAULT ''
-  `);
-
-  await client.query(`
-    ALTER TABLE comprobante_detalle
-    ADD COLUMN IF NOT EXISTS centro_costo VARCHAR(100) DEFAULT ''
-  `);
-
-  await client.query(`
-    ALTER TABLE comprobante_detalle
-    ADD COLUMN IF NOT EXISTS rut_auxiliar VARCHAR(30) DEFAULT ''
-  `);
-
-  columnasDetalleComprobanteAseguradas = true;
 }
 
 async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo = "") {
@@ -248,7 +225,6 @@ function construirAsientoCompra(compra, configuracion = {}) {
 }
 
 async function insertarDetallesComprobante(client, comprobanteId, detalles = []) {
-  await asegurarColumnasDetalleComprobante(client);
 
   for (const detalle of detalles) {
     if (Number(detalle.debe || 0) === 0 && Number(detalle.haber || 0) === 0) {
@@ -360,7 +336,6 @@ async function actualizarComprobanteAutomaticoCompra(
 
 module.exports = {
   obtenerSiguienteNumeroComprobante,
-  asegurarColumnasDetalleComprobante,
   insertarDetallesComprobante,
   crearComprobanteAutomaticoVenta,
   crearComprobanteAutomaticoCompra,

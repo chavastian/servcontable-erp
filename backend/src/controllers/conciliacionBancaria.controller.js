@@ -1,4 +1,4 @@
-﻿const { parse } = require("csv-parse/sync");
+const { parse } = require("csv-parse/sync");
 const pool = require("../database/db");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 
@@ -91,32 +91,6 @@ function parsearArchivo(file) {
   });
 }
 
-async function asegurarTabla(client = pool) {
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS conciliacion_bancaria_movimientos (
-      id SERIAL PRIMARY KEY,
-      empresa_id INTEGER NOT NULL,
-      periodo VARCHAR(7) NOT NULL,
-      fecha DATE NOT NULL,
-      descripcion TEXT NOT NULL DEFAULT '',
-      documento TEXT NOT NULL DEFAULT '',
-      cargo NUMERIC(14,2) NOT NULL DEFAULT 0,
-      abono NUMERIC(14,2) NOT NULL DEFAULT 0,
-      monto NUMERIC(14,2) NOT NULL DEFAULT 0,
-      saldo NUMERIC(14,2) NOT NULL DEFAULT 0,
-      estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
-      comprobante_id INTEGER,
-      creado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-      actualizado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_conciliacion_empresa_fecha
-    ON conciliacion_bancaria_movimientos (empresa_id, fecha)
-  `);
-}
-
 async function listarMovimientos(req, res) {
   try {
     const { empresa_id, fecha_desde, fecha_hasta } = req.query;
@@ -125,7 +99,6 @@ async function listarMovimientos(req, res) {
       return res.status(400).json({ error: "Debe indicar empresa_id" });
     }
 
-    await asegurarTabla();
 
     const params = [empresa_id];
     const condiciones = ["empresa_id = $1"];
@@ -194,7 +167,6 @@ async function importarCartola(req, res) {
     };
 
     await client.query("BEGIN");
-    await asegurarTabla(client);
 
     for (let index = 0; index < filas.length; index += 1) {
       const fila = filas[index];
@@ -327,7 +299,6 @@ async function actualizarEstado(req, res) {
       return res.status(400).json({ error: "Estado no valido" });
     }
 
-    await asegurarTabla();
 
     const resultado = await pool.query(
       `

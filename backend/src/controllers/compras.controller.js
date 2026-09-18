@@ -1,4 +1,4 @@
-﻿const pool = require("../database/db");
+const pool = require("../database/db");
 
 const {
   crearComprobanteAutomaticoCompra,
@@ -76,18 +76,6 @@ async function obtenerCuentaGastoFallback(client, empresaId) {
   if (cuentaActivo) return cuentaActivo;
 
   return null;
-}
-
-async function asegurarColumnasCompraExtras(client) {
-  await client.query(`
-    ALTER TABLE compras
-    ADD COLUMN IF NOT EXISTS otros_impuestos NUMERIC DEFAULT 0
-  `);
-
-  await client.query(`
-    ALTER TABLE compras
-    ADD COLUMN IF NOT EXISTS cuenta_otros_impuestos_id INTEGER
-  `);
 }
 
 function convertirCuentaId(valor) {
@@ -171,7 +159,6 @@ async function crearCompra(req, res) {
     );
     const razonSocialProveedor = normalizarNombreTercero(razon_social_proveedor);
 
-    await asegurarColumnasCompraExtras(client);
 
     await client.query("BEGIN");
 
@@ -409,7 +396,6 @@ async function importarComprasSII(req, res) {
       trim: true,
     });
 
-    await asegurarColumnasCompraExtras(client);
 
     const configResult = await client.query(
       `SELECT *

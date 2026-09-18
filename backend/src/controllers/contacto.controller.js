@@ -3,7 +3,6 @@ const jwt = require("jsonwebtoken");
 const pool = require("../database/db");
 const { obtenerJwtSecret } = require("../config/env");
 const { enviarCorreoSolicitudContacto } = require("../helpers/mail.helper");
-const { asegurarEsquemaAuth } = require("../helpers/auth.helper");
 const {
   ACCIONES_SUSCRIPCION,
   ESTADOS_SUSCRIPCION,
@@ -12,45 +11,6 @@ const {
   registrarHistoriaSuscripcion,
   sumarDias,
 } = require("../helpers/suscripcion.helper");
-
-async function asegurarTablaContacto() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS solicitudes_contacto (
-      id SERIAL PRIMARY KEY,
-      nombre VARCHAR(150) NOT NULL,
-      correo VARCHAR(200) NOT NULL,
-      empresa VARCHAR(200),
-      interes VARCHAR(150),
-      mensaje TEXT,
-      estado VARCHAR(50) DEFAULT 'pendiente',
-      origen VARCHAR(100) DEFAULT 'web',
-      creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await pool.query(`
-    ALTER TABLE solicitudes_contacto
-    ADD COLUMN IF NOT EXISTS leido BOOLEAN DEFAULT false,
-    ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS nota_interna TEXT,
-    ADD COLUMN IF NOT EXISTS rut VARCHAR(30),
-    ADD COLUMN IF NOT EXISTS rut_normalizado VARCHAR(20),
-    ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
-    ADD COLUMN IF NOT EXISTS usuario_id INTEGER,
-    ADD COLUMN IF NOT EXISTS empresa_id INTEGER,
-    ADD COLUMN IF NOT EXISTS subscription_id INTEGER,
-    ADD COLUMN IF NOT EXISTS trial_inicio DATE,
-    ADD COLUMN IF NOT EXISTS trial_vence DATE,
-    ADD COLUMN IF NOT EXISTS archivado BOOLEAN DEFAULT false,
-    ADD COLUMN IF NOT EXISTS demo_usuario_id INTEGER,
-    ADD COLUMN IF NOT EXISTS demo_inicio DATE,
-    ADD COLUMN IF NOT EXISTS demo_vence DATE,
-    ADD COLUMN IF NOT EXISTS demo_activado_en TIMESTAMP;
-  `);
-
-  await pool.query("CREATE INDEX IF NOT EXISTS idx_solicitudes_contacto_rut ON solicitudes_contacto (rut_normalizado)");
-  await pool.query("CREATE INDEX IF NOT EXISTS idx_solicitudes_contacto_usuario ON solicitudes_contacto (usuario_id)");
-}
 
 function limpiarTexto(valor) {
   if (valor === undefined || valor === null) return "";
@@ -71,39 +31,6 @@ function validarPasswordCliente(password, confirmacion) {
   }
 
   return "";
-}
-
-async function asegurarColumnasTrialAutoservicio(client) {
-  await asegurarEsquemaAuth(client);
-  await client.query(`
-    ALTER TABLE usuarios
-      ADD COLUMN IF NOT EXISTS rut VARCHAR(30),
-      ADD COLUMN IF NOT EXISTS rut_normalizado VARCHAR(20),
-      ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
-      ADD COLUMN IF NOT EXISTS demo_activo BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS demo_inicio DATE,
-      ADD COLUMN IF NOT EXISTS demo_vence DATE,
-      ADD COLUMN IF NOT EXISTS demo_empresa_limite INTEGER DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS demo_origen VARCHAR(80),
-      ADD COLUMN IF NOT EXISTS demo_solicitud_id INTEGER,
-      ADD COLUMN IF NOT EXISTS suscripcion_estado VARCHAR(50) DEFAULT 'activa',
-      ADD COLUMN IF NOT EXISTS suscripcion_plan VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS suscripcion_inicio DATE,
-      ADD COLUMN IF NOT EXISTS suscripcion_vence DATE,
-      ADD COLUMN IF NOT EXISTS suscripcion_usuarios_adicionales INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS suscripcion_actualizada_en TIMESTAMP WITHOUT TIME ZONE,
-      ADD COLUMN IF NOT EXISTS ultimo_acceso_en TIMESTAMP WITHOUT TIME ZONE
-  `);
-  await client.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_rut_normalizado_unico
-    ON usuarios (rut_normalizado)
-    WHERE rut_normalizado IS NOT NULL AND rut_normalizado <> ''
-  `);
-  await client.query(`
-    ALTER TABLE empresas
-      ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
-      ADD COLUMN IF NOT EXISTS correo VARCHAR(180)
-  `);
 }
 
 function construirSesionTrial(usuario, empresas, suscripcion) {
@@ -155,8 +82,6 @@ function construirSesionTrial(usuario, empresas, suscripcion) {
 }
 
 async function crearPruebaGratisAutoservicio(req, res) {
-  await asegurarTablaContacto();
-  await inicializarSuscripciones(pool);
 
   const client = await pool.connect();
   let transaccionIniciada = false;
@@ -183,7 +108,6 @@ async function crearPruebaGratisAutoservicio(req, res) {
       return res.status(400).json({ ok: false, error: errorPassword });
     }
 
-    await asegurarColumnasTrialAutoservicio(client);
 
     const duplicado = await client.query(
       `
@@ -349,7 +273,6 @@ async function crearPruebaGratisAutoservicio(req, res) {
 
 async function crearSolicitudContacto(req, res) {
   try {
-    await asegurarTablaContacto();
 
     const nombre = limpiarTexto(req.body.nombre);
     const correo = limpiarTexto(req.body.correo || req.body.email).toLowerCase();
@@ -409,7 +332,6 @@ async function crearSolicitudContacto(req, res) {
 
 async function listarSolicitudesContacto(req, res) {
   try {
-    await asegurarTablaContacto();
 
     const limite = Math.min(Number(req.query.limite || 300), 500);
 
@@ -455,7 +377,6 @@ async function listarSolicitudesContacto(req, res) {
 
 async function actualizarSolicitudContacto(req, res) {
   try {
-    await asegurarTablaContacto();
 
     const estado = limpiarTexto(req.body.estado || "contactado");
     const notaInterna = limpiarTexto(req.body.nota_interna || req.body.notaInterna);

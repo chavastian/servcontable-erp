@@ -1,6 +1,4 @@
-﻿const pool = require("../database/db");
-
-let columnaRecurrenteAsegurada = false;
+const pool = require("../database/db");
 
 function esPeriodoValido(periodo) {
   return /^\d{4}-\d{2}$/.test(String(periodo || ""));
@@ -43,17 +41,6 @@ function obtenerTotalesDesdeItems(items = []) {
       total_general: 0,
     }
   );
-}
-
-async function asegurarColumnaRecurrente() {
-  if (columnaRecurrenteAsegurada) return;
-
-  await pool.query(`
-    ALTER TABLE haberes_descuentos_remuneraciones
-    ADD COLUMN IF NOT EXISTS recurrente BOOLEAN DEFAULT false
-  `);
-
-  columnaRecurrenteAsegurada = true;
 }
 
 async function calcularTotalesConceptos({
@@ -118,7 +105,6 @@ async function calcularTotalesConceptos({
 
 async function crearHaberDescuento(req, res) {
   try {
-    await asegurarColumnaRecurrente();
 
     const {
       empresa_id,
@@ -204,7 +190,6 @@ async function crearHaberDescuento(req, res) {
 
 async function listarHaberesDescuentos(req, res) {
   try {
-    await asegurarColumnaRecurrente();
 
     const { empresa_id, periodo, trabajador_id, incluir_recurrentes } =
       req.query;
@@ -279,7 +264,6 @@ async function listarHaberesDescuentos(req, res) {
 
 async function obtenerResumenLiquidacion(req, res) {
   try {
-    await asegurarColumnaRecurrente();
 
     const { empresa_id, trabajador_id, periodo, incluir_recurrentes } =
       req.query;
@@ -326,7 +310,6 @@ async function obtenerResumenLiquidacion(req, res) {
 
 async function actualizarHaberDescuento(req, res) {
   try {
-    await asegurarColumnaRecurrente();
 
     const { id } = req.params;
     const {
@@ -445,7 +428,6 @@ async function actualizarHaberDescuento(req, res) {
 
 async function actualizarRecurrenteHaberDescuento(req, res) {
   try {
-    await asegurarColumnaRecurrente();
 
     const { id } = req.params;
     const { empresa_id, recurrente } = req.body;

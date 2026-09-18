@@ -168,168 +168,6 @@ function calcularMontoSuscripcion({ usuariosActivos = 1, meses = 1, config = {} 
   };
 }
 
-async function asegurarEsquemaSuscripcion(client) {
-  await client.query(`
-    ALTER TABLE usuarios
-      ADD COLUMN IF NOT EXISTS suscripcion_estado VARCHAR(50) DEFAULT 'activa',
-      ADD COLUMN IF NOT EXISTS suscripcion_plan VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS suscripcion_inicio DATE,
-      ADD COLUMN IF NOT EXISTS suscripcion_vence DATE,
-      ADD COLUMN IF NOT EXISTS suscripcion_usuarios_adicionales INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS suscripcion_actualizada_en TIMESTAMP WITHOUT TIME ZONE,
-      ADD COLUMN IF NOT EXISTS ultimo_acceso_en TIMESTAMP WITHOUT TIME ZONE,
-      ADD COLUMN IF NOT EXISTS demo_activo BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS demo_inicio DATE,
-      ADD COLUMN IF NOT EXISTS demo_vence DATE
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS subscription_plans (
-      id SERIAL PRIMARY KEY,
-      code VARCHAR(80) NOT NULL UNIQUE,
-      name VARCHAR(160) NOT NULL,
-      description TEXT,
-      monthly_price INTEGER NOT NULL DEFAULT 0,
-      annual_price INTEGER NOT NULL DEFAULT 0,
-      max_companies INTEGER,
-      max_users INTEGER,
-      features JSONB NOT NULL DEFAULT '[]'::jsonb,
-      active BOOLEAN NOT NULL DEFAULT true,
-      trial_days INTEGER NOT NULL DEFAULT 0,
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS subscriptions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-      plan_id INTEGER REFERENCES subscription_plans(id),
-      status VARCHAR(30) NOT NULL DEFAULT 'TRIAL',
-      billing_cycle VARCHAR(20) NOT NULL DEFAULT 'monthly',
-      price INTEGER NOT NULL DEFAULT 0,
-      currency VARCHAR(12) NOT NULL DEFAULT 'CLP',
-      starts_at DATE NOT NULL DEFAULT CURRENT_DATE,
-      renews_at DATE,
-      expires_at DATE,
-      trial_starts_at DATE,
-      trial_ends_at DATE,
-      auto_renew BOOLEAN NOT NULL DEFAULT false,
-      grace_days INTEGER NOT NULL DEFAULT 5,
-      max_companies_override INTEGER,
-      max_users_override INTEGER,
-      internal_notes TEXT,
-      cancelled_at TIMESTAMP WITHOUT TIME ZONE,
-      suspended_at TIMESTAMP WITHOUT TIME ZONE,
-      created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS subscription_payments (
-      id SERIAL PRIMARY KEY,
-      subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE SET NULL,
-      user_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
-      payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
-      amount INTEGER NOT NULL DEFAULT 0,
-      period_label VARCHAR(80),
-      payment_method VARCHAR(80),
-      status VARCHAR(30) NOT NULL DEFAULT 'PAID',
-      transaction_id VARCHAR(160),
-      tax_document VARCHAR(160),
-      notes TEXT,
-      provider VARCHAR(80) DEFAULT 'manual',
-      provider_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-      created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query(`
-    ALTER TABLE subscription_payments
-      ADD COLUMN IF NOT EXISTS service_name VARCHAR(160),
-      ADD COLUMN IF NOT EXISTS base_price INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS included_users INTEGER NOT NULL DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS active_users INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS additional_users INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS additional_user_price INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS additional_users_amount INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS subtotal INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS iva_rate NUMERIC(8,4) NOT NULL DEFAULT 0.19,
-      ADD COLUMN IF NOT EXISTS iva_amount INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS total_amount INTEGER NOT NULL DEFAULT 0
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS subscription_history (
-      id SERIAL PRIMARY KEY,
-      subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE CASCADE,
-      user_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
-      admin_user_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-      action VARCHAR(80) NOT NULL,
-      previous_status VARCHAR(30),
-      new_status VARCHAR(30),
-      previous_values JSONB NOT NULL DEFAULT '{}'::jsonb,
-      new_values JSONB NOT NULL DEFAULT '{}'::jsonb,
-      observation TEXT,
-      created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS admin_audit_logs (
-      id SERIAL PRIMARY KEY,
-      admin_user_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-      admin_email VARCHAR(220),
-      customer_user_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-      action VARCHAR(120) NOT NULL,
-      previous_values JSONB NOT NULL DEFAULT '{}'::jsonb,
-      new_values JSONB NOT NULL DEFAULT '{}'::jsonb,
-      ip_address VARCHAR(120),
-      observation TEXT,
-      created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS subscription_notifications (
-      id SERIAL PRIMARY KEY,
-      subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE CASCADE,
-      user_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
-      event_type VARCHAR(80) NOT NULL,
-      title VARCHAR(180) NOT NULL,
-      message TEXT NOT NULL,
-      channel VARCHAR(40) NOT NULL DEFAULT 'in_app',
-      status VARCHAR(40) NOT NULL DEFAULT 'pending',
-      scheduled_at TIMESTAMP WITHOUT TIME ZONE,
-      sent_at TIMESTAMP WITHOUT TIME ZONE,
-      read_at TIMESTAMP WITHOUT TIME ZONE,
-      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-      created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS subscription_settings (
-      key VARCHAR(100) PRIMARY KEY,
-      value TEXT NOT NULL,
-      description TEXT,
-      updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await client.query("CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions (user_id)");
-  await client.query("CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions (status)");
-  await client.query("CREATE INDEX IF NOT EXISTS idx_subscriptions_expires ON subscriptions (expires_at)");
-  await client.query("CREATE INDEX IF NOT EXISTS idx_subscription_payments_user ON subscription_payments (user_id)");
-  await client.query("CREATE INDEX IF NOT EXISTS idx_subscription_history_user ON subscription_history (user_id)");
-  await client.query("CREATE INDEX IF NOT EXISTS idx_admin_audit_customer ON admin_audit_logs (customer_user_id)");
-  await client.query("CREATE INDEX IF NOT EXISTS idx_subscription_notifications_user ON subscription_notifications (user_id)");
-  await client.query("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
-}
-
 async function asegurarDatosBaseSuscripcion(client) {
   for (const [key, value] of SETTINGS_DEFECTO) {
     await client.query(
@@ -384,7 +222,6 @@ async function inicializarSuscripciones(pool) {
   const client = await pool.connect();
 
   try {
-    await asegurarEsquemaSuscripcion(client);
     await asegurarDatosBaseSuscripcion(client);
     esquemaInicializado = true;
   } finally {
@@ -393,7 +230,6 @@ async function inicializarSuscripciones(pool) {
 }
 
 async function obtenerConfiguracionSuscripcion(client) {
-  await asegurarEsquemaSuscripcion(client);
   const resultado = await client.query("SELECT key, value FROM subscription_settings");
   const config = Object.fromEntries(SETTINGS_DEFECTO);
 
@@ -687,7 +523,6 @@ async function sincronizarEstadoVencido(client, suscripcion, estadoCalculado) {
 }
 
 async function validarAccesoSuscripcion(client, usuario) {
-  await asegurarEsquemaSuscripcion(client);
   const { esAdminSistema } = require("./auth.helper");
 
   if (!usuario?.id || esAdminSistema(usuario?.rol)) {
@@ -746,7 +581,6 @@ async function validarAccesoSuscripcion(client, usuario) {
 }
 
 async function obtenerLimitesPlanUsuario(client, usuarioId) {
-  await asegurarEsquemaSuscripcion(client);
   const config = await obtenerConfiguracionSuscripcion(client);
   let suscripcion = await obtenerSuscripcionUsuario(client, usuarioId);
 
@@ -787,7 +621,6 @@ async function extenderSuscripcionUsuario(
   usuariosAdicionales = 0,
   externalReference = ""
 ) {
-  await asegurarEsquemaSuscripcion(client);
   const usuarioResult = await client.query("SELECT * FROM usuarios WHERE id = $1 LIMIT 1", [
     usuarioId,
   ]);
@@ -861,7 +694,6 @@ module.exports = {
   CODIGO_PLAN_UNICO,
   NOMBRE_SERVICIO_UNICO,
   calcularMontoSuscripcion,
-  asegurarEsquemaSuscripcion,
   inicializarSuscripciones,
   obtenerConfiguracionSuscripcion,
   registrarHistoriaSuscripcion,

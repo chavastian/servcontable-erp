@@ -1,0 +1,7 @@
+{
+  "migrations-dir": "../database/migrations",
+  "migrations-table": "pgmigrations",
+  "schema": "public",
+  "check-order": true,
+  "verbose": true
+}

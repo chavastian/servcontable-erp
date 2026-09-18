@@ -1,5 +1,4 @@
 const pool = require("../database/db");
-const { asegurarTablaAuditoria } = require("../helpers/auditoria.helper");
 
 async function listarAuditoria(req, res) {
   const client = await pool.connect();
@@ -13,7 +12,6 @@ async function listarAuditoria(req, res) {
       });
     }
 
-    await asegurarTablaAuditoria(client);
 
     const resultado = await client.query(
       `

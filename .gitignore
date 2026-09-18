@@ -39,3 +39,11 @@ ServContable-PRO-Online/
 
 # Coverage / tests
 coverage/
+
+# Credenciales y volcados locales
+*.pem
+dburl*.txt
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.online.example

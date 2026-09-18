@@ -1,5 +1,4 @@
 const { asignarUsuarioEmpresa } = require("./auth.helper");
-const { asegurarEsquemaSuscripcion } = require("./suscripcion.helper");
 
 function diasDemo() {
   const dias = Number(process.env.DEMO_DIAS || 30);
@@ -15,40 +14,6 @@ function formatoFechaDemo(fecha) {
   const valor = fecha instanceof Date ? fecha : new Date(fecha);
   if (Number.isNaN(valor.getTime())) return String(fecha).slice(0, 10);
   return valor.toISOString().slice(0, 10);
-}
-
-async function asegurarEsquemaDemo(client) {
-  await asegurarEsquemaSuscripcion(client);
-
-  await client.query(`
-    ALTER TABLE usuarios
-    ADD COLUMN IF NOT EXISTS demo_activo BOOLEAN NOT NULL DEFAULT false;
-  `);
-
-  await client.query(`
-    ALTER TABLE usuarios
-    ADD COLUMN IF NOT EXISTS demo_inicio DATE;
-  `);
-
-  await client.query(`
-    ALTER TABLE usuarios
-    ADD COLUMN IF NOT EXISTS demo_vence DATE;
-  `);
-
-  await client.query(`
-    ALTER TABLE usuarios
-    ADD COLUMN IF NOT EXISTS demo_empresa_limite INTEGER NOT NULL DEFAULT 1;
-  `);
-
-  await client.query(`
-    ALTER TABLE usuarios
-    ADD COLUMN IF NOT EXISTS demo_solicitud_id INTEGER;
-  `);
-
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_usuarios_demo_email
-    ON usuarios (email, demo_activo, demo_vence);
-  `);
 }
 
 async function asegurarEmpresaDemo(client, usuario, solicitud = {}) {
@@ -132,7 +97,6 @@ module.exports = {
   diasDemo,
   normalizarEmailDemo,
   formatoFechaDemo,
-  asegurarEsquemaDemo,
   asegurarEmpresaDemo,
   construirDemoPublica,
 };

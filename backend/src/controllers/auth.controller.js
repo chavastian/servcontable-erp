@@ -9,7 +9,6 @@ const {
   usuarioPuedeAdministrarEmpresa,
   obtenerEmpresasPermitidas,
   asignarUsuarioEmpresa,
-  asegurarEsquemaAuth,
 } = require("../helpers/auth.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const {
@@ -104,33 +103,6 @@ function fechaISO(valor) {
   }
 
   return String(valor).slice(0, 10);
-}
-
-async function asegurarColumnasDemoAuth(conexion = pool) {
-  await asegurarEsquemaAuth(conexion);
-
-  await conexion.query(`
-    ALTER TABLE usuarios
-      ADD COLUMN IF NOT EXISTS rut VARCHAR(30),
-      ADD COLUMN IF NOT EXISTS rut_normalizado VARCHAR(20),
-      ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
-      ADD COLUMN IF NOT EXISTS demo_activo BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS demo_inicio DATE,
-      ADD COLUMN IF NOT EXISTS demo_vence DATE,
-      ADD COLUMN IF NOT EXISTS demo_empresa_limite INTEGER DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS demo_origen VARCHAR(80),
-      ADD COLUMN IF NOT EXISTS suscripcion_estado VARCHAR(50) DEFAULT 'activa',
-      ADD COLUMN IF NOT EXISTS suscripcion_plan VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS suscripcion_vence DATE,
-      ADD COLUMN IF NOT EXISTS suscripcion_usuarios_adicionales INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS ultimo_acceso_en TIMESTAMP WITHOUT TIME ZONE
-  `);
-
-  await conexion.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_rut_normalizado_unico
-    ON usuarios (rut_normalizado)
-    WHERE rut_normalizado IS NOT NULL AND rut_normalizado <> ''
-  `);
 }
 
 function limiteRecuperacionExcedido(req, email) {
@@ -322,7 +294,6 @@ async function loginUsuario(req, res) {
       ? normalizarRut(identificador).rut_normalizado
       : "";
 
-    await asegurarColumnasDemoAuth(pool);
 
     const resultado = await pool.query(
       `SELECT
@@ -414,7 +385,6 @@ async function loginUsuario(req, res) {
 
 async function obtenerSesion(req, res) {
   try {
-    await asegurarColumnasDemoAuth(pool);
 
     const resultado = await pool.query(
       `SELECT
@@ -492,7 +462,6 @@ async function obtenerSesion(req, res) {
 
 async function listarUsuarios(req, res) {
   try {
-    await asegurarColumnasDemoAuth(pool);
 
     const { empresa_id } = req.query;
     const valores = [];
@@ -587,7 +556,6 @@ async function crearUsuarioCliente(req, res) {
   let correoInvitacion = null;
 
   try {
-    await asegurarColumnasDemoAuth(client);
 
     const { nombre, email, rol, empresa_id, empresa_ids, rol_empresa, activo, rut, telefono } = req.body;
     const adminSistema = esAdminSistema(req.usuario.rol);
@@ -787,7 +755,6 @@ async function actualizarUsuarioCliente(req, res) {
   let transaccionIniciada = false;
 
   try {
-    await asegurarColumnasDemoAuth(client);
 
     const { id } = req.params;
     const { nombre, email, rol, empresa_id, empresa_ids, rol_empresa, activo, rut, telefono } = req.body;
@@ -1173,7 +1140,6 @@ async function resetearPasswordUsuario(req, res) {
 
 async function solicitarRecuperacionPasswordUsuario(req, res) {
   try {
-    await asegurarColumnasDemoAuth(pool);
 
     const usuarioId = Number(req.params?.id || 0);
 
@@ -1252,7 +1218,6 @@ async function solicitarRecuperacionPasswordUsuario(req, res) {
 
 async function solicitarRecuperacionPassword(req, res) {
   try {
-    await asegurarColumnasDemoAuth(pool);
 
     const identificador = String(req.body?.email || req.body?.rut || "").trim();
     const email = normalizarEmail(identificador);

@@ -69,46 +69,7 @@ const SALUD_FONASA_LEGAL = 7;
 const SALUD_CCAF_PREVIRED_DEFECTO = 3.1;
 const SALUD_FONASA_CCAF_PREVIRED_DEFECTO = 3.9;
 
-async function asegurarColumnasConfiguracionRemuneraciones(db) {
-  await db.query(`
-    ALTER TABLE configuracion_remuneraciones
-    ADD COLUMN IF NOT EXISTS mutual_nombre VARCHAR(120) DEFAULT '',
-    ADD COLUMN IF NOT EXISTS mutual_codigo_previred VARCHAR(2) DEFAULT '0',
-    ADD COLUMN IF NOT EXISTS mutual_sucursal_previred VARCHAR(3) DEFAULT '0',
-    ADD COLUMN IF NOT EXISTS cuenta_sis_empleador_id INTEGER,
-    ADD COLUMN IF NOT EXISTS cuenta_afc_empleador_id INTEGER,
-    ADD COLUMN IF NOT EXISTS cuenta_mutual_empleador_id INTEGER,
-    ADD COLUMN IF NOT EXISTS cuenta_otros_descuentos_id INTEGER,
-    ADD COLUMN IF NOT EXISTS indicadores_previsionales JSONB DEFAULT '{}'::jsonb
-  `);
-}
-
-async function asegurarColumnasAfpParametros(db) {
-  await db.query(`
-    ALTER TABLE afp_parametros
-    ADD COLUMN IF NOT EXISTS tasa_seguro_social NUMERIC(12,4) DEFAULT ${TASA_SEGURO_SOCIAL_DEFAULT},
-    ADD COLUMN IF NOT EXISTS tasa_empleador NUMERIC(12,4) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS tasa_total NUMERIC(12,4) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS tasa_independiente NUMERIC(12,4) DEFAULT 0
-  `);
-
-  await db.query(`
-    ALTER TABLE afp_parametros
-    ALTER COLUMN tasa_seguro_social SET DEFAULT ${TASA_SEGURO_SOCIAL_DEFAULT}
-  `);
-
-  await db.query(
-    `
-    UPDATE afp_parametros
-    SET tasa_seguro_social = $1
-    WHERE tasa_seguro_social IS NULL
-    `,
-    [TASA_SEGURO_SOCIAL_DEFAULT]
-  );
-}
-
 async function asegurarAfpsBasePrevired(db, empresaId, periodo) {
-  await asegurarColumnasAfpParametros(db);
 
   const existentes = await db.query(
     `
@@ -249,8 +210,6 @@ async function obtenerConfiguracionRemuneraciones(req, res) {
       });
     }
 
-    await asegurarColumnasConfiguracionRemuneraciones(pool);
-    await asegurarColumnasAfpParametros(pool);
 
     const configResult = await pool.query(
       `
@@ -332,7 +291,6 @@ async function guardarConfiguracionRemuneraciones(req, res) {
       });
     }
 
-    await asegurarColumnasConfiguracionRemuneraciones(pool);
 
     const resultado = await pool.query(
       `
@@ -471,7 +429,6 @@ async function guardarAFP(req, res) {
       });
     }
 
-    await asegurarColumnasAfpParametros(pool);
 
     const valores = {
       tasaAfp: numeroParametro(tasa_afp),

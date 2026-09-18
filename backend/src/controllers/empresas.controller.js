@@ -1,4 +1,4 @@
-﻿const pool = require("../database/db");
+const pool = require("../database/db");
 const {
   esAdminSistema,
   obtenerEmpresasPermitidas,
@@ -7,19 +7,6 @@ const {
 } = require("../helpers/auth.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const { validarLimiteEmpresasUsuario } = require("../helpers/suscripcion.helper");
-
-async function asegurarColumnasEmpresas(client) {
-  await client.query(`
-    ALTER TABLE empresas
-      ADD COLUMN IF NOT EXISTS telefono VARCHAR(80),
-      ADD COLUMN IF NOT EXISTS correo VARCHAR(180),
-      ADD COLUMN IF NOT EXISTS descripcion_actividad TEXT,
-      ADD COLUMN IF NOT EXISTS rut_representante VARCHAR(30),
-      ADD COLUMN IF NOT EXISTS representante_legal VARCHAR(180),
-      ADD COLUMN IF NOT EXISTS correo_representante VARCHAR(180),
-      ADD COLUMN IF NOT EXISTS telefono_representante VARCHAR(80)
-  `);
-}
 
 async function crearEmpresa(req, res) {
   const client = await pool.connect();
@@ -49,7 +36,6 @@ async function crearEmpresa(req, res) {
       });
     }
 
-    await asegurarColumnasEmpresas(client);
 
     const limite = await validarLimiteEmpresasUsuario(client, req.usuario);
     if (!limite.permitido) {
@@ -129,7 +115,6 @@ async function crearEmpresa(req, res) {
 
 async function listarEmpresas(req, res) {
   try {
-    await asegurarColumnasEmpresas(pool);
     const empresas = await obtenerEmpresasPermitidas(pool, req.usuario);
 
     return res.json({
@@ -193,7 +178,6 @@ async function actualizarEmpresa(req, res) {
       });
     }
 
-    await asegurarColumnasEmpresas(client);
     await client.query("BEGIN");
     transaccionIniciada = true;
 

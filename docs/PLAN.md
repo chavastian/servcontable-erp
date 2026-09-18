@@ -37,11 +37,16 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [ ] Staging en Render (se mantiene Render, decidido 2026-09-18).
 - [ ] `CLAUDE.md` y skills de Claude Code.
 
-### Fase 1 — Base de datos reproducible
-- `pg_dump --schema-only` de producción → `database/schema.sql` versionado.
-- Migraciones con `node-pg-migrate`; mover todo DDL de runtime a migraciones; `npm run migrate`.
-- Índices compuestos `(empresa_id, fecha)`, `(empresa_id, periodo)`, `(comprobante_id)`, único `(empresa_id, tipo, numero)`.
-- `docs/DATABASE_SCHEMA.md`.
+### Fase 1 — Base de datos reproducible  ✅ 2026-09-18
+- [x] `database/schema.sql` versionado, generado por introspección de producción (37 tablas, 76 claves foráneas). Verificado: construye el esquema completo desde una base vacía.
+- [x] `backend/scripts/dump-schema.js` para regenerarlo (`npm run schema:dump`).
+- [x] Migraciones con `node-pg-migrate`: base idempotente + índices e integridad. `npm run migrate`.
+- [x] 40 índices nuevos, entre ellos `comprobante_detalle(comprobante_id)`, que no existía y era recorrido completo en cada libro.
+- [x] Únicos nuevos: RUT de empresa normalizado, orden de Flow, pago por proveedor y transacción, aviso por usuario/evento/día. El único `(empresa_id, tipo, numero)` de comprobantes ya existía.
+- [x] DDL en tiempo de ejecución eliminado: 16 funciones y ~50 llamadas, 693 líneas. `validarAccesoSuscripcion` disparaba 6 sentencias DDL en cada petición autenticada.
+- [x] `docs/DATABASE_SCHEMA.md`.
+- [x] Base `servcontable_test` en la misma instancia de Render para validar migraciones.
+- [ ] Aplicar las migraciones a producción (requiere aprobación: es el primer cambio en la base).
 
 ### Fase 2 — Aislamiento entre empresas y privilegios
 - Middleware de tenant que resuelva `empresa_id` después de multer y valide membresía y rol por operación.
