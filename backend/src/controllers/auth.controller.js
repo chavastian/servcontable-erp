@@ -7,6 +7,7 @@ const {
   normalizarRol,
   esAdminSistema,
   usuarioPuedeAdministrarEmpresa,
+  puedeAdministrarUsuarioObjetivo,
   obtenerEmpresasPermitidas,
   asignarUsuarioEmpresa,
 } = require("../helpers/auth.helper");
@@ -772,6 +773,20 @@ async function actualizarUsuarioCliente(req, res) {
       });
     }
 
+    // Un administrador de cliente solo administra usuarios de sus propias
+    // empresas, y nunca a un Administrador del Sistema.
+    const alcance = await puedeAdministrarUsuarioObjetivo(
+      client,
+      req.usuario,
+      usuarioId
+    );
+
+    if (!alcance.permitido) {
+      return res.status(alcance.noEncontrado ? 404 : 403).json({
+        error: alcance.motivo,
+      });
+    }
+
     const usuarioActual = await client.query(
       `SELECT id, nombre, email, rut, rut_normalizado, telefono, rol, activo
        FROM usuarios
@@ -1058,6 +1073,20 @@ async function cambiarEstadoUsuario(req, res) {
       });
     }
 
+    // Un administrador de cliente solo administra usuarios de sus propias
+    // empresas, y nunca a un Administrador del Sistema.
+    const alcance = await puedeAdministrarUsuarioObjetivo(
+      client,
+      req.usuario,
+      usuarioId
+    );
+
+    if (!alcance.permitido) {
+      return res.status(alcance.noEncontrado ? 404 : 403).json({
+        error: alcance.motivo,
+      });
+    }
+
     const usuarioActual = await client.query(
       `SELECT id, nombre, email, rol, activo
        FROM usuarios
@@ -1146,6 +1175,21 @@ async function solicitarRecuperacionPasswordUsuario(req, res) {
     if (!usuarioId) {
       return res.status(400).json({
         error: "Usuario invalido",
+      });
+    }
+
+
+    // Un administrador de cliente solo administra usuarios de sus propias
+    // empresas, y nunca a un Administrador del Sistema.
+    const alcance = await puedeAdministrarUsuarioObjetivo(
+      pool,
+      req.usuario,
+      usuarioId
+    );
+
+    if (!alcance.permitido) {
+      return res.status(alcance.noEncontrado ? 404 : 403).json({
+        error: alcance.motivo,
       });
     }
 

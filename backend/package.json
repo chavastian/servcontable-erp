@@ -15,7 +15,9 @@
     "migrate:deploy": "node-pg-migrate --config-file .migraterc.json up --no-lock",
     "smoke": "node scripts/smoke-carga.js",
     "smoke:api": "node scripts/smoke-api.js",
-    "respaldo": "node scripts/respaldo.js"
+    "respaldo": "node scripts/respaldo.js",
+    "test": "node --test test/",
+    "test:aislamiento": "node --test test/aislamiento.test.js"
   },
   "keywords": [],
   "author": "",

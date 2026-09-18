@@ -35,7 +35,7 @@ const INDICES = [
   ["pagos_cobros", "(empresa_id, estado)"],
 
   // Remuneraciones
-  ["trabajadores", "(empresa_id, activo)"],
+  ["trabajadores", "(empresa_id, estado)"],
   ["liquidaciones", "(empresa_id, periodo)"],
   ["liquidaciones", "(comprobante_id)"],
   ["liquidacion_detalle", "(liquidacion_id)"],

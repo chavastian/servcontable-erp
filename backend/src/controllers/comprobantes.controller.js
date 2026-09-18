@@ -6,6 +6,7 @@ const {
   obtenerSiguienteNumeroComprobante,
 } = require("../helpers/comprobante.helper");
 const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
+const { usuarioPuedeAccederEmpresa } = require("../helpers/auth.helper");
 
 async function crearComprobante(req, res) {
   const client = await pool.connect();
@@ -241,6 +242,22 @@ async function obtenerComprobante(req, res) {
     );
 
     if (comprobanteResult.rows.length === 0) {
+      return res.status(404).json({
+        error: "Comprobante no encontrado",
+      });
+    }
+
+    // El frontend pide el comprobante solo por su identificador, sin indicar la
+    // empresa, asi que el acceso se decide por la membresia del usuario. Sin
+    // esta comprobacion cualquier usuario autenticado podia leer el asiento de
+    // otro cliente probando numeros consecutivos.
+    const permitido = await usuarioPuedeAccederEmpresa(
+      pool,
+      req.usuario,
+      Number(comprobanteResult.rows[0].empresa_id)
+    );
+
+    if (!permitido) {
       return res.status(404).json({
         error: "Comprobante no encontrado",
       });

@@ -224,31 +224,83 @@ function construirAsientoCompra(compra, configuracion = {}) {
   };
 }
 
+/**
+ * Escribe las lineas de un asiento.
+ *
+ * Es el punto por donde pasa toda la contabilidad del sistema, asi que aca se
+ * comprueba que cada cuenta imputada pertenezca a la empresa del comprobante.
+ * La empresa no se recibe por parametro sino que se lee del comprobante: asi
+ * ninguna de las rutas que llaman a esta funcion puede omitir la verificacion.
+ *
+ * Sin esto, un identificador de cuenta de otra empresa en el cuerpo de la
+ * peticion quedaba imputado en el asiento, y los saldos de dos clientes se
+ * mezclaban. Los identificadores son enteros consecutivos.
+ */
 async function insertarDetallesComprobante(client, comprobanteId, detalles = []) {
+  const conMonto = (detalles || []).filter(
+    (detalle) => Number(detalle.debe || 0) !== 0 || Number(detalle.haber || 0) !== 0
+  );
 
-  for (const detalle of detalles) {
-    if (Number(detalle.debe || 0) === 0 && Number(detalle.haber || 0) === 0) {
-      continue;
-    }
-
-    await client.query(
-      `
-      INSERT INTO comprobante_detalle
-      (comprobante_id, cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      `,
-      [
-        comprobanteId,
-        detalle.cuenta_id,
-        detalle.glosa,
-        Number(detalle.debe || 0),
-        Number(detalle.haber || 0),
-        texto(detalle.folio),
-        texto(detalle.centro_costo),
-        normalizarRutDocumentoOpcional(detalle.rut_auxiliar),
-      ]
-    );
+  if (conMonto.length === 0) {
+    return;
   }
+
+  const duenoComprobante = await client.query(
+    "SELECT empresa_id FROM comprobantes WHERE id = $1 LIMIT 1",
+    [comprobanteId]
+  );
+
+  if (duenoComprobante.rows.length === 0) {
+    const error = new Error("El comprobante indicado no existe");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const empresaId = Number(duenoComprobante.rows[0].empresa_id);
+  const cuentas = [...new Set(conMonto.map((detalle) => Number(detalle.cuenta_id)))];
+
+  if (cuentas.some((cuenta) => !Number.isInteger(cuenta) || cuenta <= 0)) {
+    const error = new Error("Hay lineas sin cuenta contable valida");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const propias = await client.query(
+    `SELECT id FROM plan_cuentas WHERE id = ANY($1::int[]) AND empresa_id = $2`,
+    [cuentas, empresaId]
+  );
+
+  if (propias.rows.length !== cuentas.length) {
+    const error = new Error(
+      "Alguna cuenta imputada no pertenece a la empresa del comprobante"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Una sentencia por asiento en lugar de una por linea.
+  await client.query(
+    `
+    INSERT INTO comprobante_detalle
+      (comprobante_id, cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar)
+    SELECT $1, linea.cuenta_id, linea.glosa, linea.debe, linea.haber,
+           linea.folio, linea.centro_costo, linea.rut_auxiliar
+    FROM UNNEST(
+      $2::int[], $3::text[], $4::numeric[], $5::numeric[],
+      $6::text[], $7::text[], $8::text[]
+    ) AS linea(cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar)
+    `,
+    [
+      comprobanteId,
+      conMonto.map((detalle) => Number(detalle.cuenta_id)),
+      conMonto.map((detalle) => detalle.glosa ?? null),
+      conMonto.map((detalle) => Number(detalle.debe || 0)),
+      conMonto.map((detalle) => Number(detalle.haber || 0)),
+      conMonto.map((detalle) => texto(detalle.folio)),
+      conMonto.map((detalle) => texto(detalle.centro_costo)),
+      conMonto.map((detalle) => normalizarRutDocumentoOpcional(detalle.rut_auxiliar)),
+    ]
+  );
 }
 
 async function crearComprobanteAutomaticoCompra(client, compra, configuracion) {

@@ -1,5 +1,4 @@
 const express = require("express");
-const multer = require("multer");
 const router = express.Router();
 
 const {
@@ -9,12 +8,15 @@ const {
 } = require("../controllers/compras.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirEmpresa } = require("../middleware/tenant.middleware");
+const {
+  subidaArchivo,
+  manejarErroresDeSubida,
+} = require("../middleware/upload.middleware");
 const {
   bloquearDemo,
   limitarCreacionDemoPorEmpresa,
 } = require("../middleware/demo.middleware");
-
-const upload = multer({ storage: multer.memoryStorage() });
 
 router.get("/", verificarToken, listarCompras);
 router.post(
@@ -33,7 +35,11 @@ router.post(
   "/importar-sii",
   verificarToken,
   bloquearDemo("la importacion masiva SII se habilita en la version contratada."),
-  upload.single("archivo"),
+  subidaArchivo.single("archivo"),
+  manejarErroresDeSubida,
+  // Despues de multer: antes de esta linea req.body esta vacio y la
+  // membresia en la empresa no se puede comprobar.
+  exigirEmpresa,
   importarComprasSII
 );
 

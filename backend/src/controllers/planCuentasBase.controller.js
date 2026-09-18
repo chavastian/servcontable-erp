@@ -320,63 +320,62 @@ async function cargarPlanBase(req, res) {
 
     await client.query("BEGIN");
 
+    const codigosBase = cuentasBase.map((cuenta) => cuenta.codigo);
+    let desactivadas = 0;
+
     if (reemplazar === true) {
-      await client.query(
+      // Antes esto era DELETE FROM plan_cuentas WHERE empresa_id = $1, es decir
+      // el plan de cuentas completo del cliente. Una cuenta con asientos no se
+      // puede borrar: las claves foraneas lo impiden y la peticion terminaba en
+      // un error crudo de PostgreSQL. Y si la empresa aun no tenia movimientos,
+      // borraba el plan entero sin dejar rastro.
+      //
+      // Reemplazar ahora significa dejar activas solo las cuentas del plan
+      // base. Lo que el cliente habia creado se desactiva, no se destruye, y
+      // los asientos historicos siguen apuntando a su cuenta.
+      const resultado = await client.query(
         `
-        DELETE FROM plan_cuentas
+        UPDATE plan_cuentas
+        SET activo = false
         WHERE empresa_id = $1
+          AND codigo <> ALL($2::varchar[])
+          AND COALESCE(activo, true) = true
         `,
-        [empresa_id]
+        [empresa_id, codigosBase]
       );
+
+      desactivadas = resultado.rowCount || 0;
     }
 
-    let insertadas = 0;
-    let omitidas = 0;
+    // Una sola sentencia en lugar de dos consultas por cuenta: el plan base
+    // trae unas 450 cuentas, lo que significaba cerca de 900 idas y vueltas.
+    const resultadoCarga = await client.query(
+      `
+      INSERT INTO plan_cuentas
+        (empresa_id, codigo, nombre, tipo, clasificacion, naturaleza, nivel, activo)
+      SELECT $1, datos.codigo, datos.nombre, datos.tipo, datos.clasificacion,
+             datos.naturaleza, datos.nivel, true
+      FROM UNNEST(
+        $2::varchar[], $3::varchar[], $4::varchar[],
+        $5::varchar[], $6::varchar[], $7::int[]
+      ) AS datos(codigo, nombre, tipo, clasificacion, naturaleza, nivel)
+      ON CONFLICT (empresa_id, codigo) DO UPDATE
+        SET activo = true
+      RETURNING (xmax = 0) AS insertada
+      `,
+      [
+        empresa_id,
+        codigosBase,
+        cuentasBase.map((cuenta) => cuenta.nombre),
+        cuentasBase.map((cuenta) => cuenta.tipo),
+        cuentasBase.map((cuenta) => cuenta.clasificacion),
+        cuentasBase.map((cuenta) => cuenta.naturaleza),
+        cuentasBase.map((cuenta) => cuenta.nivel),
+      ]
+    );
 
-    for (const cuenta of cuentasBase) {
-      const existe = await client.query(
-        `
-        SELECT id
-        FROM plan_cuentas
-        WHERE empresa_id = $1
-          AND codigo = $2
-        LIMIT 1
-        `,
-        [empresa_id, cuenta.codigo]
-      );
-
-      if (existe.rows.length > 0) {
-        omitidas++;
-        continue;
-      }
-
-      await client.query(
-        `
-        INSERT INTO plan_cuentas
-        (
-          empresa_id,
-          codigo,
-          nombre,
-          tipo,
-          clasificacion,
-          naturaleza,
-          nivel
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7)
-        `,
-        [
-          empresa_id,
-          cuenta.codigo,
-          cuenta.nombre,
-          cuenta.tipo,
-          cuenta.clasificacion,
-          cuenta.naturaleza,
-          cuenta.nivel,
-        ]
-      );
-
-      insertadas++;
-    }
+    const insertadas = resultadoCarga.rows.filter((fila) => fila.insertada).length;
+    const reactivadas = resultadoCarga.rows.length - insertadas;
 
     await client.query("COMMIT");
 
@@ -384,15 +383,21 @@ async function cargarPlanBase(req, res) {
       mensaje: "Plan de cuentas base cargado correctamente.",
       total_base: cuentasBase.length,
       insertadas,
-      omitidas,
+      // El nombre se conserva por compatibilidad con el frontend: son las
+      // cuentas del plan base que ya existian.
+      omitidas: reactivadas,
+      reactivadas,
+      desactivadas,
     });
   } catch (error) {
     await client.query("ROLLBACK");
 
     console.error("Error al cargar plan de cuentas base:", error);
 
+    // El mensaje de PostgreSQL no vuelve al cliente: revela nombres de tablas,
+    // columnas y restricciones.
     return res.status(500).json({
-      error: error.message || "Error interno al cargar plan base",
+      error: "No se pudo cargar el plan de cuentas base",
     });
   } finally {
     client.release();

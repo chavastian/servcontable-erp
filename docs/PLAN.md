@@ -48,11 +48,18 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Base `servcontable_test` en la misma instancia de Render para validar migraciones.
 - [ ] Aplicar las migraciones a producción (requiere aprobación: es el primer cambio en la base).
 
-### Fase 2 — Aislamiento entre empresas y privilegios
-- Middleware de tenant que resuelva `empresa_id` después de multer y valide membresía y rol por operación.
-- Corregir C1, C2, C3, C4, C5, C9.
-- Helper `assertPerteneceAEmpresa(tabla, id, empresaId)` para FKs.
-- Tests automáticos de aislamiento: usuario de empresa A contra cada endpoint con datos de empresa B.
+### Fase 2 — Aislamiento entre empresas y privilegios  ✅ 2026-09-18
+- [x] `middleware/tenant.middleware.js`: resuelve y valida la empresa **después** de multer, normaliza el valor sobre la petición y ofrece `exigirRolEmpresa`.
+- [x] **C1** Importaciones: la autenticación corría antes de multer, así que el cuerpo estaba vacío, la membresía no se comprobaba y el controlador confiaba en el `empresa_id` del formulario. Cualquier usuario podía importar a la empresa de otro cliente. Corregido en las cuatro rutas de importación.
+- [x] **C2** `GET /api/comprobantes/:id` leía solo por id. Ahora el acceso se decide por la membresía del usuario, porque el frontend no envía la empresa.
+- [x] **C3** Un `admin_cliente` podía resetear la contraseña del superadministrador y quedarse con el sistema. Nuevo `puedeAdministrarUsuarioObjetivo`, aplicado en cambio de estado, reseteo de contraseña y actualización de usuario.
+- [x] **C4** `insertarDetallesComprobante` valida que toda cuenta imputada pertenezca a la empresa del comprobante. La empresa se lee del propio comprobante, así que ninguna de las siete rutas que llaman puede omitirlo. Pagos y cobros rechazan un documento de otra empresa en lugar de guardar la referencia cruzada.
+- [x] **C5** Resuelto en la Fase 1: el `UPDATE` global sin empresa vivía dentro del DDL en tiempo de ejecución.
+- [x] **C9** El plan de cuentas ya no se borra físicamente. «Reemplazar» desactiva lo que no está en el plan base y conserva los asientos.
+- [x] `helpers/empresa.helper.js` con `exigirDeEmpresa` y `exigirTodosDeEmpresa`.
+- [x] Adelantado de la Fase 3: **A5** subidas con límite de 10 MB, un archivo, tipos permitidos y errores claros en lugar de 500.
+- [x] Corregido de paso: un `empresa_id` no numérico se convertía en `NaN`, que es falso, y saltaba la comprobación de membresía completa.
+- [x] `test/aislamiento.test.js`: 12 pruebas, dos empresas con un usuario cada una. Todas pasan.
 
 ### Fase 3 — Seguridad backend
 - Rate limiting (login, registro, trial, contacto, checkout, recuperación), helmet, validación por endpoint (zod), handler de errores central, límites y filtro de uploads, `npm audit fix`, contraseñas mínimas coherentes, bootstrap de superadmin solo por variable de entorno, proteger `/contratacion/:id`, JWT más corto con renovación, `trust proxy` explícito.

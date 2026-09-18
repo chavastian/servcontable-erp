@@ -80,20 +80,31 @@ async function verificarToken(req, res, next) {
       });
     }
 
-    const empresaId = obtenerEmpresaIdRequest(req);
+    const empresaCruda = obtenerEmpresaIdRequest(req);
 
-    if (empresaId) {
-      const permitido = await usuarioPuedeAccederEmpresa(
-        pool,
-        decoded,
-        Number(empresaId)
-      );
+    if (empresaCruda !== null && String(empresaCruda).trim() !== "") {
+      const empresaId = Number(empresaCruda);
+
+      // El formato se valida antes de consultar. Un valor como "abc" se
+      // convertia en NaN, que es falso, y la comprobacion de membresia se
+      // saltaba entera; la peticion seguia hasta el controlador y terminaba en
+      // un error de PostgreSQL devuelto al cliente.
+      if (!Number.isInteger(empresaId) || empresaId <= 0) {
+        return res.status(400).json({
+          error: "empresa_id no valido",
+        });
+      }
+
+      const permitido = await usuarioPuedeAccederEmpresa(pool, decoded, empresaId);
 
       if (!permitido) {
         return res.status(403).json({
           error: "No tienes acceso a la empresa solicitada",
         });
       }
+
+      req.empresaId = empresaId;
+      req.tenantValidado = true;
     }
 
     return next();

@@ -943,6 +943,18 @@ async function registrarPagoCobro(req, res) {
         [documento_id]
       );
       documentoOrigen = documentosOrigen[0] || null;
+
+      // La busqueda ya acota por empresa. Si no aparecio, el documento es de
+      // otra empresa o no esta pendiente, y el movimiento no debe guardarse
+      // apuntando a el: los saldos por cobrar y por pagar se calculan uniendo
+      // por documento_id, asi que la referencia cruzada altera las cifras de
+      // dos clientes a la vez.
+      if (!documentoOrigen) {
+        return res.status(404).json({
+          error:
+            "El documento indicado no existe en esta empresa o no tiene saldo pendiente",
+        });
+      }
     }
 
     const periodo = obtenerPeriodo(fecha);
