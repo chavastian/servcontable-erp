@@ -11,14 +11,14 @@
     "migrate:down": "node-pg-migrate --config-file .migraterc.json down 1",
     "migrate:create": "node-pg-migrate --config-file .migraterc.json create --migration-file-language js",
     "migrate:status": "node-pg-migrate --config-file .migraterc.json --dry-run up",
-    "schema:dump": "node scripts/dump-schema.js"
+    "schema:dump": "node scripts/dump-schema.js",
+    "migrate:deploy": "node-pg-migrate --config-file .migraterc.json up --no-lock"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "node-pg-migrate": "^8.0.4",
     "nodemon": "^3.1.14"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
+    "node-pg-migrate": "^8.0.4",
     "nodemailer": "^8.0.10",
     "pdf-parse": "^2.4.5",
     "pg": "^8.21.0"
