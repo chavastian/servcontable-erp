@@ -61,8 +61,18 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Corregido de paso: un `empresa_id` no numérico se convertía en `NaN`, que es falso, y saltaba la comprobación de membresía completa.
 - [x] `test/aislamiento.test.js`: 12 pruebas, dos empresas con un usuario cada una. Todas pasan.
 
-### Fase 3 — Seguridad backend
-- Rate limiting (login, registro, trial, contacto, checkout, recuperación), helmet, validación por endpoint (zod), handler de errores central, límites y filtro de uploads, `npm audit fix`, contraseñas mínimas coherentes, bootstrap de superadmin solo por variable de entorno, proteger `/contratacion/:id`, JWT más corto con renovación, `trust proxy` explícito.
+### Fase 3 — Seguridad backend  ✅ 2026-09-18
+- [x] Limitación de intentos por IP y correo: login (10 cada 15 min), recuperación (5 por hora), registro y prueba gratis (5 por hora), contacto (10 por hora), pagos (20 cada 15 min), importaciones (30 cada 10 min), y un techo general de 300 por minuto.
+- [x] `helmet` con política de contenido solo cuando el backend sirve el frontend, y HSTS solo en producción.
+- [x] Manejador central de errores: los mensajes de PostgreSQL ya no llegan al cliente. Traduce los códigos conocidos a 400, 409, 413 y 504 con texto entendible.
+- [x] **A17** El primer usuario registrado ya no se vuelve superadministrador. El administrador inicial se crea solo desde `ADMIN_EMAIL` y `ADMIN_PASSWORD` al arrancar.
+- [x] **A7** `/contratacion/:id` exige el token de la orden de Flow y ya no devuelve el nombre. Antes se podían recorrer los identificadores consecutivos y sacar nombre, correo, empresa y monto de cada persona que inició una compra.
+- [x] **A4** Token de 4 horas en lugar de 8, con `POST /api/auth/renovar-sesion`, y versión de sesión por usuario: cambiar la contraseña o desactivar la cuenta invalida al instante los tokens ya emitidos.
+- [x] **A3** `trust proxy` explícito en un salto: confiar en toda la cadena permitiría falsear la IP y burlar los límites.
+- [x] **A6** `npm audit` en cero. `csv-parse` a la 7 y `nodemailer` a la 10, ambos cambios de versión mayor, respaldados por 10 pruebas nuevas del análisis de los libros del SII.
+- [x] Contraseña mínima coherente en un solo lugar: antes solo la validaba el reseteo por administrador, así que el registro público, la prueba gratis y el reseteo por correo aceptaban una sola letra.
+- [x] Límite de 1 MB al cuerpo JSON.
+- [ ] Validación por esquema con `zod` en cada endpoint. `zod` ya está instalado; se aplica junto con la Fase 4, donde se tocan los mismos controladores.
 
 ### Fase 4 — Integridad contable
 - Contador de numeración por empresa y tipo con bloqueo.

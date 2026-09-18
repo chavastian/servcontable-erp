@@ -8,6 +8,7 @@ const {
 } = require("../controllers/conciliacionBancaria.controller");
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
+const { limiteImportacion } = require("../middleware/seguridad.middleware");
 const {
   subidaArchivo,
   manejarErroresDeSubida,
@@ -17,6 +18,7 @@ const { bloquearDemo } = require("../middleware/demo.middleware");
 router.get("/", verificarToken, listarMovimientos);
 router.post(
   "/importar",
+  limiteImportacion,
   verificarToken,
   bloquearDemo("la conciliacion bancaria masiva se habilita en la version contratada."),
   subidaArchivo.single("archivo"),
@@ -28,6 +30,7 @@ router.post(
 );
 router.put(
   "/:id/estado",
+  limiteImportacion,
   verificarToken,
   bloquearDemo("la conciliacion bancaria se habilita en la version contratada."),
   actualizarEstado

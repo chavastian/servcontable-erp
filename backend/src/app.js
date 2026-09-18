@@ -1,7 +1,15 @@
-﻿const express = require("express");
+const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const { obtenerOrigenesCors, sirveFrontendDesdeBackend } = require("./config/env");
+const {
+  cabecerasSeguridad,
+  limiteGeneral,
+} = require("./middleware/seguridad.middleware");
+const {
+  rutaNoEncontrada,
+  manejadorDeErrores,
+} = require("./middleware/errores.middleware");
 
 const estadoRoutes = require("./routes/estado.routes");
 const authRoutes = require("./routes/auth.routes");
@@ -48,9 +56,23 @@ const adminUsuariosRoutes = require("./routes/adminUsuarios.routes");
 
 const app = express();
 
-if (process.env.TRUST_PROXY !== "false") {
-  app.set("trust proxy", 1);
+// Render pone un proxy por delante, asi que la IP real llega en
+// X-Forwarded-For. Se confia en un solo salto: confiar en toda la cadena
+// permitiria falsear la IP y burlar los limites de intentos.
+//
+// TRUST_PROXY acepta un numero de saltos, "false" para no confiar en ninguno,
+// o una lista de direcciones.
+const configuracionProxy = process.env.TRUST_PROXY ?? "1";
+
+if (configuracionProxy === "false") {
+  app.set("trust proxy", false);
+} else if (/^\d+$/.test(configuracionProxy)) {
+  app.set("trust proxy", Number(configuracionProxy));
+} else {
+  app.set("trust proxy", configuracionProxy);
 }
+
+app.use(cabecerasSeguridad());
 
 const origenesPermitidos = obtenerOrigenesCors();
 
@@ -90,7 +112,14 @@ app.use((req, res, next) =>
     credentials: true,
   })(req, res, next)
 );
-app.use(express.json());
+// Un cuerpo JSON de un documento contable no llega a unos pocos cientos de
+// kilobytes. Sin tope, express acepta el valor por defecto de 100 kB o lo que
+// se le pase, y un cuerpo enorme se procesa antes de cualquier validacion.
+app.use(express.json({ limit: process.env.JSON_MAX_SIZE || "1mb" }));
+
+// Red de seguridad general. Los limites especificos de login, registro,
+// recuperacion, contacto, pagos e importaciones viven en cada router.
+app.use("/api", limiteGeneral);
 
 app.use("/", estadoRoutes);
 app.use("/api", estadoRoutes);
@@ -134,6 +163,9 @@ app.use("/api/pagos-flow", pagosFlowRoutes);
 app.use("/api/contacto", contactoRoutes);
 app.use("/api/admin-suscripciones", adminSuscripcionesRoutes);
 app.use("/api/admin-usuarios", adminUsuariosRoutes);
+
+app.use(rutaNoEncontrada);
+app.use(manejadorDeErrores);
 
 let frontendEstaticoConfigurado = false;
 

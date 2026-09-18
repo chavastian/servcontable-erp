@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const pool = require("../database/db");
 const { obtenerJwtSecret } = require("../config/env");
 const { enviarCorreoSolicitudContacto } = require("../helpers/mail.helper");
+const { rechazarPasswordInvalida } = require("../helpers/password.helper");
+const { firmarToken } = require("../helpers/sesion.helper");
 const {
   ACCIONES_SUSCRIPCION,
   ESTADOS_SUSCRIPCION,
@@ -33,16 +35,11 @@ function validarPasswordCliente(password, confirmacion) {
   return "";
 }
 
-function construirSesionTrial(usuario, empresas, suscripcion) {
-  const usuarioToken = {
-    id: usuario.id,
-    email: usuario.email,
-    rol: usuario.rol,
+async function construirSesionTrial(cliente, usuario, empresas, suscripcion) {
+  const token = await firmarToken(cliente, usuario, {
     trial: true,
     trial_vence: suscripcion.trial_ends_at || suscripcion.expires_at,
-  };
-
-  const token = jwt.sign(usuarioToken, obtenerJwtSecret(), { expiresIn: "8h" });
+  });
 
   return {
     token,
@@ -148,6 +145,10 @@ async function crearPruebaGratisAutoservicio(req, res) {
       });
     }
 
+    if (rechazarPasswordInvalida(res, password, { email: correo })) {
+      return undefined;
+    }
+
     const config = await obtenerConfiguracionSuscripcion(client);
     const diasTrial = Math.max(Number(config.trial_days || 30), 1);
     const vence = sumarDias(new Date().toISOString().slice(0, 10), diasTrial);
@@ -241,7 +242,7 @@ async function crearPruebaGratisAutoservicio(req, res) {
     await client.query("COMMIT");
     transaccionIniciada = false;
 
-    const sesion = construirSesionTrial(usuario, [], suscripcion);
+    const sesion = await construirSesionTrial(client, usuario, [], suscripcion);
     sesion.usuario.trial_info.dias_restantes = diasTrial;
     sesion.usuario.suscripcion.dias_restantes = diasTrial;
 

@@ -590,20 +590,41 @@ async function actualizarContratacionConEstadoFlow(token, estadoFlow) {
   return { contratacion, estado: estadoInterno };
 }
 
+/**
+ * Estado de una contratacion para la pagina de resultado del pago.
+ *
+ * Es publica a proposito: quien vuelve de Flow todavia no tiene sesion. Pero
+ * el identificador es un entero consecutivo, asi que antes cualquiera podia
+ * recorrer /contratacion/1, /2, /3 y obtener el nombre, el correo, la empresa y
+ * el monto de cada persona que alguna vez inicio una compra.
+ *
+ * Ahora hay que presentar el token de la orden de Flow, que solo conoce quien
+ * hizo el pago porque viaja en la URL de retorno.
+ */
 async function obtenerContratacion(req, res) {
   try {
+    const token = limpiarTexto(req.query?.token);
+
+    if (!token) {
+      return res.status(400).json({
+        ok: false,
+        error: "Falta el token de la orden de pago.",
+      });
+    }
 
     const resultado = await pool.query(
       `
-      SELECT id, nombre, correo, empresa, periodicidad, monto_neto, iva, total,
+      SELECT id, correo, empresa, periodicidad, monto_neto, iva, total,
              estado, flow_order, flow_status, creado_en, actualizado_en
       FROM contrataciones_web
-      WHERE id = $1;
+      WHERE id = $1
+        AND flow_token = $2;
       `,
-      [req.params.id]
+      [req.params.id, token]
     );
 
     if (resultado.rowCount === 0) {
+      // Mismo mensaje exista o no: no se confirma que el id sea real.
       return res.status(404).json({ ok: false, error: "Contratacion no encontrada." });
     }
 
@@ -763,7 +784,12 @@ async function procesarRetornoFlow(req, res) {
       token,
       estadoFlow
     );
-    const idQuery = contratacion?.id ? `?contratacion=${contratacion.id}` : "";
+    // Se lleva tambien el token de la orden. La pagina de resultado lo usa
+    // para consultar la contratacion: el id solo es un entero consecutivo y no
+    // puede ser la unica credencial para ver datos personales.
+    const idQuery = contratacion?.id
+      ? `?contratacion=${contratacion.id}&token=${encodeURIComponent(token)}`
+      : "";
 
     if (estado === "activo") {
       return res.redirect(`${frontendBase}/pago-exitoso.html${idQuery}`);

@@ -308,10 +308,22 @@ async function hydratePaymentResult() {
   const id = getQueryParam("contratacion");
   if (!id) return;
 
+  // El token de la orden viaja en la URL de retorno de Flow y es lo que
+  // autoriza a consultar los datos de la contratacion.
+  const token = getQueryParam("token");
+
   setText("[data-result-id]", `#${id}`);
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pagos-flow/contratacion/${encodeURIComponent(id)}`);
+    if (!token) {
+      setText("[data-result-status]", "No disponible");
+      return;
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/pagos-flow/contratacion/${encodeURIComponent(id)}` +
+        `?token=${encodeURIComponent(token)}`
+    );
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok || !data.contratacion) return;

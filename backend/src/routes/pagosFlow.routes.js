@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const {
   crearPagoContratacion,
   crearRenovacionSuscripcionFlow,
@@ -12,12 +12,13 @@ const {
   verificarToken,
   exigirAdminSistema,
 } = require("../middleware/auth.middleware");
+const { limitePagos } = require("../middleware/seguridad.middleware");
 
 const router = express.Router();
 
-router.post("/preferencia", crearPagoContratacion);
-router.post("/checkout", crearPagoContratacion);
-router.post("/renovar", verificarToken, crearRenovacionSuscripcionFlow);
+router.post("/preferencia", limitePagos, crearPagoContratacion);
+router.post("/checkout", limitePagos, crearPagoContratacion);
+router.post("/renovar", limitePagos, verificarToken, crearRenovacionSuscripcionFlow);
 router.post("/webhook", recibirWebhookFlow);
 router.get("/retorno", procesarRetornoFlow);
 router.post("/retorno", procesarRetornoFlow);

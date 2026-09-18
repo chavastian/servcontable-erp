@@ -10,6 +10,7 @@ const {
   ESTADOS_SUSCRIPCION,
   validarAccesoSuscripcion,
 } = require("../helpers/suscripcion.helper");
+const { sesionVigente } = require("../helpers/sesion.helper");
 
 function obtenerEmpresaIdRequest(req) {
   return (
@@ -64,6 +65,17 @@ async function verificarToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, obtenerJwtSecret());
+
+    // El token es un JWT firmado y el servidor no guarda los emitidos, asi que
+    // la unica forma de invalidarlo antes de que expire es compararlo con la
+    // version de sesion del usuario. Cambiar la contrasena o desactivar la
+    // cuenta sube ese contador y deja fuera los tokens anteriores.
+    if (!(await sesionVigente(pool, decoded))) {
+      return res.status(401).json({
+        error: "Tu sesion se cerro. Vuelve a iniciar sesion.",
+      });
+    }
+
     req.usuario = decoded;
 
     const accesoSuscripcion = await validarAccesoSuscripcion(pool, decoded);

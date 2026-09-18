@@ -5,6 +5,7 @@ const {
   registrarUsuario,
   loginUsuario,
   obtenerSesion,
+  renovarSesion,
   listarUsuarios,
   crearUsuarioCliente,
   actualizarUsuarioCliente,
@@ -14,15 +15,21 @@ const {
   resetearPasswordConToken,
 } = require("../controllers/auth.controller");
 const {
+  limiteLogin,
+  limiteRegistro,
+  limiteRecuperacion,
+} = require("../middleware/seguridad.middleware");
+const {
   verificarToken,
   exigirAdministradorUsuarios,
 } = require("../middleware/auth.middleware");
 
-router.post("/registro", registrarUsuario);
-router.post("/login", loginUsuario);
-router.post("/recuperar-password", solicitarRecuperacionPassword);
-router.post("/resetear-password", resetearPasswordConToken);
+router.post("/registro", limiteRegistro, registrarUsuario);
+router.post("/login", limiteLogin, loginUsuario);
+router.post("/recuperar-password", limiteRecuperacion, solicitarRecuperacionPassword);
+router.post("/resetear-password", limiteRecuperacion, resetearPasswordConToken);
 router.get("/me", verificarToken, obtenerSesion);
+router.post("/renovar-sesion", verificarToken, renovarSesion);
 router.get("/usuarios", verificarToken, exigirAdministradorUsuarios, listarUsuarios);
 router.post(
   "/usuarios",

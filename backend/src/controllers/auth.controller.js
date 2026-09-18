@@ -20,6 +20,8 @@ const {
   validarLimiteUsuariosCliente,
 } = require("../helpers/suscripcion.helper");
 const { normalizarRut, pareceRut } = require("../helpers/rut.helper");
+const { rechazarPasswordInvalida } = require("../helpers/password.helper");
+const { firmarToken, revocarSesiones } = require("../helpers/sesion.helper");
 const { enviarCorreoRecuperacionPassword } = require("../helpers/mail.helper");
 
 function registroPublicoHabilitado() {
@@ -231,10 +233,11 @@ async function registrarUsuario(req, res) {
       });
     }
 
-    const totalUsuarios = await pool.query("SELECT COUNT(*)::int AS total FROM usuarios");
-    const esPrimerUsuario = Number(totalUsuarios.rows[0]?.total || 0) === 0;
+    if (rechazarPasswordInvalida(res, password, { email })) {
+      return undefined;
+    }
 
-    if (!esPrimerUsuario && !registroPublicoHabilitado()) {
+    if (!registroPublicoHabilitado()) {
       return res.status(403).json({
         error:
           "El registro publico esta deshabilitado. Solicita acceso al administrador del sistema.",
@@ -255,19 +258,21 @@ async function registrarUsuario(req, res) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const rol = esPrimerUsuario ? "superadmin" : "admin_cliente";
 
+    // El rol siempre es de cliente. Antes, si la tabla de usuarios estaba
+    // vacia, el primero en registrarse quedaba como superadministrador por un
+    // endpoint publico: bastaba llegar antes que el dueno del sistema. El
+    // administrador inicial se crea solo desde ADMIN_EMAIL y ADMIN_PASSWORD
+    // al arrancar el servicio (helpers/auth.helper.js).
     const nuevoUsuario = await pool.query(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-       VALUES ($1, $2, $3, $4, true)
+       VALUES ($1, $2, $3, 'admin_cliente', true)
        RETURNING id, nombre, email, rol, activo, creado_en`,
-      [nombre, emailNormalizado, passwordHash, rol]
+      [nombre, emailNormalizado, passwordHash]
     );
 
     return res.status(201).json({
-      mensaje: esPrimerUsuario
-        ? "Administrador principal creado correctamente"
-        : "Usuario registrado correctamente",
+      mensaje: "Usuario registrado correctamente",
       usuario: nuevoUsuario.rows[0],
     });
   } catch (error) {
@@ -346,9 +351,7 @@ async function loginUsuario(req, res) {
 
     const empresas = await obtenerEmpresasPermitidas(pool, usuarioToken);
 
-    const token = jwt.sign(usuarioToken, obtenerJwtSecret(), {
-      expiresIn: "8h",
-    });
+    const token = await firmarToken(pool, usuarioToken);
 
     return res.json({
       mensaje: "Login correcto",
@@ -381,6 +384,39 @@ async function loginUsuario(req, res) {
     return res.status(500).json({
       error: "Error interno al iniciar sesion",
     });
+  }
+}
+
+/**
+ * Renueva el token de la sesion en curso.
+ *
+ * La vigencia paso de 8 a 4 horas para acortar la ventana util de un token
+ * robado. Para que eso no expulse a quien esta trabajando, el frontend pide un
+ * token nuevo mientras el actual siga siendo valido. No es un token de refresco
+ * aparte: exige un token vigente, de modo que uno vencido no sirve para revivir
+ * la sesion.
+ */
+async function renovarSesion(req, res) {
+  try {
+    const resultado = await pool.query(
+      "SELECT id, email, rol, activo FROM usuarios WHERE id = $1 LIMIT 1",
+      [req.usuario.id]
+    );
+
+    const usuario = resultado.rows[0];
+
+    if (!usuario || usuario.activo !== true) {
+      return res.status(401).json({ error: "La cuenta no esta activa" });
+    }
+
+    const token = await firmarToken(pool, usuario, {
+      ...(req.usuario.trial ? { trial: true, trial_vence: req.usuario.trial_vence } : {}),
+    });
+
+    return res.json({ token });
+  } catch (error) {
+    console.error("Error al renovar sesion:", error);
+    return res.status(500).json({ error: "No se pudo renovar la sesion" });
   }
 }
 
@@ -1123,6 +1159,12 @@ async function cambiarEstadoUsuario(req, res) {
       [activoFinal, usuarioId]
     );
 
+    // Desactivar la cuenta cierra sus sesiones. Sin esto, quien ya tenia el
+    // token seguia operando hasta que venciera.
+    if (activoFinal === false) {
+      await revocarSesiones(client, usuarioId);
+    }
+
     await registrarAuditoria({
       client,
       req,
@@ -1345,10 +1387,8 @@ async function resetearPasswordConToken(req, res) {
       });
     }
 
-    if (!password || String(password).length < 8) {
-      return res.status(400).json({
-        error: "La nueva contrasena debe tener al menos 8 caracteres",
-      });
+    if (rechazarPasswordInvalida(res, password)) {
+      return undefined;
     }
 
     const tokenHash = hashResetToken(token);
@@ -1383,6 +1423,10 @@ async function resetearPasswordConToken(req, res) {
       [passwordHash, tokenDb.usuario_id]
     );
 
+    // Cambiar la contrasena cierra las sesiones abiertas. Si alguien entro con
+    // la clave anterior, su token deja de servir en el acto.
+    await revocarSesiones(client, tokenDb.usuario_id);
+
     await client.query(
       `UPDATE password_reset_tokens
        SET usado_en = NOW()
@@ -1416,6 +1460,7 @@ module.exports = {
   registrarUsuario,
   loginUsuario,
   obtenerSesion,
+  renovarSesion,
   listarUsuarios,
   crearUsuarioCliente,
   actualizarUsuarioCliente,

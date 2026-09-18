@@ -71,23 +71,42 @@ test("asiento automatico de compra conserva folio y RUT auxiliar del proveedor",
 });
 
 test("comprobante automatico de venta traspasa folio y RUT auxiliar al cliente", async () => {
-  const detallesInsertados = [];
+  // insertarDetallesComprobante ahora escribe todas las lineas en una sola
+  // sentencia, con un arreglo por columna, y antes comprueba que las cuentas
+  // imputadas pertenezcan a la empresa del comprobante. El cliente simulado
+  // responde a esas dos consultas.
+  const empresaId = 10;
+  const cuentasDeLaEmpresa = [101, 221, 700, 701];
+  let lineas = null;
+
   const client = {
     async query(sql, params = []) {
-      if (String(sql).includes("ALTER TABLE comprobante_detalle")) {
-        return { rows: [] };
-      }
+      const texto = String(sql);
 
-      if (String(sql).includes("SELECT COALESCE(MAX(numero)")) {
+      if (texto.includes("SELECT COALESCE(MAX(numero)")) {
         return { rows: [{ siguiente: 7 }] };
       }
 
-      if (String(sql).includes("INSERT INTO comprobantes")) {
+      if (texto.includes("INSERT INTO comprobantes")) {
         return { rows: [{ id: 77, numero: 7, tipo: "Venta" }] };
       }
 
-      if (String(sql).includes("INSERT INTO comprobante_detalle")) {
-        detallesInsertados.push(params);
+      if (texto.includes("SELECT empresa_id FROM comprobantes")) {
+        return { rows: [{ empresa_id: empresaId }] };
+      }
+
+      if (texto.includes("FROM plan_cuentas WHERE id = ANY")) {
+        const pedidas = params[0] || [];
+        return {
+          rows: pedidas
+            .filter((id) => cuentasDeLaEmpresa.includes(Number(id)))
+            .map((id) => ({ id })),
+        };
+      }
+
+      if (texto.includes("INSERT INTO comprobante_detalle")) {
+        // [comprobanteId, cuentas, glosas, debes, haberes, folios, centros, ruts]
+        lineas = params;
         return { rows: [] };
       }
 
@@ -98,7 +117,7 @@ test("comprobante automatico de venta traspasa folio y RUT auxiliar al cliente",
   await crearComprobanteAutomaticoVenta(
     client,
     {
-      empresa_id: 10,
+      empresa_id: empresaId,
       periodo: "2026-09",
       fecha: "2026-09-15",
       folio: "9102",
@@ -117,10 +136,84 @@ test("comprobante automatico de venta traspasa folio y RUT auxiliar al cliente",
     }
   );
 
-  const detalleCliente = detallesInsertados.find(
-    (params) => Number(params[1]) === 101
+  assert.ok(lineas, "debe haberse escrito el detalle del comprobante");
+
+  const [, cuentas, , , , folios, , ruts] = lineas;
+  const posicionCliente = cuentas.findIndex((cuenta) => Number(cuenta) === 101);
+
+  assert.notEqual(posicionCliente, -1, "debe existir la linea de la cuenta de clientes");
+  assert.equal(folios[posicionCliente], "9102");
+  assert.equal(ruts[posicionCliente], "16.153.127-8");
+});
+
+test("no se escribe el asiento si una cuenta es de otra empresa", async () => {
+  // La comprobacion vive en insertarDetallesComprobante justamente para que
+  // ninguna de las rutas que generan asientos automaticos pueda saltarsela.
+  let seEscribioDetalle = false;
+
+  const client = {
+    async query(sql, params = []) {
+      const texto = String(sql);
+
+      if (texto.includes("SELECT COALESCE(MAX(numero)")) {
+        return { rows: [{ siguiente: 7 }] };
+      }
+
+      if (texto.includes("INSERT INTO comprobantes")) {
+        return { rows: [{ id: 77, numero: 7, tipo: "Venta" }] };
+      }
+
+      if (texto.includes("SELECT empresa_id FROM comprobantes")) {
+        return { rows: [{ empresa_id: 10 }] };
+      }
+
+      if (texto.includes("FROM plan_cuentas WHERE id = ANY")) {
+        // La cuenta de ingresos 701 no pertenece a la empresa 10.
+        const pedidas = params[0] || [];
+        return {
+          rows: pedidas
+            .filter((id) => Number(id) !== 701)
+            .map((id) => ({ id })),
+        };
+      }
+
+      if (texto.includes("INSERT INTO comprobante_detalle")) {
+        seEscribioDetalle = true;
+        return { rows: [] };
+      }
+
+      return { rows: [] };
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      crearComprobanteAutomaticoVenta(
+        client,
+        {
+          empresa_id: 10,
+          periodo: "2026-09",
+          fecha: "2026-09-15",
+          folio: "9102",
+          rut_cliente: "161531278",
+          neto: 200000,
+          exento: 0,
+          iva: 38000,
+          total: 238000,
+          cuenta_ingreso_id: 701,
+        },
+        {
+          cuenta_clientes_id: 101,
+          cuenta_ingreso_defecto_id: 700,
+          cuenta_iva_debito_id: 221,
+        }
+      ),
+    (error) => {
+      assert.match(error.message, /no pertenece a la empresa/i);
+      assert.equal(error.statusCode, 400);
+      return true;
+    }
   );
 
-  assert.equal(detalleCliente[5], "9102");
-  assert.equal(detalleCliente[7], "16.153.127-8");
+  assert.equal(seEscribioDetalle, false, "no debe escribirse ninguna linea");
 });

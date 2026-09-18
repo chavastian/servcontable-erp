@@ -7,6 +7,7 @@ const {
 } = require("../controllers/boletas.controller");
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
+const { limiteImportacion } = require("../middleware/seguridad.middleware");
 const {
   subidaArchivo,
   manejarErroresDeSubida,
@@ -16,6 +17,7 @@ const { bloquearDemo } = require("../middleware/demo.middleware");
 router.get("/", verificarToken, listarBoletas);
 router.post(
   "/importar-sii",
+  limiteImportacion,
   verificarToken,
   bloquearDemo("la importacion masiva de boletas se habilita en la version contratada."),
   subidaArchivo.single("archivo"),

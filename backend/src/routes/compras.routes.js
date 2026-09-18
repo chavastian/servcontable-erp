@@ -9,6 +9,7 @@ const {
 
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
+const { limiteImportacion } = require("../middleware/seguridad.middleware");
 const {
   subidaArchivo,
   manejarErroresDeSubida,
@@ -33,6 +34,7 @@ router.post(
 
 router.post(
   "/importar-sii",
+  limiteImportacion,
   verificarToken,
   bloquearDemo("la importacion masiva SII se habilita en la version contratada."),
   subidaArchivo.single("archivo"),
