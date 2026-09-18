@@ -24,10 +24,41 @@ explícitamente un despliegue. Producción se despliega solo desde `main`.
 
 | Pieza | Dónde |
 |---|---|
+| Aplicación | `servcontablepro-nueva.pages.dev` (Cloudflare Pages, carga directa) |
+| API | `servcontablepro-api-staging.onrender.com` (Render, plan gratuito) |
 | Base | Render, misma instancia, base `servcontable_staging` |
-| Código | rama `staging` de `chavastian/servcontable-erp` |
-| API | pendiente: Render no tiene acceso al repositorio de trabajo |
-| Frontend | pendiente, depende de la API |
+| Código | rama `staging` de `chavastian/servcontable-erp`, autodespliegue de la API |
+
+## Página de acceso
+
+`servcontablepro-acceso.pages.dev` presenta las dos versiones con un botón cada
+una. El código está en `deploy/acceso/index.html` y se publica con:
+
+```bash
+npx wrangler pages deploy deploy/acceso --project-name=servcontablepro-acceso --branch=main
+```
+
+### Acceso de revisión a la versión nueva
+
+Usuario `revision@servcontablepro.cl`, contraseña `RevisionNueva2026`, con
+acceso a las 15 empresas de la copia. Existe solo en `servcontable_staging`.
+
+### Cómo se publica la versión nueva
+
+La API se despliega sola al empujar a la rama `staging`. El frontend se compila
+a mano porque el proyecto de Pages es de carga directa:
+
+```bash
+cd frontend
+VITE_API_URL=https://servcontablepro-api-staging.onrender.com/api npx vite build
+npx wrangler pages deploy dist --project-name=servcontablepro-nueva --branch=staging
+```
+
+La API usa la **cadena interna** de Render para la base. La externa exige TLS y
+la migración durante el despliegue falla con `SSL/TLS required`.
+
+El plan gratuito apaga el servicio tras 15 minutos sin uso, así que la primera
+visita tarda hasta un minuto. Pasar a Starter son 7 dólares al mes.
 
 `servcontable_staging` es una copia completa de producción: mismo esquema con
 las migraciones nuevas aplicadas, y los 2756 registros restaurados desde el

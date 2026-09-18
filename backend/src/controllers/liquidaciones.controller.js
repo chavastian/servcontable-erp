@@ -5,6 +5,7 @@ const {
 const {
   obtenerSiguienteNumeroComprobante,
 } = require("../helpers/comprobante.helper");
+const { exigirPeriodoAbierto } = require("../helpers/periodo.helper");
 
 function calcularMonto(base, tasa) {
   return Math.round(Number(base || 0) * (Number(tasa || 0) / 100));
@@ -1092,27 +1093,71 @@ async function eliminarLiquidacion(req, res) {
     const estaContabilizada = Boolean(liquidacionActual.contabilizada);
 
     if (estaContabilizada && comprobanteId) {
+      // Las remuneraciones se contabilizan en un solo comprobante por periodo
+      // que cubre a todos los trabajadores. Antes, eliminar la liquidacion de
+      // una persona marcaba ese comprobante completo como eliminado y ademas
+      // desvinculaba en silencio a todas las demas liquidaciones del mes: la
+      // contabilidad de la nomina entera desaparecia sin aviso.
+      const companeras = await client.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM liquidaciones
+        WHERE empresa_id = $1
+          AND comprobante_id = $2
+          AND id <> $3
+          AND COALESCE(estado, 'vigente') <> 'eliminada'
+        `,
+        [empresa_id, comprobanteId, id]
+      );
+
+      const otras = Number(companeras.rows[0]?.total || 0);
+
+      if (otras > 0) {
+        await client.query("ROLLBACK");
+
+        return res.status(409).json({
+          error:
+            `Esta liquidacion esta contabilizada en un comprobante junto a ${otras} liquidacion(es) mas. ` +
+            "Para eliminarla hay que descontabilizar primero las remuneraciones del periodo, " +
+            "corregir y volver a contabilizar.",
+          comprobante_id: comprobanteId,
+          liquidaciones_en_el_comprobante: otras + 1,
+        });
+      }
+
+      // Es la unica del comprobante: se puede revertir sin afectar a nadie mas.
+      // Queda como anulado, no como eliminado, para que el asiento siga visible
+      // en los libros y en la auditoria con su motivo.
+      const comprobante = await client.query(
+        "SELECT fecha FROM comprobantes WHERE id = $1 AND empresa_id = $2 LIMIT 1",
+        [comprobanteId, empresa_id]
+      );
+
+      if (comprobante.rows.length > 0) {
+        await exigirPeriodoAbierto(client, empresa_id, comprobante.rows[0].fecha);
+      }
+
       await client.query(
         `
         UPDATE comprobantes
-        SET estado = 'eliminado'
+        SET estado = 'anulado'
         WHERE id = $1
           AND empresa_id = $2
-          AND COALESCE(estado, 'vigente') <> 'eliminado'
+          AND COALESCE(estado, 'vigente') = 'vigente'
         `,
         [comprobanteId, empresa_id]
       );
 
+      // Solo esta liquidacion se descontabiliza, no todas las del comprobante.
       await client.query(
         `
         UPDATE liquidaciones
         SET contabilizada = false,
             comprobante_id = NULL
-        WHERE empresa_id = $1
-          AND comprobante_id = $2
-          AND estado <> 'eliminada'
+        WHERE id = $1
+          AND empresa_id = $2
         `,
-        [empresa_id, comprobanteId]
+        [id, empresa_id]
       );
     }
 

@@ -34,7 +34,8 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Credenciales de Render y Cloudflare en variables de entorno de usuario (no en el repo).
 - [ ] Cerrar red de la base de datos en Render (solo IP del administrador). Hoy: `0.0.0.0/0`.
 - [x] Verificar respaldos en Render: PITR disponible desde 2026-09-15, sin exports. Falta programar export periódico y prueba de restauración (Fase 8).
-- [ ] Staging en Render (se mantiene Render, decidido 2026-09-18).
+- [x] Entorno paralelo en línea (2026-09-18): API `servcontablepro-api-staging.onrender.com` en plan gratuito, aplicación `servcontablepro-nueva.pages.dev`, y página de acceso `servcontablepro-acceso.pages.dev` con un botón por versión. Producción no se toca.
+- [x] Repositorio de trabajo público para que Render pueda clonarlo. Verificado antes: ningún secreto versionado, ni en el árbol ni en los 54 commits del historial.
 - [ ] `CLAUDE.md` y skills de Claude Code.
 
 ### Fase 1 — Base de datos reproducible  ✅ 2026-09-18

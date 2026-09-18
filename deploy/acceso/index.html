@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>ServContable PRO · Acceso</title>
+    <style>
+      :root {
+        --sc-primary: #0f4c81;
+        --sc-cyan: #13a8e8;
+        --sc-teal: #10b981;
+        --sc-ink: #0f172a;
+        --sc-fondo: #f3f8fc;
+        --sc-borde: #d7e3ee;
+        --sc-suave: #5b6b7d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px 16px 48px;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 14px;
+        color: var(--sc-ink);
+        background: var(--sc-fondo);
+        min-height: 100vh;
+      }
+
+      .envoltura {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+
+      .marca {
+        font-size: 22px;
+        font-weight: bold;
+        color: var(--sc-primary);
+        letter-spacing: 0.5px;
+      }
+
+      .marca span {
+        color: var(--sc-cyan);
+      }
+
+      header p {
+        color: var(--sc-suave);
+        margin: 8px 0 0;
+      }
+
+      .opciones {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 18px;
+      }
+
+      .tarjeta {
+        background: #fff;
+        border: 1px solid var(--sc-borde);
+        border-radius: 12px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 1px 3px rgba(15, 76, 129, 0.06);
+      }
+
+      .etiqueta {
+        display: inline-block;
+        align-self: flex-start;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        margin-bottom: 14px;
+      }
+
+      .etiqueta.produccion {
+        background: #e7f5ef;
+        color: #0b7a56;
+      }
+
+      .etiqueta.nueva {
+        background: #e6f3fb;
+        color: var(--sc-primary);
+      }
+
+      .tarjeta h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        color: var(--sc-primary);
+      }
+
+      .tarjeta p {
+        margin: 0 0 16px;
+        color: var(--sc-suave);
+        line-height: 1.5;
+      }
+
+      .detalle {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px;
+        font-size: 13px;
+        color: var(--sc-suave);
+      }
+
+      .detalle li {
+        padding: 5px 0;
+        border-bottom: 1px dashed var(--sc-borde);
+      }
+
+      .detalle li:last-child {
+        border-bottom: 0;
+      }
+
+      .boton {
+        margin-top: auto;
+        display: block;
+        text-align: center;
+        text-decoration: none;
+        font-weight: bold;
+        padding: 13px 18px;
+        border-radius: 8px;
+        color: #fff;
+        background: var(--sc-primary);
+      }
+
+      .boton.nueva {
+        background: var(--sc-cyan);
+      }
+
+      .boton:hover {
+        filter: brightness(0.93);
+      }
+
+      .credenciales {
+        margin-top: 14px;
+        background: var(--sc-fondo);
+        border: 1px dashed var(--sc-borde);
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 12.5px;
+        color: var(--sc-ink);
+      }
+
+      .credenciales strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--sc-primary);
+      }
+
+      .credenciales code {
+        background: #fff;
+        border: 1px solid var(--sc-borde);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 12.5px;
+      }
+
+      .aviso {
+        margin-top: 26px;
+        background: #fff8e6;
+        border: 1px solid #f0d9a0;
+        border-radius: 10px;
+        padding: 16px 18px;
+        color: #6b4e09;
+        line-height: 1.55;
+      }
+
+      .aviso strong {
+        color: #7a5a0a;
+      }
+
+      footer {
+        margin-top: 26px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--sc-suave);
+      }
+
+      @media (max-width: 520px) {
+        body {
+          padding-top: 22px;
+        }
+
+        .tarjeta {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="envoltura">
+      <header>
+        <div class="marca">SERVCONTABLE<span> PRO</span></div>
+        <p>Elige a qué versión quieres entrar</p>
+      </header>
+
+      <div class="opciones">
+        <section class="tarjeta">
+          <span class="etiqueta produccion">En uso</span>
+          <h2>Versión actual</h2>
+          <p>
+            La que usan hoy los clientes. Nada del trabajo en curso la toca: se
+            sigue usando igual que siempre.
+          </p>
+          <ul class="detalle">
+            <li>Datos reales de los clientes</li>
+            <li>Envía correos y procesa pagos de verdad</li>
+            <li>Siempre encendida</li>
+          </ul>
+          <a class="boton" href="https://app.servcontablepro.cl">Entrar a la versión actual</a>
+        </section>
+
+        <section class="tarjeta">
+          <span class="etiqueta nueva">En revisión</span>
+          <h2>Versión nueva</h2>
+          <p>
+            Lo que se está construyendo, con su propia base de datos. Sirve para
+            revisar los cambios sin riesgo para nadie.
+          </p>
+          <ul class="detalle">
+            <li>Base de datos aparte, copia de la real</li>
+            <li>No envía correos ni genera cobros</li>
+            <li>Primera visita: tarda hasta un minuto en despertar</li>
+          </ul>
+          <a class="boton nueva" href="https://servcontablepro-nueva.pages.dev">Entrar a la versión nueva</a>
+          <div class="credenciales">
+            <strong>Acceso de revisión</strong>
+            Usuario: <code>revision@servcontablepro.cl</code><br />
+            Contraseña: <code>RevisionNueva2026</code>
+          </div>
+        </section>
+      </div>
+
+      <div class="aviso">
+        <strong>Por qué la versión nueva no manda correos ni cobra.</strong>
+        Tiene una copia de los datos reales, así que si pudiera enviar correos
+        los clientes recibirían avisos de un entorno de pruebas, y si pudiera
+        cobrar generaría órdenes de pago verdaderas. Se dejó sin credenciales de
+        correo ni de Flow a propósito.
+      </div>
+
+      <footer>Página interna de acceso · ServContable PRO</footer>
+    </div>
+  </body>
+</html>
