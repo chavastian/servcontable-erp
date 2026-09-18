@@ -300,8 +300,11 @@ async function registrarPagoRemuneracion(req, res) {
 
     console.error("Error al registrar pago remuneración:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al registrar pago remuneración",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al registrar pago remuneración",
     });
   } finally {
     client.release();

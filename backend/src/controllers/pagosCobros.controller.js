@@ -1,4 +1,4 @@
-﻿const pool = require("../database/db");
+const pool = require("../database/db");
 
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const {
@@ -1076,7 +1076,8 @@ async function registrarPagoCobro(req, res) {
     console.error("Error al registrar pago/cobro:", error);
 
     return res.status(error.statusCode || 500).json({
-      error: error.message || "Error interno al registrar pago/cobro",
+      // El mensaje de PostgreSQL no vuelve al cliente.
+      error: error.statusCode ? error.message : "Error interno al registrar pago/cobro",
     });
   } finally {
     client.release();

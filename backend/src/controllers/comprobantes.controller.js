@@ -7,6 +7,7 @@ const {
 } = require("../helpers/comprobante.helper");
 const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
 const { usuarioPuedeAccederEmpresa } = require("../helpers/auth.helper");
+const { exigirPeriodoAbierto } = require("../helpers/periodo.helper");
 
 async function crearComprobante(req, res) {
   const client = await pool.connect();
@@ -132,7 +133,8 @@ async function crearComprobante(req, res) {
     }
 
     return res.status(error.statusCode || 500).json({
-      error: error.message || "Error interno al crear comprobante",
+      // El mensaje de PostgreSQL no vuelve al cliente.
+      error: error.statusCode ? error.message : "Error interno al crear comprobante",
     });
   } finally {
     client.release();
@@ -357,6 +359,13 @@ async function actualizarComprobante(req, res) {
       [id, empresa_id]
     );
 
+    // Se revisan las dos fechas: no se puede sacar un asiento de un ejercicio
+    // cerrado ni meterlo en uno.
+    if (existe.rows.length > 0) {
+      await exigirPeriodoAbierto(client, empresa_id, existe.rows[0].fecha);
+      await exigirPeriodoAbierto(client, empresa_id, fecha);
+    }
+
     if (existe.rows.length === 0) {
       await client.query("ROLLBACK");
       return res.status(404).json({
@@ -483,7 +492,8 @@ async function actualizarComprobante(req, res) {
     }
 
     return res.status(error.statusCode || 500).json({
-      error: error.message || "Error interno al actualizar comprobante",
+      // El mensaje de PostgreSQL no vuelve al cliente.
+      error: error.statusCode ? error.message : "Error interno al actualizar comprobante",
     });
   } finally {
     client.release();
@@ -515,6 +525,10 @@ async function anularComprobante(req, res) {
       `,
       [id, empresa_id]
     );
+
+    if (comprobanteResult.rows.length > 0) {
+      await exigirPeriodoAbierto(client, empresa_id, comprobanteResult.rows[0].fecha);
+    }
 
     if (comprobanteResult.rows.length === 0) {
       await client.query("ROLLBACK");
@@ -615,8 +629,10 @@ async function anularComprobante(req, res) {
     await client.query("ROLLBACK");
     console.error("Error al eliminar comprobante:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al eliminar comprobante",
+    return res.status(error.statusCode || 500).json({
+      error: error.statusCode
+        ? error.message
+        : "Error interno al eliminar comprobante",
     });
   } finally {
     client.release();

@@ -103,8 +103,11 @@ async function crearRegistro(req, res) {
   } catch (error) {
     console.error("Error al crear vacaciones/ausencias:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al crear registro",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al crear registro",
     });
   }
 }
@@ -218,8 +221,11 @@ async function listarRegistros(req, res) {
   } catch (error) {
     console.error("Error al listar vacaciones/ausencias:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al listar registros",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al listar registros",
     });
   }
 }
@@ -267,8 +273,11 @@ async function obtenerResumenTrabajador(req, res) {
   } catch (error) {
     console.error("Error al obtener resumen trabajador:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al obtener resumen",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al obtener resumen",
     });
   }
 }
@@ -309,8 +318,11 @@ async function eliminarRegistro(req, res) {
   } catch (error) {
     console.error("Error al eliminar vacaciones/ausencias:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al eliminar registro",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al eliminar registro",
     });
   }
 }

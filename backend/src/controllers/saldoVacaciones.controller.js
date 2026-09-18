@@ -203,8 +203,11 @@ async function obtenerSaldoVacaciones(req, res) {
   } catch (error) {
     console.error("Error al obtener saldo de vacaciones:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al obtener saldo de vacaciones",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al obtener saldo de vacaciones",
     });
   }
 }
@@ -278,8 +281,11 @@ async function obtenerHistorialVacacionesTrabajador(req, res) {
   } catch (error) {
     console.error("Error al obtener historial de vacaciones:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al obtener historial",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al obtener historial",
     });
   }
 }

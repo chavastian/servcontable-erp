@@ -12,6 +12,10 @@ const {
 const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
 
 const { parse } = require("csv-parse/sync");
+const {
+  recorrerFilas,
+  resumirImportacion,
+} = require("../helpers/importacion.helper");
 
 const {
   convertirFechaSII,
@@ -275,7 +279,8 @@ async function crearCompra(req, res) {
     console.error("Error al crear compra:", error);
 
     return res.status(error.statusCode || 500).json({
-      error: error.message || "Error interno al crear compra",
+      // El mensaje de PostgreSQL no vuelve al cliente.
+      error: error.statusCode ? error.message : "Error interno al crear compra",
     });
   } finally {
     client.release();
@@ -458,16 +463,21 @@ async function importarComprasSII(req, res) {
     let actualizadas = 0;
     let omitidas = 0;
     let comprobantesCreados = 0;
-    const errores = [];
-
-    for (const fila of registros) {
-      try {
+    // Situaciones que no impiden importar la fila pero el usuario debe saber.
+    const avisos = [];
+    // Un punto de guardado por fila. Antes un solo documento con problemas
+    // abortaba la transaccion entera y el COMMIT final se volvia un ROLLBACK
+    // silencioso, mientras la respuesta informaba las filas como insertadas.
+    const { errores } = await recorrerFilas(
+      client,
+      registros,
+      async (fila) => {
         const siiTipoDoc = String(fila["Tipo Doc"] || "").trim();
         const folio = String(fila["Folio"] || "").trim();
 
         if (!folio || !siiTipoDoc) {
-          omitidas++;
-          continue;
+          omitidas += 1;
+          return null;
         }
 
         const rutProveedorNormalizado = normalizarRutDocumento(
@@ -478,9 +488,9 @@ async function importarComprasSII(req, res) {
         const fecha = convertirFechaSII(fila["Fecha Docto"]);
 
         if (!fecha) {
-          errores.push(`Folio ${folio}: fecha invalida`);
-          omitidas++;
-          continue;
+          const error = new Error("fecha invalida");
+          error.esValidacion = true;
+          throw error;
         }
 
         const periodoCompra = periodo || obtenerPeriodoDesdeFecha(fecha);
@@ -503,8 +513,8 @@ async function importarComprasSII(req, res) {
           Number(otrosImpuestos) > 0 && !cuentaOtrosImpuestosConfig;
 
         if (faltaCuentaOtrosImpuestos) {
-          errores.push(
-            `Folio ${folio}: se importo con otros impuestos, pero falta configurar su cuenta contable en Configuracion Contable para generar/actualizar comprobante`
+          avisos.push(
+            `Folio ${folio}: se importo con otros impuestos, pero falta configurar su cuenta contable en Configuracion Contable para generar o actualizar el comprobante`
           );
         }
 
@@ -519,6 +529,54 @@ async function importarComprasSII(req, res) {
         );
 
         if (existe.rows.length > 0) {
+          const compraPrevia = existe.rows[0];
+
+          // Un documento anulado no se resucita ni recibe un asiento nuevo.
+          if (String(compraPrevia.estado || "vigente") !== "vigente") {
+            omitidas += 1;
+            return null;
+          }
+
+          // Si el archivo no trae montos distintos, el documento no se toca.
+          // Eso deja intactas las correcciones manuales de razon social o RUT,
+          // y evita reconstruir el comprobante: reconstruirlo borra y reescribe
+          // las lineas del asiento, perdiendo cualquier ajuste del contador.
+          const mismosMontos =
+            Number(compraPrevia.neto) === Number(neto) &&
+            Number(compraPrevia.exento) === Number(exento) &&
+            Number(compraPrevia.iva_credito) === Number(ivaCredito) &&
+            Number(compraPrevia.iva_no_recuperable) === Number(ivaNoRecuperable) &&
+            Number(compraPrevia.otros_impuestos || 0) === Number(otrosImpuestos) &&
+            Number(compraPrevia.total) === Number(total);
+
+          if (mismosMontos) {
+            omitidas += 1;
+
+            // Lo unico que si falta completar: el asiento, si nunca se genero.
+            if (
+              generarComprobante &&
+              !faltaCuentaOtrosImpuestos &&
+              !compraPrevia.comprobante_id
+            ) {
+              const comprobanteNuevo = await crearComprobanteAutomaticoCompra(
+                client,
+                compraPrevia,
+                configuracion
+              );
+
+              await client.query(
+                `UPDATE compras
+                 SET comprobante_id = $1
+                 WHERE id = $2`,
+                [comprobanteNuevo.id, compraPrevia.id]
+              );
+
+              comprobantesCreados += 1;
+            }
+
+            return null;
+          }
+
           const compraActualizadaResult = await client.query(
             `UPDATE compras
              SET
@@ -554,7 +612,7 @@ async function importarComprasSII(req, res) {
           );
 
           const compraExistente = compraActualizadaResult.rows[0];
-          actualizadas++;
+          actualizadas += 1;
 
           if (generarComprobante && !faltaCuentaOtrosImpuestos) {
             if (compraExistente.comprobante_id) {
@@ -596,7 +654,7 @@ async function importarComprasSII(req, res) {
             }
           }
 
-          continue;
+          return compraExistente;
         }
 
         const compraResult = await client.query(
@@ -628,7 +686,7 @@ async function importarComprasSII(req, res) {
         );
 
         const compra = compraResult.rows[0];
-        insertadas++;
+        insertadas += 1;
 
           if (generarComprobante && !faltaCuentaOtrosImpuestos) {
             const comprobante = await crearComprobanteAutomaticoCompra(
@@ -644,15 +702,17 @@ async function importarComprasSII(req, res) {
             [comprobante.id, compra.id]
           );
 
-          comprobantesCreados++;
+          comprobantesCreados += 1;
         }
-      } catch (errorFila) {
-        errores.push(
-          `Folio ${fila["Folio"] || "sin folio"}: ${errorFila.message}`
-        );
-        omitidas++;
+
+        return compra;
+      },
+      {
+        identificarFila: (fila) => `Folio ${fila["Folio"] || "sin folio"}`,
       }
-    }
+    );
+
+    errores.push(...avisos);
 
     await registrarAuditoria({
       client,
@@ -676,20 +736,25 @@ async function importarComprasSII(req, res) {
 
     return res.json({
       mensaje: "Importacion de compras SII finalizada",
-      total_filas: registros.length,
-      insertadas,
-      actualizadas,
-      omitidas,
-      comprobantes_creados: comprobantesCreados,
-      errores,
+      ...resumirImportacion({
+        totalFilas: registros.length,
+        insertadas,
+        actualizadas,
+        omitidas,
+        comprobantesCreados,
+        errores,
+      }),
     });
   } catch (error) {
     await client.query("ROLLBACK");
 
     console.error("Error al importar compras SII:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al importar compras SII",
+    // El mensaje crudo de PostgreSQL no vuelve al cliente.
+    return res.status(error.statusCode || 500).json({
+      error: error.statusCode
+        ? error.message
+        : "Error interno al importar compras SII",
     });
   } finally {
     client.release();

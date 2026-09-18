@@ -91,8 +91,13 @@ test("comprobante automatico de venta traspasa folio y RUT auxiliar al cliente",
         return { rows: [{ id: 77, numero: 7, tipo: "Venta" }] };
       }
 
-      if (texto.includes("SELECT empresa_id FROM comprobantes")) {
-        return { rows: [{ empresa_id: empresaId }] };
+      if (texto.includes("SELECT empresa_id, fecha FROM comprobantes")) {
+        return { rows: [{ empresa_id: empresaId, fecha: "2026-09-15" }] };
+      }
+
+      // Sin ejercicio registrado para ese ano, el periodo no se bloquea.
+      if (texto.includes("FROM ejercicios_contables")) {
+        return { rows: [] };
       }
 
       if (texto.includes("FROM plan_cuentas WHERE id = ANY")) {
@@ -163,8 +168,12 @@ test("no se escribe el asiento si una cuenta es de otra empresa", async () => {
         return { rows: [{ id: 77, numero: 7, tipo: "Venta" }] };
       }
 
-      if (texto.includes("SELECT empresa_id FROM comprobantes")) {
-        return { rows: [{ empresa_id: 10 }] };
+      if (texto.includes("SELECT empresa_id, fecha FROM comprobantes")) {
+        return { rows: [{ empresa_id: 10, fecha: "2026-09-15" }] };
+      }
+
+      if (texto.includes("FROM ejercicios_contables")) {
+        return { rows: [] };
       }
 
       if (texto.includes("FROM plan_cuentas WHERE id = ANY")) {

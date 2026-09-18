@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { exigirPeriodoAbierto } = require("./periodo.helper");
 
 const {
   normalizarRutDocumentoOpcional,
@@ -246,7 +247,7 @@ async function insertarDetallesComprobante(client, comprobanteId, detalles = [])
   }
 
   const duenoComprobante = await client.query(
-    "SELECT empresa_id FROM comprobantes WHERE id = $1 LIMIT 1",
+    "SELECT empresa_id, fecha FROM comprobantes WHERE id = $1 LIMIT 1",
     [comprobanteId]
   );
 
@@ -257,6 +258,11 @@ async function insertarDetallesComprobante(client, comprobanteId, detalles = [])
   }
 
   const empresaId = Number(duenoComprobante.rows[0].empresa_id);
+
+  // Un ejercicio cerrado no admite asientos nuevos. La comprobacion vive aca,
+  // en el punto por donde pasan todas las lineas contables, para que ninguna
+  // ruta pueda escribir en un periodo firme.
+  await exigirPeriodoAbierto(client, empresaId, duenoComprobante.rows[0].fecha);
   const cuentas = [...new Set(conMonto.map((detalle) => Number(detalle.cuenta_id)))];
 
   if (cuentas.some((cuenta) => !Number.isInteger(cuenta) || cuenta <= 0)) {

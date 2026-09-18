@@ -1,4 +1,4 @@
-﻿const { parse } = require("csv-parse/sync");
+const { parse } = require("csv-parse/sync");
 const zlib = require("zlib");
 
 const pool = require("../database/db");
@@ -209,7 +209,9 @@ async function listarBoletas(req, res) {
     res.json({ boletas: resultado.rows });
   } catch (error) {
     console.error("Error al listar boletas:", error);
-    res.status(500).json({ error: error.message || "Error al listar boletas" });
+    res.status(error.statusCode || 500).json({
+      error: error.statusCode ? error.message : "Error al listar boletas",
+    });
   }
 }
 
@@ -485,8 +487,11 @@ async function importarBoletasSII(req, res) {
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     console.error("Error al importar boletas:", error);
-    res.status(500).json({
-      error: error.message || "Error al importar boletas",
+    res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error al importar boletas",
     });
   } finally {
     client.release();

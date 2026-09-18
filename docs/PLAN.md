@@ -74,13 +74,18 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Límite de 1 MB al cuerpo JSON.
 - [ ] Validación por esquema con `zod` en cada endpoint. `zod` ya está instalado; se aplica junto con la Fase 4, donde se tocan los mismos controladores.
 
-### Fase 4 — Integridad contable
-- Contador de numeración por empresa y tipo con bloqueo.
-- Bloqueo de período cerrado en todos los write paths.
-- Reversas en lugar de anulación en cascada; conservar vínculo documento-asiento.
-- Línea de exento en asientos automáticos; signo de notas de crédito (REQUIERE VALIDACIÓN CONTABLE/TRIBUTARIA).
-- Importaciones idempotentes con savepoints y clave natural (empresa, tipo SII, folio, RUT).
-- Enteros para CLP; `createdBy/updatedBy`; auditoría append-only.
+### Fase 4 — Integridad contable  🔄 en curso
+- [x] **C6** Importaciones con punto de guardado por fila. Antes, si la fila 51 fallaba, PostgreSQL abortaba la transacción, el `COMMIT` final se volvía un `ROLLBACK` y la respuesta informaba 50 filas insertadas que nunca existieron. Seis pruebas nuevas contra base real.
+- [x] La respuesta de una importación ahora informa lo que de verdad quedó guardado, con resultado `completa`, `parcial` o `sin_cambios`.
+- [x] **A15** Reimportar no pisa correcciones manuales ni reconstruye el asiento si los montos no cambiaron, y un documento anulado no revive ni recibe un asiento nuevo.
+- [x] **A2** Ejercicio cerrado bloquea escrituras. El control vive en el punto por donde pasan todas las líneas contables, más la modificación y la anulación de comprobantes. Seis pruebas.
+- [x] **A8** Ya resuelto: una sola implementación de numeración, con bloqueo por transacción.
+- [x] **A9** Ya resuelto: el asiento de venta abona el exento.
+- [x] **A16** 47 puntos donde el mensaje crudo de PostgreSQL volvía al cliente. Ahora los errores de validación conservan su código y mensaje, y el resto responde un texto genérico.
+- [ ] **A10** Signo de las notas de crédito en IVA, F29, libros y dashboards. REQUIERE VALIDACIÓN CONTABLE/TRIBUTARIA antes de tocarlo.
+- [ ] **A18** Reversas en lugar de anulación en cascada: eliminar una liquidación contabilizada anula el comprobante completo del período.
+- [ ] Enteros para CLP, `creado_por` y `actualizado_por`, auditoría solo de agregado.
+- [ ] Validación por esquema con `zod` en los endpoints de escritura.
 
 ### Fase 5 — Suscripciones, cobranza y bloqueo
 Diseño sobre lo existente (`subscriptions`, `subscription_settings`, middleware 402):

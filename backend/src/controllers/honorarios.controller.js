@@ -109,7 +109,8 @@ async function crearHonorario(req, res) {
     }
 
     return res.status(error.statusCode || 500).json({
-      error: error.message || "Error interno al crear honorario",
+      // El mensaje de PostgreSQL no vuelve al cliente.
+      error: error.statusCode ? error.message : "Error interno al crear honorario",
     });
   }
 }
@@ -338,8 +339,11 @@ async function contabilizarHonorario(req, res) {
 
     console.error("Error al contabilizar honorario:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al contabilizar honorario",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al contabilizar honorario",
     });
   } finally {
     client.release();

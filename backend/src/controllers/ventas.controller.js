@@ -5,6 +5,10 @@ const {
 
 const { parse } = require("csv-parse/sync");
 const {
+  recorrerFilas,
+  resumirImportacion,
+} = require("../helpers/importacion.helper");
+const {
   convertirFechaSII,
   convertirNumeroSII,
   obtenerPeriodoDesdeFecha,
@@ -174,7 +178,8 @@ async function crearVenta(req, res) {
     console.error("Error al crear venta:", error);
 
     return res.status(error.statusCode || 500).json({
-      error: error.message || "Error interno al crear venta",
+      // El mensaje de PostgreSQL no vuelve al cliente.
+      error: error.statusCode ? error.message : "Error interno al crear venta",
     });
   } finally {
     client.release();
@@ -341,18 +346,24 @@ async function importarVentasSII(req, res) {
     await client.query("BEGIN");
 
     let insertadas = 0;
+    let actualizadas = 0;
     let omitidas = 0;
     let comprobantesCreados = 0;
-    const errores = [];
 
-    for (const fila of registros) {
-      try {
+    // Un punto de guardado por fila: un documento con problemas revierte solo
+    // esa fila. Antes el primer error abortaba la transaccion completa y el
+    // COMMIT final se volvia un ROLLBACK, pero la respuesta informaba las
+    // filas como insertadas.
+    const { errores } = await recorrerFilas(
+      client,
+      registros,
+      async (fila) => {
         const siiTipoDoc = String(fila["Tipo Doc"] || "").trim();
         const folio = String(fila["Folio"] || "").trim();
 
         if (!folio || !siiTipoDoc) {
-          omitidas++;
-          continue;
+          omitidas += 1;
+          return null;
         }
 
         const rutClienteNormalizado = normalizarRutDocumento(
@@ -363,9 +374,9 @@ async function importarVentasSII(req, res) {
         const fecha = convertirFechaSII(fila["Fecha Docto"]);
 
         if (!fecha) {
-          errores.push(`Folio ${folio}: fecha inválida`);
-          omitidas++;
-          continue;
+          const error = new Error("fecha invalida");
+          error.esValidacion = true;
+          throw error;
         }
 
         const periodoVenta = periodo || obtenerPeriodoDesdeFecha(fecha);
@@ -381,23 +392,39 @@ async function importarVentasSII(req, res) {
         );
 
         if (existe.rows.length > 0) {
-          const ventaActualizadaResult = await client.query(
-            `
-            UPDATE ventas
-            SET rut_cliente = $1,
-                razon_social_cliente = $2
-            WHERE id = $3
-            RETURNING *
-            `,
-            [rutClienteNormalizado, razonSocialCliente, existe.rows[0].id]
-          );
+          const ventaExistente = existe.rows[0];
 
-          const ventaExistente = ventaActualizadaResult.rows[0];
+          // Un documento anulado no se resucita ni recibe un asiento nuevo.
+          if (String(ventaExistente.estado || "vigente") !== "vigente") {
+            omitidas += 1;
+            return null;
+          }
+
+          // Reimportar no pisa lo que el usuario corrigio a mano: solo se
+          // completan los datos que estan vacios. Antes el RUT y la razon
+          // social del archivo sobreescribian siempre la edicion manual.
+          const necesitaCompletar =
+            (!ventaExistente.rut_cliente && rutClienteNormalizado) ||
+            (!ventaExistente.razon_social_cliente && razonSocialCliente);
+
+          if (necesitaCompletar) {
+            await client.query(
+              `UPDATE ventas
+               SET rut_cliente = COALESCE(NULLIF(rut_cliente, ''), $1),
+                   razon_social_cliente = COALESCE(NULLIF(razon_social_cliente, ''), $2)
+               WHERE id = $3`,
+              [rutClienteNormalizado, razonSocialCliente, ventaExistente.id]
+            );
+
+            actualizadas += 1;
+          } else {
+            omitidas += 1;
+          }
 
           if (generarComprobante && !ventaExistente.comprobante_id) {
             const comprobante = await crearComprobanteAutomaticoVenta(
               client,
-              ventaExistente,
+              { ...ventaExistente, rut_cliente: ventaExistente.rut_cliente || rutClienteNormalizado },
               configuracion
             );
 
@@ -408,11 +435,10 @@ async function importarVentasSII(req, res) {
               [comprobante.id, ventaExistente.id]
             );
 
-            comprobantesCreados++;
+            comprobantesCreados += 1;
           }
 
-          omitidas++;
-          continue;
+          return null;
         }
 
         const neto = convertirNumeroSII(fila["Monto Neto"]);
@@ -445,7 +471,7 @@ async function importarVentasSII(req, res) {
         );
 
         const venta = ventaResult.rows[0];
-        insertadas++;
+        insertadas += 1;
 
         if (generarComprobante) {
           const comprobante = await crearComprobanteAutomaticoVenta(
@@ -461,31 +487,39 @@ async function importarVentasSII(req, res) {
             [comprobante.id, venta.id]
           );
 
-          comprobantesCreados++;
+          comprobantesCreados += 1;
         }
-      } catch (errorFila) {
-        errores.push(`Folio ${fila["Folio"] || "sin folio"}: ${errorFila.message}`);
-        omitidas++;
+
+        return venta;
+      },
+      {
+        identificarFila: (fila) => `Folio ${fila["Folio"] || "sin folio"}`,
       }
-    }
+    );
 
     await client.query("COMMIT");
 
     return res.json({
       mensaje: "Importación de ventas SII finalizada",
-      total_filas: registros.length,
-      insertadas,
-      omitidas,
-      comprobantes_creados: comprobantesCreados,
-      errores,
+      ...resumirImportacion({
+        totalFilas: registros.length,
+        insertadas,
+        actualizadas,
+        omitidas,
+        comprobantesCreados,
+        errores,
+      }),
     });
   } catch (error) {
     await client.query("ROLLBACK");
 
     console.error("Error al importar ventas SII:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al importar ventas SII",
+    // El mensaje crudo de PostgreSQL no vuelve al cliente.
+    return res.status(error.statusCode || 500).json({
+      error: error.statusCode
+        ? error.message
+        : "Error interno al importar ventas SII",
     });
   } finally {
     client.release();

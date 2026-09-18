@@ -138,7 +138,9 @@ async function listarMovimientos(req, res) {
     res.json({ movimientos, totales });
   } catch (error) {
     console.error("Error al listar conciliacion bancaria:", error);
-    res.status(500).json({ error: error.message || "Error al listar conciliacion bancaria" });
+    res.status(error.statusCode || 500).json({
+      error: error.statusCode ? error.message : "Error al listar conciliacion bancaria",
+    });
   }
 }
 
@@ -279,7 +281,9 @@ async function importarCartola(req, res) {
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     console.error("Error al importar cartola bancaria:", error);
-    res.status(500).json({ error: error.message || "Error al importar cartola bancaria" });
+    res.status(error.statusCode || 500).json({
+      error: error.statusCode ? error.message : "Error al importar cartola bancaria",
+    });
   } finally {
     client.release();
   }
@@ -328,7 +332,9 @@ async function actualizarEstado(req, res) {
     res.json({ movimiento: resultado.rows[0] });
   } catch (error) {
     console.error("Error al actualizar conciliacion bancaria:", error);
-    res.status(500).json({ error: error.message || "Error al actualizar conciliacion bancaria" });
+    res.status(error.statusCode || 500).json({
+      error: error.statusCode ? error.message : "Error al actualizar conciliacion bancaria",
+    });
   }
 }
 

@@ -1,4 +1,4 @@
-﻿const pool = require("../database/db");
+const pool = require("../database/db");
 
 const {
   calcularVacacionesPendientesFiniquito,
@@ -304,8 +304,11 @@ async function crearFiniquito(req, res) {
   } catch (error) {
     console.error("Error al crear finiquito:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al crear finiquito",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al crear finiquito",
     });
   }
 }
@@ -384,8 +387,11 @@ async function listarFiniquitos(req, res) {
   } catch (error) {
     console.error("Error al listar finiquitos:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al listar finiquitos",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al listar finiquitos",
     });
   }
 }
@@ -444,8 +450,11 @@ async function obtenerFiniquito(req, res) {
   } catch (error) {
     console.error("Error al obtener finiquito:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al obtener finiquito",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al obtener finiquito",
     });
   }
 }
@@ -486,8 +495,11 @@ async function eliminarFiniquito(req, res) {
   } catch (error) {
     console.error("Error al eliminar finiquito:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al eliminar finiquito",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al eliminar finiquito",
     });
   }
 }
@@ -746,8 +758,11 @@ async function contabilizarFiniquito(req, res) {
 
     console.error("Error al contabilizar finiquito:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al contabilizar finiquito",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al contabilizar finiquito",
     });
   } finally {
     client.release();
@@ -944,8 +959,11 @@ async function pagarFiniquito(req, res) {
 
     console.error("Error al pagar finiquito:", error);
 
-    return res.status(500).json({
-      error: error.message || "Error interno al pagar finiquito",
+    return res.status(error.statusCode || 500).json({
+      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
+      // columnas y restricciones. Los errores de validacion propios
+      // si conservan su mensaje y su codigo.
+      error: error.statusCode ? error.message : "Error interno al pagar finiquito",
     });
   } finally {
     client.release();

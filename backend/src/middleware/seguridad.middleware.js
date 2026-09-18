@@ -11,7 +11,12 @@
  */
 
 const helmet = require("helmet");
+// ipKeyGenerator normaliza la IP antes de usarla como clave. Con IPv6 cada
+// cliente suele tener un rango completo a su disposicion, asi que contar por
+// direccion exacta permitiria una direccion nueva por intento y burlar el
+// limite. El ayudante agrupa por prefijo /64.
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 
 const MINUTO = 60 * 1000;
 
@@ -62,8 +67,8 @@ function crearLimitador({ ventanaMinutos, maximo, mensaje, porCorreo = false }) 
     legacyHeaders: false,
     // En pruebas los limites estorban.
     skip: () => process.env.NODE_ENV === "test",
-    keyGenerator: (req) => {
-      const ip = req.ip || req.socket?.remoteAddress || "sin-ip";
+    keyGenerator: (req, res) => {
+      const ip = ipKeyGenerator(req.ip || req.socket?.remoteAddress || "sin-ip", res);
 
       if (!porCorreo) {
         return ip;
