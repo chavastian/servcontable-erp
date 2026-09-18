@@ -29,3 +29,13 @@ Thumbs.db
 # Archivos temporales
 tmp_*
 *.tmp
+
+# Paquetes generados y copias del sistema (no versionar)
+ServContable-PRO-Online/
+*.zip
+
+# Cache de Cloudflare Wrangler
+.wrangler/
+
+# Coverage / tests
+coverage/
