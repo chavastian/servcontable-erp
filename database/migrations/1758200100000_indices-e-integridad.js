@@ -2,8 +2,8 @@
  * Indices de rendimiento e integridad que faltaban en el esquema heredado.
  *
  * Todo es aditivo e idempotente. No borra datos ni cambia tipos.
- * Verificado antes de escribirla: no hay duplicados en produccion que
- * impidan las restricciones unicas que se crean aca.
+ * Probada restaurando el respaldo de produccion en una base limpia: los unicos
+ * que se crean aca no chocan con ningun dato existente.
  */
 
 exports.shorthands = undefined;
@@ -117,11 +117,15 @@ exports.up = async (pgm) => {
     );
   }
 
-  // El RUT de empresa es la identidad tributaria: no puede repetirse.
+  // El RUT de empresa es la identidad tributaria: no puede repetirse entre
+  // empresas activas. Se limita a las activas a proposito: en produccion hay
+  // una empresa duplicada con el RUT escrito de dos formas (77.964.779-k y
+  // 77964779-K), una de ellas ya desactivada. El indice impide crear nuevos
+  // duplicados sin obligar a tocar datos historicos del cliente.
   pgm.sql(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_empresas_rut
+    `CREATE UNIQUE INDEX IF NOT EXISTS uq_empresas_rut_activas
      ON empresas (UPPER(REPLACE(REPLACE(rut, '.', ''), ' ', '')))
-     WHERE rut IS NOT NULL AND rut <> ''`
+     WHERE rut IS NOT NULL AND rut <> '' AND activa = true`
   );
 
   // Idempotencia de cobros: una orden de Flow activa una sola suscripcion.
@@ -154,7 +158,7 @@ exports.down = (pgm) => {
     pgm.sql(`DROP INDEX IF EXISTS ${nombreIndice(tabla, columnas)}`);
   }
 
-  pgm.sql("DROP INDEX IF EXISTS uq_empresas_rut");
+  pgm.sql("DROP INDEX IF EXISTS uq_empresas_rut_activas");
   pgm.sql("DROP INDEX IF EXISTS uq_contrataciones_web_flow_order");
   pgm.sql("DROP INDEX IF EXISTS uq_subscription_payments_proveedor_transaccion");
   pgm.sql("DROP INDEX IF EXISTS uq_subscription_notifications_evento_dia");
