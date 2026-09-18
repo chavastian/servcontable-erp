@@ -23,7 +23,7 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
   - `ervcontablepro-demo` → `demo.servcontablepro.cl`. `frontend/`, `npm run build:demo`, `VITE_DEMO_MODE=true`.
   - API pública en `api.servcontablepro.cl` (Render).
 - Dominios `servcontablepro.cl` y `servcontable.cl` tienen correos y cuentas en uso: no se tocan registros DNS de correo ni cuentas. El token de Cloudflare solo tiene permiso sobre Pages.
-- Firebase: no requerido. Opcional a futuro: Firebase Auth para MFA/Google.
+- Firebase: decisión 2026-09-18. Render se mantiene como hosting de API y base de datos. Firebase solo para autenticación y similares (MFA, login con Google) o lo que no sea posible en Render. Se creará un proyecto de Firebase nuevo bajo la misma cuenta de los proyectos Kryva, nunca reutilizar los existentes.
 
 ## Fases
 
@@ -34,7 +34,7 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Credenciales de Render y Cloudflare en variables de entorno de usuario (no en el repo).
 - [ ] Cerrar red de la base de datos en Render (solo IP del administrador). Hoy: `0.0.0.0/0`.
 - [x] Verificar respaldos en Render: PITR disponible desde 2026-09-15, sin exports. Falta programar export periódico y prueba de restauración (Fase 8).
-- [ ] Staging en Render.
+- [ ] Staging en Render (se mantiene Render, decidido 2026-09-18).
 - [ ] `CLAUDE.md` y skills de Claude Code.
 
 ### Fase 1 — Base de datos reproducible
