@@ -57,6 +57,7 @@ const cierreMensualRoutes = require("./routes/cierreMensual.routes");
 const calendarioTributarioRoutes = require("./routes/calendarioTributario.routes");
 const flujoCajaRoutes = require("./routes/flujoCaja.routes");
 const sugerenciasCuentaRoutes = require("./routes/sugerenciasCuenta.routes");
+const f29Routes = require("./routes/f29.routes");
 
 
 const app = express();
@@ -173,6 +174,7 @@ app.use("/api/cierre-mensual", cierreMensualRoutes);
 app.use("/api/calendario-tributario", calendarioTributarioRoutes);
 app.use("/api/flujo-caja", flujoCajaRoutes);
 app.use("/api/sugerencias-cuenta", sugerenciasCuentaRoutes);
+app.use("/api/f29", f29Routes);
 
 app.use(rutaNoEncontrada);
 app.use(manejadorDeErrores);

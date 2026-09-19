@@ -398,11 +398,14 @@ test("mas de once anos de contrato indefinido: solo 0,8% del empleador", async (
   assert.equal(Number(c.tasa_afc_empleador), 0.8);
 });
 
-test("sin tramos de impuesto unico, un sueldo sobre 13,5 UTM no se puede liquidar", async () => {
+test("sin tramos de la empresa pero con UTM, el impuesto unico sale de la tabla legal", async () => {
+  // Bloque 3: con la UTM del periodo conocida ya no hace falta que la empresa
+  // cargue tramos; la tabla legal en UTM decide. Sin UTM seguiria siendo 409.
   const { status, datos } = await enviar("/api/liquidaciones/calcular", liquidacion(ctx.trabRico));
 
-  assert.equal(status, 409, JSON.stringify(datos).slice(0, 200));
-  assert.match(datos.error, /tramos/i);
+  assert.equal(status, 200, JSON.stringify(datos).slice(0, 200));
+  assert.ok(Number(datos.calculo.impuesto_unico) > 0, "3.000.000 paga impuesto unico");
+  assert.ok(JSON.stringify(datos).includes("tabla legal"));
 });
 
 // ---------------------------------------------------------------------------

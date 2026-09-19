@@ -1,466 +1,389 @@
-import { useEffect, useState } from "react";
+/**
+ * Resumen F29 del período y registro del formulario presentado.
+ *
+ * Todo lo que se muestra lo calcula el servidor con una sola función, la misma
+ * que usan el control de remanente y el cierre mensual. La tasa de PPM sale de
+ * la configuración contable de la empresa, no de un campo de esta pantalla:
+ * antes se digitaba aquí y no se guardaba.
+ *
+ * Registrar el F29 presentado (folio, fecha, monto) fija el remanente en UTM
+ * para el mes siguiente y deja contra qué comparar en el cierre mensual.
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
-import { obtenerResumenF29 } from "../services/resumenF29Service";
-import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
-import { EstadoCargando } from "../components/EstadoPantalla";
+import { obtenerF29, registrarF29Presentada } from "../services/f29Service";
+import { obtenerPeriodoAnterior, obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
+import EstadoPantalla from "../components/EstadoPantalla";
+import { estilos, pesos, numero, fechaCorta } from "../utils/estilosAsistentes";
+
+function Fila({ etiqueta, valor, fuerte = false, nota = "" }) {
+  return (
+    <tr>
+      <td style={fuerte ? { ...estilos.td, fontWeight: "bold" } : estilos.td}>
+        {etiqueta}
+        {nota ? (
+          <>
+            <br />
+            <span style={{ fontSize: 11.5, color: "var(--sc-muted)" }}>{nota}</span>
+          </>
+        ) : null}
+      </td>
+      <td style={fuerte ? { ...estilos.tdNumero, fontWeight: "bold" } : estilos.tdNumero}>{valor}</td>
+    </tr>
+  );
+}
 
 export default function ResumenF29() {
   const empresaActiva = obtenerEmpresaActiva();
 
-  const [periodo, setPeriodo] = useState(obtenerPeriodoTrabajo());
-  const [tasaPPM, setTasaPPM] = useState("0.25");
+  const [periodo, setPeriodo] = useState(obtenerPeriodoAnterior(obtenerPeriodoTrabajo()));
   const [datos, setDatos] = useState(null);
-  const [error, setError] = useState("");
-  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
-  // significa las dos cosas a la vez.
-  const [cargando, setCargando] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState("");
+  const [errorAccion, setErrorAccion] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [presentacion, setPresentacion] = useState({
+    folio_sii: "",
+    fecha_presentacion: new Date().toISOString().slice(0, 10),
+    total_pagado: "",
+    rectifica: false,
+  });
+  const ultimaPeticion = useRef(0);
+
+  const cargar = useCallback(
+    async (periodoPedido) => {
+      if (!empresaActiva?.id) {
+        setErrorCarga("Selecciona una empresa activa antes de ver el resumen F29.");
+        setCargando(false);
+        return;
+      }
+
+      const marca = ++ultimaPeticion.current;
+      setCargando(true);
+      setErrorCarga("");
+      setErrorAccion("");
+
+      try {
+        const respuesta = await obtenerF29(empresaActiva.id, periodoPedido);
+
+        if (marca !== ultimaPeticion.current) return;
+        setDatos(respuesta);
+        setPresentacion((previa) => ({
+          ...previa,
+          total_pagado: String(respuesta.total_f29_estimado || 0),
+          rectifica: Boolean(respuesta.presentada),
+        }));
+      } catch (problema) {
+        if (marca !== ultimaPeticion.current) return;
+        setErrorCarga(problema.message || "No se pudo calcular el F29");
+        setDatos(null);
+      } finally {
+        if (marca === ultimaPeticion.current) setCargando(false);
+      }
+    },
+    [empresaActiva?.id]
+  );
 
   useEffect(() => {
-    if (empresaActiva) {
-      cargarResumen();
-    }
-  }, []);
+    cargar(periodo);
+  }, [cargar, periodo]);
 
-  async function cargarResumen() {
+  async function registrar(evento) {
+    evento.preventDefault();
+
+    if (guardando) return;
+
+    setGuardando(true);
+    setErrorAccion("");
+    setMensaje("");
+
     try {
-      setCargando(true);
-      setError("");
-
-      const data = await obtenerResumenF29(
-        empresaActiva.id,
+      const respuesta = await registrarF29Presentada({
+        empresa_id: empresaActiva.id,
         periodo,
-        tasaPPM
-      );
+        folio_sii: presentacion.folio_sii || null,
+        fecha_presentacion: presentacion.fecha_presentacion,
+        total_pagado: presentacion.total_pagado === "" ? null : Number(presentacion.total_pagado),
+        rectifica: presentacion.rectifica,
+      });
 
-      setDatos(data);
-    } catch (err) {
-      setError(err.message);
+      setMensaje(respuesta.mensaje);
+      await cargar(periodo);
+    } catch (problema) {
+      setErrorAccion(problema.message || "No se pudo registrar el F29");
     } finally {
-      setCargando(false);
+      setGuardando(false);
     }
   }
 
-  function formato(valor) {
-    return `$${Number(valor || 0).toLocaleString("es-CL")}`;
-  }
-
-  if (!empresaActiva) {
-    return (
-      <div>
-        <h1 style={titulo}>Resumen F29</h1>
-        <div style={alerta}>
-          Debes seleccionar una empresa activa antes de ver el resumen F29.
-        </div>
-      </div>
-    );
-  }
-
-  const ventas = datos?.ventas || {
-    neto: 0,
-    exento: 0,
-    iva_debito: 0,
-    total: 0,
-  };
-
-  const compras = datos?.compras || {
-    neto: 0,
-    exento: 0,
-    iva_credito: 0,
-    iva_no_recuperable: 0,
-    total: 0,
-  };
-
-  const iva = datos?.iva || {
-    iva_debito: 0,
-    iva_credito: 0,
-    iva_determinado: 0,
-    iva_pagar: 0,
-    remanente: 0,
-  };
-
-  const ppm = datos?.ppm || {
-    base_ppm: 0,
-    tasa_ppm: Number(tasaPPM || 0),
-    monto_ppm: 0,
-  };
-
-  const honorarios = datos?.honorarios || {
-    bruto: 0,
-    retencion: 0,
-    liquido: 0,
-  };
-
-  const totalF29Estimado = datos?.total_f29_estimado || 0;
+  const ventas = datos?.ventas || {};
+  const compras = datos?.compras || {};
+  const iva = datos?.iva || {};
+  const ppm = datos?.ppm || {};
+  const honorarios = datos?.honorarios || {};
+  const proporcionalidad = datos?.proporcionalidad || {};
+  const presentada = datos?.presentada || null;
 
   return (
-    <div>
-      <h1 style={titulo}>Resumen F29</h1>
-      <p style={subtitulo}>
-        Empresa activa: <strong>{empresaActiva.razon_social}</strong>
-      </p>
-
-      <div style={filtrosBox}>
-        <div>
-          <label style={label}>Período</label>
+    <div style={estilos.contenedor}>
+      <div style={estilos.barraFiltros}>
+        <div style={estilos.campo}>
+          <label style={estilos.etiqueta} htmlFor="f29-periodo">
+            Período que se declara
+          </label>
           <input
-            style={input}
+            id="f29-periodo"
             type="month"
+            style={estilos.input}
             value={periodo}
-            onChange={(e) => setPeriodo(e.target.value)}
-            placeholder={obtenerPeriodoTrabajo()}
+            onChange={(evento) => setPeriodo(evento.target.value)}
           />
         </div>
 
-        <div>
-          <label style={label}>Tasa PPM %</label>
-          <input
-            style={input}
-            type="number"
-            step="0.01"
-            value={tasaPPM}
-            onChange={(e) => setTasaPPM(e.target.value)}
-            placeholder="0.25"
-          />
-        </div>
-
-        <button type="button" style={botonBuscar} onClick={cargarResumen}>
-          Calcular
+        <button
+          type="button"
+          className="sc-btn sc-btn--primary"
+          onClick={() => cargar(periodo)}
+          disabled={cargando}
+        >
+          {cargando ? "Calculando..." : "Recalcular"}
         </button>
-      </div>
 
-      {error && <p style={err}>{error}</p>}
-
-
-      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
-
-      <div style={resumenBox}>
-        <div style={cardResumen}>
-          <strong>IVA Débito</strong>
-          <span>{formato(iva.iva_debito)}</span>
-        </div>
-
-        <div style={cardResumen}>
-          <strong>IVA Crédito</strong>
-          <span>{formato(iva.iva_credito)}</span>
-        </div>
-
-        <div style={iva.iva_pagar > 0 ? cardResumenError : cardResumenOk}>
-          <strong>IVA a pagar</strong>
-          <span>{formato(iva.iva_pagar)}</span>
-        </div>
-
-        <div style={iva.remanente > 0 ? cardResumenOk : cardResumen}>
-          <strong>Remanente IVA</strong>
-          <span>{formato(iva.remanente)}</span>
-        </div>
-
-        <div style={cardResumen}>
-          <strong>PPM estimado</strong>
-          <span>{formato(ppm.monto_ppm)}</span>
-        </div>
-
-        <div style={cardResumen}>
-          <strong>Retención honorarios</strong>
-          <span>{formato(honorarios.retencion)}</span>
-        </div>
-
-        <div style={cardResumenTotal}>
-          <strong>Total F29 estimado</strong>
-          <span>{formato(totalF29Estimado)}</span>
-        </div>
-      </div>
-
-      <div style={layout}>
-        <div style={seccionBox}>
-          <h2 style={tituloSeccion}>Base de ventas</h2>
-
-          <div className="sc-tabla-scroll">
-
-            <table style={tabla}>
-            <tbody>
-              <tr>
-                <td style={td}>Ventas netas afectas</td>
-                <td style={tdNumero}>{formato(ventas.neto)}</td>
-              </tr>
-              <tr>
-                <td style={td}>Ventas exentas</td>
-                <td style={tdNumero}>{formato(ventas.exento)}</td>
-              </tr>
-              <tr>
-                <td style={td}>IVA Débito Fiscal</td>
-                <td style={tdNumero}>{formato(ventas.iva_debito)}</td>
-              </tr>
-              <tr>
-                <td style={tdTotal}>Total ventas</td>
-                <td style={tdTotalNumero}>{formato(ventas.total)}</td>
-              </tr>
-            </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div style={seccionBox}>
-          <h2 style={tituloSeccion}>Base de compras</h2>
-
-          <div className="sc-tabla-scroll">
-
-            <table style={tabla}>
-            <tbody>
-              <tr>
-                <td style={td}>Compras netas afectas</td>
-                <td style={tdNumero}>{formato(compras.neto)}</td>
-              </tr>
-              <tr>
-                <td style={td}>Compras exentas</td>
-                <td style={tdNumero}>{formato(compras.exento)}</td>
-              </tr>
-              <tr>
-                <td style={td}>IVA Crédito Fiscal</td>
-                <td style={tdNumero}>{formato(compras.iva_credito)}</td>
-              </tr>
-              <tr>
-                <td style={td}>IVA No Recuperable</td>
-                <td style={tdNumero}>
-                  {formato(compras.iva_no_recuperable)}
-                </td>
-              </tr>
-              <tr>
-                <td style={tdTotal}>Total compras</td>
-                <td style={tdTotalNumero}>{formato(compras.total)}</td>
-              </tr>
-            </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div style={seccionBox}>
-        <h2 style={tituloSeccion}>Determinación estimada F29</h2>
-
-        <div className="sc-tabla-scroll">
-
-          <table style={tabla}>
-          <tbody>
-            <tr>
-              <td style={td}>IVA Débito Fiscal</td>
-              <td style={tdNumero}>{formato(iva.iva_debito)}</td>
-            </tr>
-
-            <tr>
-              <td style={td}>Menos IVA Crédito Fiscal</td>
-              <td style={tdNumero}>{formato(iva.iva_credito)}</td>
-            </tr>
-
-            <tr>
-              <td style={tdTotal}>IVA determinado</td>
-              <td style={tdTotalNumero}>{formato(iva.iva_determinado)}</td>
-            </tr>
-
-            <tr>
-              <td style={td}>IVA a pagar</td>
-              <td style={tdNumero}>{formato(iva.iva_pagar)}</td>
-            </tr>
-
-            <tr>
-              <td style={td}>Remanente IVA</td>
-              <td style={tdNumero}>{formato(iva.remanente)}</td>
-            </tr>
-
-            <tr>
-              <td style={td}>Base PPM</td>
-              <td style={tdNumero}>{formato(ppm.base_ppm)}</td>
-            </tr>
-
-            <tr>
-              <td style={td}>Tasa PPM aplicada</td>
-              <td style={tdNumero}>{Number(ppm.tasa_ppm || 0)}%</td>
-            </tr>
-
-            <tr>
-              <td style={td}>PPM estimado</td>
-              <td style={tdNumero}>{formato(ppm.monto_ppm)}</td>
-            </tr>
-
-            <tr>
-              <td style={td}>Retención honorarios</td>
-              <td style={tdNumero}>{formato(honorarios.retencion)}</td>
-            </tr>
-
-            <tr>
-              <td style={tdFinal}>Total F29 estimado</td>
-              <td style={tdFinalNumero}>{formato(totalF29Estimado)}</td>
-            </tr>
-          </tbody>
-          </table>
-        </div>
-
-        <p style={nota}>
-          Este resumen es una estimación interna del sistema. No reemplaza la
-          revisión del formulario oficial ni otros códigos que puedan aplicar.
+        <p style={{ ...estilos.subtitulo, marginLeft: "auto", maxWidth: "44ch" }}>
+          {empresaActiva?.razon_social ? `Empresa: ${empresaActiva.razon_social}. ` : ""}
+          La tasa de PPM y las condiciones del plazo se toman de Configuración Contable.
         </p>
       </div>
+
+      {mensaje ? <div className="sc-message sc-message--ok">{mensaje}</div> : null}
+      {errorAccion ? <div className="sc-message sc-message--error">{errorAccion}</div> : null}
+
+      <EstadoPantalla
+        cargando={cargando}
+        error={errorCarga}
+        alReintentar={() => cargar(periodo)}
+        mensajeCargando="Calculando el F29..."
+      >
+        <>
+          <div style={estilos.resumenGrilla}>
+            <div style={estilos.indicador}>
+              <span style={estilos.indicadorValor}>{pesos(iva.iva_debito)}</span>
+              <span style={estilos.indicadorTexto}>IVA débito</span>
+            </div>
+            <div style={estilos.indicador}>
+              <span style={estilos.indicadorValor}>{pesos(iva.iva_credito)}</span>
+              <span style={estilos.indicadorTexto}>IVA crédito, con uso común proporcional</span>
+            </div>
+            <div style={estilos.indicador}>
+              <span style={estilos.indicadorValor}>{pesos(iva.remanente_anterior)}</span>
+              <span style={estilos.indicadorTexto}>
+                Remanente anterior ({numero(iva.remanente_anterior_utm)} UTM)
+              </span>
+            </div>
+            <div style={estilos.indicador}>
+              <span style={{ ...estilos.indicadorValor, color: iva.iva_pagar > 0 ? "#991b1b" : "#065f46" }}>
+                {pesos(iva.iva_pagar)}
+              </span>
+              <span style={estilos.indicadorTexto}>IVA a pagar</span>
+            </div>
+            <div style={estilos.indicador}>
+              <span style={estilos.indicadorValor}>{pesos(datos?.total_f29_estimado)}</span>
+              <span style={estilos.indicadorTexto}>Total F29 estimado</span>
+            </div>
+          </div>
+
+          {(datos?.avisos || []).length > 0 ? (
+            <div style={estilos.aviso}>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {datos.avisos.map((aviso) => (
+                  <li key={aviso}>{aviso}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+            <div style={estilos.tarjeta}>
+              <h3 style={estilos.titulo}>Ventas del período</h3>
+              <div style={estilos.contenedorTabla}>
+                <table style={estilos.tabla}>
+                  <tbody>
+                    <Fila etiqueta="Ventas netas afectas" valor={pesos(ventas.neto)} />
+                    <Fila etiqueta="Ventas exentas" valor={pesos(ventas.exento)} />
+                    <Fila etiqueta="IVA débito fiscal" valor={pesos(ventas.iva_debito)} />
+                    <Fila etiqueta="Total ventas" valor={pesos(ventas.total)} fuerte />
+                    <Fila etiqueta="Documentos" valor={numero(ventas.documentos)} />
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div style={estilos.tarjeta}>
+              <h3 style={estilos.titulo}>Compras del período</h3>
+              <div style={estilos.contenedorTabla}>
+                <table style={estilos.tabla}>
+                  <tbody>
+                    <Fila etiqueta="Compras netas afectas" valor={pesos(compras.neto)} />
+                    <Fila etiqueta="Compras exentas" valor={pesos(compras.exento)} />
+                    <Fila etiqueta="IVA crédito directo" valor={pesos(compras.iva_credito)} />
+                    <Fila
+                      etiqueta="IVA de uso común"
+                      valor={pesos(compras.iva_uso_comun)}
+                      nota={
+                        proporcionalidad.aplica
+                          ? `Factor ${numero(Math.round((proporcionalidad.factor || 0) * 10000) / 100)}%: crédito ${pesos(
+                              compras.credito_uso_comun
+                            )}, no recuperable ${pesos(compras.uso_comun_no_recuperable)}`
+                          : "Sin IVA de uso común en el período"
+                      }
+                    />
+                    <Fila etiqueta="IVA no recuperable" valor={pesos(compras.iva_no_recuperable)} />
+                    <Fila
+                      etiqueta="Activo fijo"
+                      valor={pesos(compras.iva_activo_fijo)}
+                      nota={`Neto ${pesos(compras.neto_activo_fijo)}. Informativo para el artículo 27 bis.`}
+                    />
+                    <Fila
+                      etiqueta="Facturas de compra (tipo 46)"
+                      valor={numero(compras.facturas_compra)}
+                      nota="Su IVA lo retiene la empresa y va como IVA retenido."
+                    />
+                    <Fila etiqueta="Total compras" valor={pesos(compras.total)} fuerte />
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div style={estilos.tarjeta}>
+            <h3 style={estilos.titulo}>Determinación del F29</h3>
+            <p style={estilos.subtitulo}>
+              Remanente en UTM del período ({numero(datos?.valor_utm)} por UTM), PPM sobre ingresos
+              brutos, retenciones por mes de pago.
+            </p>
+            <div style={{ ...estilos.contenedorTabla, marginTop: 10 }}>
+              <table style={estilos.tabla}>
+                <tbody>
+                  <Fila etiqueta="IVA débito fiscal" valor={pesos(iva.iva_debito)} />
+                  <Fila etiqueta="Menos IVA crédito fiscal" valor={pesos(iva.iva_credito)} />
+                  <Fila
+                    etiqueta="Menos remanente del período anterior"
+                    valor={pesos(iva.remanente_anterior)}
+                    nota={`${numero(iva.remanente_anterior_utm)} UTM reconvertidas con la UTM de este mes`}
+                  />
+                  <Fila etiqueta="IVA determinado" valor={pesos(iva.iva_determinado)} fuerte />
+                  <Fila etiqueta="IVA a pagar" valor={pesos(iva.iva_pagar)} />
+                  <Fila
+                    etiqueta="Remanente para el mes siguiente"
+                    valor={pesos(iva.remanente_siguiente)}
+                    nota={iva.remanente_siguiente_utm !== null ? `${numero(iva.remanente_siguiente_utm)} UTM` : "Sin UTM del período: se arrastra en pesos"}
+                  />
+                  <Fila etiqueta="IVA retenido en facturas de compra" valor={pesos(iva.iva_retenido)} />
+                  <Fila
+                    etiqueta="PPM"
+                    valor={pesos(ppm.monto_ppm)}
+                    nota={`${numero(ppm.tasa_ppm)}% sobre ingresos brutos de ${pesos(ppm.base_ppm)}`}
+                  />
+                  <Fila
+                    etiqueta="Retención de honorarios"
+                    valor={pesos(honorarios.retencion)}
+                    nota={
+                      honorarios.sin_fecha_pago > 0
+                        ? `${numero(honorarios.sin_fecha_pago)} boleta(s) sin fecha de pago, tomadas por emisión`
+                        : "Por mes de pago"
+                    }
+                  />
+                  <Fila etiqueta="Total F29 estimado" valor={pesos(datos?.total_f29_estimado)} fuerte />
+                </tbody>
+              </table>
+            </div>
+            <p style={{ ...estilos.subtitulo, marginTop: 10 }}>
+              Estimación interna. No reemplaza el formulario oficial ni los códigos que puedan aplicar
+              a la empresa.
+            </p>
+          </div>
+
+          <div style={estilos.tarjeta}>
+            <h3 style={estilos.titulo}>
+              {presentada ? "F29 presentado" : "Registrar el F29 presentado"}
+            </h3>
+            {presentada ? (
+              <p style={estilos.subtitulo}>
+                Folio {presentada.folio_sii || "sin folio"}, presentado el{" "}
+                {fechaCorta(presentada.fecha_presentacion)} por {pesos(presentada.total_pagado)}.
+                {presentada.diferencia_contra_calculado
+                  ? ` Difiere en ${pesos(presentada.diferencia_contra_calculado)} de lo calculado hoy.`
+                  : " Coincide con lo calculado hoy."}{" "}
+                Si presentaste una rectificatoria, regístrala abajo.
+              </p>
+            ) : (
+              <p style={estilos.subtitulo}>
+                Registrar el folio y la fecha fija el remanente del período y permite que el cierre
+                mensual detecte documentos modificados después de declarar.
+              </p>
+            )}
+
+            <form
+              onSubmit={registrar}
+              style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end", marginTop: 10 }}
+            >
+              <div style={estilos.campo}>
+                <label style={estilos.etiqueta} htmlFor="f29-folio">
+                  Folio SII
+                </label>
+                <input
+                  id="f29-folio"
+                  style={estilos.input}
+                  value={presentacion.folio_sii}
+                  onChange={(evento) => setPresentacion({ ...presentacion, folio_sii: evento.target.value })}
+                />
+              </div>
+              <div style={estilos.campo}>
+                <label style={estilos.etiqueta} htmlFor="f29-fecha">
+                  Fecha de presentación
+                </label>
+                <input
+                  id="f29-fecha"
+                  type="date"
+                  style={estilos.input}
+                  value={presentacion.fecha_presentacion}
+                  onChange={(evento) =>
+                    setPresentacion({ ...presentacion, fecha_presentacion: evento.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div style={estilos.campo}>
+                <label style={estilos.etiqueta} htmlFor="f29-total">
+                  Total pagado
+                </label>
+                <input
+                  id="f29-total"
+                  type="number"
+                  style={estilos.input}
+                  value={presentacion.total_pagado}
+                  onChange={(evento) => setPresentacion({ ...presentacion, total_pagado: evento.target.value })}
+                />
+              </div>
+              {presentada ? (
+                <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12.5 }}>
+                  <input
+                    type="checkbox"
+                    checked={presentacion.rectifica}
+                    onChange={(evento) => setPresentacion({ ...presentacion, rectifica: evento.target.checked })}
+                  />
+                  Es una rectificatoria
+                </label>
+              ) : null}
+              <button type="submit" className="sc-btn sc-btn--success" disabled={guardando}>
+                {guardando ? "Guardando..." : presentada ? "Registrar rectificatoria" : "Registrar F29"}
+              </button>
+            </form>
+          </div>
+        </>
+      </EstadoPantalla>
     </div>
   );
 }
-
-const titulo = {
-  fontSize: "34px",
-  color: "#0f172a",
-  marginBottom: "5px",
-};
-
-const subtitulo = {
-  color: "#475569",
-  marginBottom: "18px",
-};
-
-const filtrosBox = {
-  display: "flex",
-  alignItems: "end",
-  gap: "15px",
-  background: "white",
-  padding: "18px",
-  borderRadius: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "20px",
-  flexWrap: "wrap",
-};
-
-const label = {
-  display: "block",
-  fontWeight: "bold",
-  color: "#1e293b",
-  marginBottom: "5px",
-};
-
-const input = {
-  padding: "11px",
-  border: "1px solid #a9d8ef",
-  borderRadius: "10px",
-  minWidth: "160px",
-};
-
-const botonBuscar = {
-  background: "#0369a1",
-  color: "white",
-  border: "none",
-  padding: "12px 20px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const resumenBox = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "15px",
-  marginBottom: "20px",
-};
-
-const cardResumen = {
-  background: "white",
-  borderRadius: "16px",
-  padding: "18px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  color: "#1e293b",
-};
-
-const cardResumenOk = {
-  ...cardResumen,
-  border: "2px solid #22c55e",
-};
-
-const cardResumenError = {
-  ...cardResumen,
-  border: "2px solid #ef4444",
-};
-
-const cardResumenTotal = {
-  ...cardResumen,
-  border: "2px solid #0ea5e9",
-};
-
-const layout = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-  gap: "20px",
-  marginBottom: "20px",
-};
-
-const seccionBox = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "25px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "20px",
-};
-
-const tituloSeccion = {
-  color: "#0369a1",
-  marginTop: 0,
-};
-
-const tabla = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
-
-const td = {
-  padding: "12px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
-};
-
-const tdNumero = {
-  ...td,
-  textAlign: "right",
-};
-
-const tdTotal = {
-  ...td,
-  fontWeight: "bold",
-  background: "#f8fcff",
-};
-
-const tdTotalNumero = {
-  ...tdNumero,
-  fontWeight: "bold",
-  background: "#f8fcff",
-};
-
-const tdFinal = {
-  ...td,
-  fontWeight: "bold",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
-  fontSize: "18px",
-};
-
-const tdFinalNumero = {
-  ...tdFinal,
-  textAlign: "right",
-};
-
-const nota = {
-  marginTop: "15px",
-  color: "#475569",
-  fontSize: "14px",
-};
-
-const err = {
-  color: "#ef4444",
-  fontWeight: "bold",
-};
-
-const alerta = {
-  marginTop: "20px",
-  background: "#fff7ed",
-  border: "1px solid #fed7aa",
-  color: "#9a3412",
-  padding: "16px",
-  borderRadius: "14px",
-  fontWeight: "bold",
-};

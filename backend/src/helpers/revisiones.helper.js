@@ -552,6 +552,170 @@ async function estadoDelEjercicio(cliente, empresaId, periodo) {
  * Devuelve el conjunto más un resumen, para que quien llame no tenga que
  * recorrerlas para saber si algo anda mal.
  */
+/**
+ * Compras declaradas mas de dos periodos despues de su fecha.
+ *
+ * El articulo 24 del DL 825 permite usar el credito hasta dos periodos despues
+ * si la factura se recibio con atraso. Pasado eso, el credito se pierde y el
+ * documento no debe entrar al F29 de ese mes.
+ */
+async function documentosRezagados(cliente, empresaId, periodo) {
+  const { rows } = await cliente.query(
+    `
+    SELECT id, folio, tipo_documento, fecha, razon_social_proveedor AS tercero, total
+    FROM compras
+    WHERE empresa_id = $1
+      AND periodo = $2
+      AND estado = 'vigente'
+      AND (DATE_TRUNC('month', ($2 || '-01')::date) - DATE_TRUNC('month', fecha)) > INTERVAL '2 months'
+    ORDER BY fecha
+    LIMIT 50
+    `,
+    [empresaId, periodo]
+  );
+
+  if (rows.length === 0) {
+    return resultado(
+      "documentos_rezagados",
+      "Compras dentro del plazo de credito",
+      ESTADOS.OK,
+      "Ninguna compra se declara mas de dos periodos despues de su fecha."
+    );
+  }
+
+  return resultado(
+    "documentos_rezagados",
+    "Compras fuera del plazo de credito",
+    ESTADOS.ERROR,
+    `${rows.length} compra(s) con fecha de mas de dos periodos atras. El credito fiscal de esas facturas ya no se puede usar (articulo 24 del DL 825).`,
+    {
+      cantidad: rows.length,
+      afectados: rows.map((f) => ({
+        id: f.id,
+        referencia: `${f.tipo_documento} folio ${f.folio || "s/f"}`,
+        fecha: f.fecha,
+        tercero: f.tercero,
+        total: Number(f.total),
+      })),
+    }
+  );
+}
+
+/**
+ * F29: registrado o no, y si lo registrado coincide con lo que el sistema
+ * calculo al registrarlo. Ademas, documentos tocados despues de presentar.
+ */
+async function f29DelPeriodo(cliente, empresaId, periodo) {
+  const hoy = new Date().toISOString().slice(0, 7);
+
+  const { rows } = await cliente.query(
+    `SELECT d.id, d.folio_sii, d.fecha_presentacion, d.total_pagado,
+            r.total_f29 AS calculado_al_registrar,
+            (SELECT COUNT(*)::int FROM compras c
+              WHERE c.empresa_id = d.empresa_id AND c.periodo = d.periodo
+                AND COALESCE(c.actualizado_en, c.creado_en) > d.fecha_presentacion + INTERVAL '1 day')
+            + (SELECT COUNT(*)::int FROM ventas v
+              WHERE v.empresa_id = d.empresa_id AND v.periodo = d.periodo
+                AND COALESCE(v.actualizado_en, v.creado_en) > d.fecha_presentacion + INTERVAL '1 day')
+              AS documentos_posteriores
+     FROM declaraciones_f29 d
+     LEFT JOIN remanente_iva r ON r.empresa_id = d.empresa_id AND r.periodo = d.periodo
+     WHERE d.empresa_id = $1 AND d.periodo = $2 AND d.estado = 'vigente'`,
+    [empresaId, periodo]
+  );
+
+  if (rows.length === 0) {
+    if (periodo < hoy) {
+      return resultado(
+        "f29_presentado",
+        "F29 sin registrar",
+        ESTADOS.AVISO,
+        "El periodo ya paso y no hay un F29 registrado. Registra el folio y la fecha de presentacion para fijar el remanente."
+      );
+    }
+
+    return resultado("f29_presentado", "F29", ESTADOS.OK, "El periodo aun esta en curso.");
+  }
+
+  const d = rows[0];
+  const diferencia = Math.round(Number(d.total_pagado || 0) - Number(d.calculado_al_registrar || 0));
+  const posteriores = Number(d.documentos_posteriores || 0);
+
+  if (diferencia !== 0) {
+    return resultado(
+      "f29_presentado",
+      "F29 presentado con diferencia",
+      ESTADOS.ERROR,
+      `Lo pagado en el F29 (${Number(d.total_pagado).toLocaleString("es-CL")}) difiere en ${diferencia.toLocaleString("es-CL")} de lo que el sistema calculo al registrarlo.`,
+      { cantidad: 1, cifras: { pagado: Number(d.total_pagado), calculado: Number(d.calculado_al_registrar), diferencia } }
+    );
+  }
+
+  if (posteriores > 0) {
+    return resultado(
+      "f29_presentado",
+      "Documentos modificados despues de presentar el F29",
+      ESTADOS.AVISO,
+      `${posteriores} documento(s) del periodo se crearon o modificaron despues de la presentacion del ${String(d.fecha_presentacion).slice(0, 10)}. Puede corresponder una rectificatoria.`,
+      { cantidad: posteriores }
+    );
+  }
+
+  return resultado(
+    "f29_presentado",
+    "F29 presentado",
+    ESTADOS.OK,
+    `F29 ${d.folio_sii ? `folio ${d.folio_sii}` : ""} registrado el ${String(d.fecha_presentacion).slice(0, 10)}, coincide con lo calculado.`.replace("  ", " ")
+  );
+}
+
+async function honorariosSinFechaDePago(cliente, empresaId, periodo) {
+  const { rows } = await cliente.query(
+    `SELECT id, folio, nombre_prestador AS tercero, fecha_emision AS fecha, retencion
+     FROM honorarios
+     WHERE empresa_id = $1 AND estado = 'vigente' AND fecha_pago IS NULL
+       AND TO_CHAR(fecha_emision, 'YYYY-MM') = $2
+     ORDER BY fecha_emision LIMIT 50`,
+    [empresaId, periodo]
+  );
+
+  if (rows.length === 0) {
+    return resultado("honorarios_fecha_pago", "Honorarios con fecha de pago", ESTADOS.OK, "Todas las boletas del periodo tienen fecha de pago.");
+  }
+
+  return resultado(
+    "honorarios_fecha_pago",
+    "Boletas de honorarios sin fecha de pago",
+    ESTADOS.AVISO,
+    `${rows.length} boleta(s) sin fecha de pago. La retencion se declara en el mes en que se paga (articulo 79 de la Ley de la Renta); sin fecha, el sistema la declara por emision.`,
+    { cantidad: rows.length, afectados: rows.map((f) => ({ id: f.id, referencia: `boleta ${f.folio || "s/f"}`, fecha: f.fecha, tercero: f.tercero, total: Number(f.retencion) })) }
+  );
+}
+
+async function facturasDeCompra(cliente, empresaId, periodo) {
+  const { rows } = await cliente.query(
+    `SELECT id, folio, razon_social_proveedor AS tercero, fecha, iva_credito
+     FROM compras
+     WHERE empresa_id = $1 AND periodo = $2 AND estado = 'vigente' AND sii_tipo_doc = '46'
+     ORDER BY fecha LIMIT 50`,
+    [empresaId, periodo]
+  );
+
+  if (rows.length === 0) {
+    return resultado("facturas_compra", "Facturas de compra", ESTADOS.OK, "No hay facturas de compra (tipo 46) en el periodo.");
+  }
+
+  const retenido = rows.reduce((suma, f) => suma + Number(f.iva_credito || 0), 0);
+
+  return resultado(
+    "facturas_compra",
+    "Facturas de compra con IVA retenido",
+    ESTADOS.AVISO,
+    `${rows.length} factura(s) de compra: el IVA (${retenido.toLocaleString("es-CL")}) lo retiene la empresa y va como IVA retenido en el F29. Revisar que el asiento lleve la retencion.`,
+    { cantidad: rows.length, afectados: rows.map((f) => ({ id: f.id, referencia: `factura de compra ${f.folio || "s/f"}`, fecha: f.fecha, tercero: f.tercero, total: Number(f.iva_credito) })) }
+  );
+}
+
 async function revisarPeriodo(cliente, empresaId, periodo) {
   const anio = Number(String(periodo).slice(0, 4));
   const mes = Number(String(periodo).slice(5, 7));
@@ -570,6 +734,10 @@ async function revisarPeriodo(cliente, empresaId, periodo) {
     foliosFaltantes(cliente, empresaId, periodo),
     montosAtipicos(cliente, empresaId, periodo),
     estadoDelEjercicio(cliente, empresaId, periodo),
+    documentosRezagados(cliente, empresaId, periodo),
+    f29DelPeriodo(cliente, empresaId, periodo),
+    honorariosSinFechaDePago(cliente, empresaId, periodo),
+    facturasDeCompra(cliente, empresaId, periodo),
   ]);
 
   const errores = revisiones.filter((r) => r.estado === ESTADOS.ERROR);
@@ -603,4 +771,8 @@ module.exports = {
   foliosFaltantes,
   montosAtipicos,
   estadoDelEjercicio,
+  documentosRezagados,
+  f29DelPeriodo,
+  honorariosSinFechaDePago,
+  facturasDeCompra,
 };

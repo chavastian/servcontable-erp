@@ -25,6 +25,12 @@ export default function ConfiguracionContable() {
     cuenta_gasto_honorarios_id: "",
     cuenta_retencion_honorarios_id: "",
     cuenta_pago_honorarios_id: "",
+
+    // Lo que el F29 y el calendario necesitan de la empresa. La tasa de PPM se
+    // digitaba en el resumen F29 y no se guardaba.
+    tasa_ppm: "0",
+    facturador_electronico: true,
+    previred_electronico: true,
   });
 
   const [mensaje, setMensaje] = useState("");
@@ -66,6 +72,9 @@ export default function ConfiguracionContable() {
             configData.configuracion.cuenta_retencion_honorarios_id || "",
           cuenta_pago_honorarios_id:
             configData.configuracion.cuenta_pago_honorarios_id || "",
+          tasa_ppm: String(configData.configuracion.tasa_ppm ?? 0),
+          facturador_electronico: configData.configuracion.facturador_electronico !== false,
+          previred_electronico: configData.configuracion.previred_electronico !== false,
         });
       }
     } catch (err) {
@@ -124,6 +133,9 @@ export default function ConfiguracionContable() {
           configuracion.cuenta_retencion_honorarios_id || null,
         cuenta_pago_honorarios_id:
           configuracion.cuenta_pago_honorarios_id || null,
+        tasa_ppm: Number(configuracion.tasa_ppm || 0),
+        facturador_electronico: configuracion.facturador_electronico !== false,
+        previred_electronico: configuracion.previred_electronico !== false,
       });
 
       setMensaje(data.mensaje || "Configuracion guardada correctamente");
@@ -303,8 +315,50 @@ export default function ConfiguracionContable() {
           />
         </div>
 
+        <div style={{ display: "grid", gap: 12, marginTop: 18, marginBottom: 18 }}>
+          <h3 style={{ margin: 0, color: "var(--sc-primary)", fontSize: 16 }}>Tributario</h3>
+
+          <label style={{ display: "grid", gap: 4, maxWidth: 260 }}>
+            <span style={{ fontWeight: "bold", fontSize: 13 }}>Tasa de PPM (%)</span>
+            <input
+              className="sc-input"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={configuracion.tasa_ppm}
+              onChange={(e) => setConfiguracion({ ...configuracion, tasa_ppm: e.target.value })}
+            />
+            <span style={{ fontSize: 12, color: "var(--sc-muted)" }}>
+              Sobre ingresos brutos del mes. El sistema no la deduce: la define el régimen de la empresa.
+            </span>
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={configuracion.facturador_electronico}
+              onChange={(e) =>
+                setConfiguracion({ ...configuracion, facturador_electronico: e.target.checked })
+              }
+            />
+            Emite solo documentos electrónicos y paga por internet (F29 hasta el 20)
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={configuracion.previred_electronico}
+              onChange={(e) =>
+                setConfiguracion({ ...configuracion, previred_electronico: e.target.checked })
+              }
+            />
+            Paga las cotizaciones en Previred (hasta el 13)
+          </label>
+        </div>
+
         <button type="submit" style={botonGuardar} disabled={guardando}>
-          {guardando ? "Guardando..." : "Guardar configuracion"}
+          {guardando ? "Guardando..." : "Guardar configuración"}
         </button>
       </form>
 

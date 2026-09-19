@@ -57,7 +57,15 @@ async function guardarConfiguracionContable(req, res) {
       cuenta_gasto_honorarios_id,
       cuenta_retencion_honorarios_id,
       cuenta_pago_honorarios_id,
+      // La tasa de PPM llegaba en cada consulta del F29 y no se guardaba.
+      tasa_ppm,
+      facturador_electronico,
+      previred_electronico,
     } = req.body;
+
+    const tasaPpm = Number(tasa_ppm || 0);
+    const esFacturadorElectronico = facturador_electronico !== false && facturador_electronico !== "false";
+    const pagaEnPrevired = previred_electronico !== false && previred_electronico !== "false";
 
     if (!empresa_id) {
       return res.status(400).json({
@@ -93,6 +101,9 @@ async function guardarConfiguracionContable(req, res) {
           cuenta_gasto_honorarios_id = $10,
           cuenta_retencion_honorarios_id = $11,
           cuenta_pago_honorarios_id = $12,
+          tasa_ppm = $13,
+          facturador_electronico = $14,
+          previred_electronico = $15,
           actualizado_en = NOW()
         WHERE empresa_id = $1
         RETURNING *
@@ -110,6 +121,9 @@ async function guardarConfiguracionContable(req, res) {
           cuenta_gasto_honorarios_id || null,
           cuenta_retencion_honorarios_id || null,
           cuenta_pago_honorarios_id || null,
+          tasaPpm,
+          esFacturadorElectronico,
+          pagaEnPrevired,
         ]
       );
     } else {
@@ -128,10 +142,13 @@ async function guardarConfiguracionContable(req, res) {
           cuenta_otros_impuestos_id,
           cuenta_gasto_honorarios_id,
           cuenta_retencion_honorarios_id,
-          cuenta_pago_honorarios_id
+          cuenta_pago_honorarios_id,
+          tasa_ppm,
+          facturador_electronico,
+          previred_electronico
         )
         VALUES
-        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, $13, $14, $15)
         RETURNING *
         `,
         [
@@ -147,6 +164,9 @@ async function guardarConfiguracionContable(req, res) {
           cuenta_gasto_honorarios_id || null,
           cuenta_retencion_honorarios_id || null,
           cuenta_pago_honorarios_id || null,
+          tasaPpm,
+          esFacturadorElectronico,
+          pagaEnPrevired,
         ]
       );
     }

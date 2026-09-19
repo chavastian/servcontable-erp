@@ -1,4 +1,9 @@
 const pool = require("../database/db");
+const {
+  obtenerParametrosOAnteriores,
+  completarConNacional,
+} = require("../helpers/parametrosNacionales.helper");
+const { calcularImpuestoUnicoLegal } = require("../helpers/impuestoUnicoLegal.helper");
 const { exigirDeEmpresa } = require("../helpers/empresa.helper");
 const {
   obtenerAusenciasLiquidacion,
@@ -171,7 +176,13 @@ async function obtenerConfiguracion(client, empresaId, periodo) {
     [empresaId, periodo]
   );
 
-  return resultado.rows[0] || null;
+  if (!resultado.rows[0]) return null;
+
+  // Lo que la empresa no cargo (UF, UTM, ingreso minimo, topes, tasa de la
+  // reforma) sale de los parametros nacionales del periodo. Lo cargado manda.
+  const { parametros } = await obtenerParametrosOAnteriores(client, periodo);
+
+  return completarConNacional(resultado.rows[0], parametros);
 }
 
 async function obtenerAfpTrabajador(client, empresaId, periodo, nombreAfp) {
@@ -475,8 +486,13 @@ async function calcularLiquidacionCompleta(client, entradas) {
     const tasaSis =
       Number(afpParametro.tasa_sis || 0) ||
       Number(configuracion.tasa_sis || 0);
+    // Ley 21.735: la cotizacion del empleador es nacional y sube cada agosto.
+    // Manda la tabla nacional del periodo; la fila de AFP de la empresa es el
+    // respaldo. REQUIERE VALIDACION TRIBUTARIA de cada escalon.
     const tasaSeguroSocial = Number(
-      afpParametro.tasa_seguro_social ?? TASA_SEGURO_SOCIAL_DEFAULT
+      configuracion.tasa_seguro_social_empleador_nacional ??
+        afpParametro.tasa_seguro_social ??
+        TASA_SEGURO_SOCIAL_DEFAULT
     );
 
     const tasaSalud = TASA_SALUD_LEGAL;
@@ -540,8 +556,8 @@ async function calcularLiquidacionCompleta(client, entradas) {
       baseTributable
     );
 
-    const impuestoUnico = impuestoUnicoResult.impuesto;
-    const tramoImpuestoUnico = impuestoUnicoResult.tramo;
+    let impuestoUnico = impuestoUnicoResult.impuesto;
+    let tramoImpuestoUnico = impuestoUnicoResult.tramo;
     const advertenciasCalculo = [
       "Calculo parametrizado segun configuracion del periodo. Las ausencias registradas rebajan los dias devengados y no se descuentan dos veces.",
     ];
@@ -557,13 +573,28 @@ async function calcularLiquidacionCompleta(client, entradas) {
     // guardar con impuesto cero es una liquidacion incorrecta, no un aviso.
     // La UTM sale de los indicadores del periodo; sin ellos se usa un valor
     // conservador. REQUIERE VALIDACION TRIBUTARIA del valor por omision.
+    // Sin tramos de la empresa, la tabla legal en UTM (articulo 43 N°1 de la
+    // Ley de la Renta) decide: es la misma para todos y solo necesita la UTM del
+    // periodo, que viene de los parametros nacionales o de Previred.
     if (!tramoImpuestoUnico && baseTributable > 0) {
-      const utm = Number(indicadores.valor_utm || 0) || UTM_CONSERVADORA;
+      const utmConocida = Number(indicadores.valor_utm || 0);
 
-      if (baseTributable > 13.5 * utm) {
+      if (utmConocida > 0) {
+        const legal = calcularImpuestoUnicoLegal(baseTributable, utmConocida);
+        impuestoUnico = legal.impuesto;
+        tramoImpuestoUnico = legal.tramo;
+
+        if (legal.impuesto > 0) {
+          advertenciasCalculo.push(
+            `Impuesto unico calculado con la tabla legal en UTM (${utmConocida.toLocaleString(
+              "es-CL"
+            )} por UTM), porque la empresa no tiene tramos cargados para ${periodo}.`
+          );
+        }
+      } else if (baseTributable > 13.5 * UTM_CONSERVADORA) {
         throw Object.assign(
           new Error(
-            `La base tributable (${baseTributable.toLocaleString("es-CL")}) supera el minimo exento y no hay tramos de impuesto unico cargados para ${periodo}. Carga los tramos del periodo antes de liquidar.`
+            `La base tributable (${baseTributable.toLocaleString("es-CL")}) supera el minimo exento y no hay UTM ni tramos de impuesto unico para ${periodo}. Carga los indicadores del periodo antes de liquidar.`
           ),
           { statusCode: 409 }
         );

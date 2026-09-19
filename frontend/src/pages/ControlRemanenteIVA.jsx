@@ -106,14 +106,22 @@ export default function ControlRemanenteIVA() {
     remanente_siguiente: 0,
   };
 
-  const ivaDisponible =
-    Number(resumen.iva_credito || 0) + Number(remanenteAnterior || 0);
+  // El remanente anterior viene encadenado en UTM desde el mes previo. Solo el
+  // primer periodo de la cadena admite digitarlo: es el punto de partida de
+  // una empresa que llega con remanente desde otro sistema.
+  const permiteInicial = Boolean(resumen.permite_remanente_inicial);
+  const remanenteAplicado = permiteInicial
+    ? Number(remanenteAnterior || 0)
+    : Number(resumen.remanente_anterior || 0);
+
+  const ivaDisponible = Number(resumen.iva_credito || 0) + remanenteAplicado;
 
   const ivaDeterminado = Number(resumen.iva_debito || 0) - ivaDisponible;
 
   const ivaPagarCalculado = ivaDeterminado > 0 ? ivaDeterminado : 0;
   const remanenteSiguienteCalculado =
     ivaDeterminado < 0 ? Math.abs(ivaDeterminado) : 0;
+  const utm = Number(resumen.valor_utm || 0);
 
   return (
     <div>
@@ -124,6 +132,13 @@ export default function ControlRemanenteIVA() {
 
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
+      {(resumen.avisos || []).length > 0 && (
+        <ul style={{ ...alerta, marginTop: 0, paddingLeft: 32 }}>
+          {resumen.avisos.map((aviso) => (
+            <li key={aviso}>{aviso}</li>
+          ))}
+        </ul>
+      )}
 
       <form style={filtrosBox} onSubmit={guardarControl}>
         <div>
@@ -138,14 +153,28 @@ export default function ControlRemanenteIVA() {
         </div>
 
         <div>
-          <label style={label}>Remanente anterior</label>
+          <label style={label}>
+            Remanente anterior{" "}
+            {permiteInicial ? "(inicial, a mano)" : "(viene del mes anterior)"}
+          </label>
           <input
             style={input}
             type="number"
-            value={remanenteAnterior}
+            value={permiteInicial ? remanenteAnterior : remanenteAplicado}
             onChange={(e) => setRemanenteAnterior(e.target.value)}
             placeholder="0"
+            readOnly={!permiteInicial}
+            title={
+              permiteInicial
+                ? "Primer período de la cadena: puedes indicar el remanente con que llega la empresa."
+                : "Se arrastra en UTM desde el período anterior. Corrige ese período si difiere."
+            }
           />
+          {utm > 0 ? (
+            <span style={{ fontSize: 12, color: "#475569" }}>
+              {Number(resumen.remanente_anterior_utm || 0).toLocaleString("es-CL")} UTM a {utm.toLocaleString("es-CL")}
+            </span>
+          ) : null}
         </div>
 
         <div style={{ flex: 1 }}>
@@ -170,7 +199,7 @@ export default function ControlRemanenteIVA() {
       <div style={resumenBox}>
         <div style={cardResumen}>
           <strong>Remanente anterior</strong>
-          <span>{formato(remanenteAnterior)}</span>
+          <span>{formato(remanenteAplicado)}</span>
         </div>
 
         <div style={cardResumen}>
@@ -220,7 +249,7 @@ export default function ControlRemanenteIVA() {
 
             <tr>
               <td style={td}>Remanente anterior</td>
-              <td style={tdNumero}>{formato(remanenteAnterior)}</td>
+              <td style={tdNumero}>{formato(remanenteAplicado)}</td>
             </tr>
 
             <tr>
@@ -242,6 +271,11 @@ export default function ControlRemanenteIVA() {
               <td style={tdFinal}>Remanente siguiente</td>
               <td style={tdFinalNumero}>
                 {formato(remanenteSiguienteCalculado)}
+                {utm > 0 ? (
+                  <span style={{ display: "block", fontSize: 12, fontWeight: "normal" }}>
+                    {(remanenteSiguienteCalculado / utm).toFixed(4)} UTM
+                  </span>
+                ) : null}
               </td>
             </tr>
           </tbody>
@@ -260,6 +294,7 @@ export default function ControlRemanenteIVA() {
               <th style={th}>IVA crédito</th>
               <th style={th}>IVA pagar</th>
               <th style={th}>Rem. siguiente</th>
+              <th style={th}>UTM</th>
               <th style={th}>Observación</th>
             </tr>
           </thead>
@@ -275,13 +310,18 @@ export default function ControlRemanenteIVA() {
                 <td style={tdNumero}>
                   {formato(item.remanente_siguiente)}
                 </td>
+                <td style={tdNumero}>
+                  {item.remanente_siguiente_utm !== null && item.remanente_siguiente_utm !== undefined
+                    ? Number(item.remanente_siguiente_utm).toLocaleString("es-CL")
+                    : "—"}
+                </td>
                 <td style={td}>{item.observacion}</td>
               </tr>
             ))}
 
             {historial.length === 0 && (
               <tr>
-                <td style={td} colSpan="7">
+                <td style={td} colSpan="8">
                   No hay controles guardados.
                 </td>
               </tr>

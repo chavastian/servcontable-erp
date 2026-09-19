@@ -87,7 +87,50 @@ function codigoSiiDesdeTipoDocumento(tipoDocumento) {
   return null;
 }
 
+/**
+ * Columnas del registro de compras del SII que definen el tratamiento del IVA.
+ * Los nombres varian entre exportaciones (mayusculas, tildes, puntos), asi que
+ * se busca sin distinguir. Lo que no venga queda en cero o nulo.
+ */
+function buscarColumna(fila, nombres) {
+  const claves = Object.keys(fila || {});
+  const normal = (t) =>
+    String(t || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+
+  for (const nombre of nombres) {
+    const buscado = normal(nombre);
+    const clave = claves.find((k) => normal(k) === buscado);
+
+    if (clave !== undefined) return fila[clave];
+  }
+
+  return undefined;
+}
+
+function leerColumnasRcv(fila) {
+  const codigoNoRec = String(buscarColumna(fila, ["Codigo IVA No Rec.", "Codigo IVA No Rec", "Código IVA No Rec."]) || "").trim();
+  const fechaRecepcion = buscarColumna(fila, ["Fecha Recepcion", "Fecha Recepción"]);
+
+  return {
+    tipo_compra: String(buscarColumna(fila, ["Tipo Compra"]) || "").trim() || null,
+    codigo_iva_no_rec: /^\d+$/.test(codigoNoRec) ? Number(codigoNoRec) : null,
+    iva_uso_comun: convertirNumeroSII(buscarColumna(fila, ["IVA Uso Comun", "IVA uso Común", "Monto IVA Uso Comun"])),
+    neto_activo_fijo: convertirNumeroSII(buscarColumna(fila, ["Monto Neto Activo Fijo", "Neto Activo Fijo"])),
+    iva_activo_fijo: convertirNumeroSII(buscarColumna(fila, ["IVA Activo Fijo", "Monto IVA Activo Fijo"])),
+    iva_no_retenido: convertirNumeroSII(buscarColumna(fila, ["IVA No Retenido"])),
+    codigo_otro_impuesto: String(buscarColumna(fila, ["Codigo Otro Impuesto", "Código Otro Impuesto"]) || "").trim() || null,
+    tasa_otro_impuesto: convertirNumeroSII(buscarColumna(fila, ["Tasa Otro Impuesto"])) || null,
+    fecha_recepcion: fechaRecepcion ? convertirFechaSII(fechaRecepcion) : null,
+  };
+}
+
 module.exports = {
+  leerColumnasRcv,
+  buscarColumna,
   convertirFechaSII,
   convertirNumeroSII,
   obtenerPeriodoDesdeFecha,

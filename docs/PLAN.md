@@ -255,9 +255,41 @@ artefacto y sus bloques se cierran en este orden.
 - [x] A-22 Autoría por disparador desde `app.usuario_id`, que la capa de base fija en
   cada escritura a partir de un AsyncLocalStorage que llena `verificarToken`.
 - [x] A-23 Cascadas contables a RESTRICT; pagos de suscripción a SET NULL.
-- [ ] Bloque 2 (anular y editar documentos, responsive, doble envío, frontend de las
-  seis pantallas, tildes), bloque 3 (F29 y parámetros nacionales), bloque 4 (ejercicio y
-  remuneraciones), bloque 5 (deuda técnica).
+**Bloque 2 — lo que el cliente nota el primer mes  ✅ 19-09-2026**
+- [x] C-12 Anular y editar compras y ventas: anulación lógica con motivo, autor y fecha
+  que anula el asiento en la misma transacción; edición que anula el asiento anterior
+  y genera uno nuevo. Sin pagos vigentes ni ejercicio cerrado.
+- [x] Migración: anulado_por, anulado_en y motivo en ocho tablas; fecha_vencimiento y
+  referencia de nota de crédito en compras y ventas; fecha_recepcion en compras; CHECK de
+  estado en las cinco tablas de documentos. El flujo de caja usa el vencimiento real.
+- [x] A-20 responsive, A-21 doble envío en veinte formularios, seis pantallas nuevas
+  (respuestas fuera de orden, errores de acción sin borrar la tabla, elección de
+  candidato en el calce, selector de cuenta sin historial, IVA junto al F29 en el
+  calendario), 217 tildes, nombres de menú, siete archivos muertos, lint en cero.
+
+**Bloque 3 — F29 completo y parámetros nacionales  ✅ 19-09-2026**
+- [x] Módulo 1: `parametros_nacionales` por período (UF, UTM, UTA, ingreso mínimo, topes,
+  SIS, tasa de la reforma). La configuración por empresa manda; lo nacional rellena.
+  Sembrada desde lo que las empresas ya cargaron. **REQUIERE VALIDACIÓN TRIBUTARIA** de
+  cada escalón de la Ley 21.735.
+- [x] Módulo 2: `helpers/f29.helper.js`, un solo cálculo para resumen, control de remanente
+  y cierre. Remanente en UTM encadenado (C-08), PPM sobre ingresos brutos con tasa
+  guardada por empresa, retenciones por mes de pago con aviso para las boletas sin fecha,
+  IVA retenido de facturas de compra, crédito proporcional del IVA de uso común con factor
+  acumulado anual, activo fijo informado (C-09).
+- [x] Registro del F29 presentado (`declaraciones_f29`): folio, fecha, monto,
+  rectificatorias. Al registrar se fija el remanente del período.
+- [x] Cierre mensual y panel con cuatro revisiones más, en ambos: compras fuera del plazo
+  del artículo 24 (error), F29 sin registrar o con diferencia, documentos modificados
+  después de presentar, boletas sin fecha de pago, facturas de compra tipo 46.
+- [x] Impuesto único por la tabla legal en UTM cuando la empresa no cargó tramos (A-09);
+  tasa de la reforma desde el parámetro nacional (A-14).
+- [x] C-10 Importación del RCV lee tipo de compra, código de IVA no recuperable, uso común,
+  activo fijo, IVA no retenido, otros impuestos y fecha de recepción.
+- [x] Pantallas: Resumen F29 rehecho con las líneas nuevas y el registro del presentado;
+  control de remanente encadenado; configuración contable con tasa de PPM y las dos
+  condiciones de plazo.
+- [ ] Bloque 4 (ejercicio y remuneraciones) y bloque 5 (deuda técnica).
 
 ## Flujo de trabajo
 

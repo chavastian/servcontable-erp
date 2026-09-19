@@ -156,6 +156,8 @@ async function main() {
       ["GET /api/sugerencias-cuenta/por-rut", `/api/sugerencias-cuenta/por-rut?empresa_id=${empresa.id}&rut=77964779-K`],
       ["GET /api/calendario-tributario", `/api/calendario-tributario?empresa_id=${empresa.id}&periodo=${periodo}`],
       ["GET /api/flujo-caja", `/api/flujo-caja?empresa_id=${empresa.id}`],
+      ["GET /api/f29", `/api/f29?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/f29/presentadas", `/api/f29/presentadas?empresa_id=${empresa.id}`],
     ];
 
     for (const [nombre, ruta] of rutas) {

@@ -28,9 +28,27 @@ async function obtenerCalendario(req, res) {
       return res.status(400).json({ error: "El periodo debe tener el formato AAAA-MM" });
     }
 
+    // Las dos condiciones que mueven los plazos viven en la configuracion
+    // contable de la empresa; la consulta puede forzarlas para simular.
+    let defectos = { facturador: true, previred: true };
+
+    if (req.query.empresa_id) {
+      const { rows } = await pool.query(
+        `SELECT facturador_electronico, previred_electronico FROM configuracion_contable WHERE empresa_id = $1`,
+        [Number(req.query.empresa_id)]
+      );
+
+      if (rows[0]) {
+        defectos = {
+          facturador: rows[0].facturador_electronico !== false,
+          previred: rows[0].previred_electronico !== false,
+        };
+      }
+    }
+
     const opciones = {
-      facturadorElectronico: siNoViene(req.query.facturador_electronico, true),
-      previredElectronico: siNoViene(req.query.previred_electronico, true),
+      facturadorElectronico: siNoViene(req.query.facturador_electronico, defectos.facturador),
+      previredElectronico: siNoViene(req.query.previred_electronico, defectos.previred),
     };
 
     const calendario = obligacionesDelPeriodo(periodo, opciones);

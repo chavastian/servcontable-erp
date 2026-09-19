@@ -9,6 +9,24 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloques 2 y 3
+
+- **Ahora se pueden anular y editar compras y ventas.** Anular pide motivo, deja quién y
+  cuándo, y anula el asiento en la misma operación. Editar regenera el asiento. Con pagos
+  vigentes o ejercicio cerrado no se permite.
+- **Compras y ventas tienen fecha de vencimiento** y referencia de la nota de crédito. El
+  flujo de caja usa la fecha real cuando existe.
+- **F29 completo:** remanente en UTM que se arrastra solo desde el mes anterior, PPM sobre
+  ingresos brutos con la tasa guardada en la empresa, IVA retenido de facturas de compra,
+  crédito proporcional del IVA de uso común, activo fijo. Y se puede registrar el F29
+  presentado (folio, fecha, monto) para que el cierre mensual lo cruce.
+- **Parámetros nacionales por período:** UF, UTM, ingreso mínimo y topes una sola vez para
+  todas las empresas. Sin tramos cargados, el impuesto único se calcula por la tabla legal.
+- **En el teléfono la aplicación se puede usar:** el menú se superpone en vez de dejar
+  140 píxeles de contenido.
+- **Los formularios ya no registran dos veces** con doble clic.
+- **217 textos visibles recuperaron sus tildes.**
+
 ### Revisión del 19-09-2026: bloques 0 y 1
 
 - **Fuga de lectura entre empresas cerrada.** Una petición con la empresa propia en el

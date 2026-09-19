@@ -310,6 +310,46 @@ async function obtenerPanelEstudio(req, res) {
       ),
     ]);
 
+    // Las cuatro revisiones nuevas del bloque 3, tambien por concepto, para
+    // que el panel siga diciendo lo mismo que el cierre.
+    const hoyPeriodo = new Date().toISOString().slice(0, 7);
+    const [rezagados, f29s, honorariosSinPago, facturas46] = await Promise.all([
+      pool.query(
+        `SELECT empresa_id, COUNT(*)::int AS rezagados
+         FROM compras
+         WHERE empresa_id = ANY($1::int[]) AND periodo = $2 AND estado = 'vigente'
+           AND (DATE_TRUNC('month', ($2 || '-01')::date) - DATE_TRUNC('month', fecha)) > INTERVAL '2 months'
+         GROUP BY empresa_id`,
+        [ids, periodo]
+      ),
+      pool.query(
+        `SELECT d.empresa_id, d.total_pagado, r.total_f29 AS calculado, d.fecha_presentacion,
+                (SELECT COUNT(*)::int FROM compras c WHERE c.empresa_id = d.empresa_id AND c.periodo = d.periodo
+                   AND COALESCE(c.actualizado_en, c.creado_en) > d.fecha_presentacion + INTERVAL '1 day')
+                + (SELECT COUNT(*)::int FROM ventas v WHERE v.empresa_id = d.empresa_id AND v.periodo = d.periodo
+                   AND COALESCE(v.actualizado_en, v.creado_en) > d.fecha_presentacion + INTERVAL '1 day') AS posteriores
+         FROM declaraciones_f29 d
+         LEFT JOIN remanente_iva r ON r.empresa_id = d.empresa_id AND r.periodo = d.periodo
+         WHERE d.empresa_id = ANY($1::int[]) AND d.periodo = $2 AND d.estado = 'vigente'`,
+        [ids, periodo]
+      ),
+      pool.query(
+        `SELECT empresa_id, COUNT(*)::int AS sin_pago
+         FROM honorarios
+         WHERE empresa_id = ANY($1::int[]) AND estado = 'vigente' AND fecha_pago IS NULL
+           AND TO_CHAR(fecha_emision, 'YYYY-MM') = $2
+         GROUP BY empresa_id`,
+        [ids, periodo]
+      ),
+      pool.query(
+        `SELECT empresa_id, COUNT(*)::int AS facturas
+         FROM compras
+         WHERE empresa_id = ANY($1::int[]) AND periodo = $2 AND estado = 'vigente' AND sii_tipo_doc = '46'
+         GROUP BY empresa_id`,
+        [ids, periodo]
+      ),
+    ]);
+
     // El crédito va aparte: viene de compras, no de ventas.
     const credito = await pool.query(
       `
@@ -334,6 +374,10 @@ async function obtenerPanelEstudio(req, res) {
     const mapaActividad = porEmpresa(actividad.rows);
     const mapaDuplicados = porEmpresa(duplicados.rows);
     const mapaIvaContable = porEmpresa(ivaContable.rows);
+    const mapaRezagados = porEmpresa(rezagados.rows);
+    const mapaF29 = porEmpresa(f29s.rows);
+    const mapaHonorariosSinPago = porEmpresa(honorariosSinPago.rows);
+    const mapaFacturas46 = porEmpresa(facturas46.rows);
     const mapaFolios = porEmpresa(folios.rows);
     const mapaAtipicos = porEmpresa(atipicos.rows);
 
@@ -378,6 +422,15 @@ async function obtenerPanelEstudio(req, res) {
       const foliosFaltantes = Number(mapaFolios[id]?.faltan || 0);
       const montosAtipicos = Number(mapaAtipicos[id]?.atipicos || 0);
 
+      const comprasRezagadas = Number(mapaRezagados[id]?.rezagados || 0);
+      const f29 = mapaF29[id] || null;
+      const f29SinRegistrar = !f29 && periodo < hoyPeriodo ? 1 : 0;
+      const f29ConDiferencia =
+        f29 && Math.round(Number(f29.total_pagado || 0) - Number(f29.calculado || 0)) !== 0 ? 1 : 0;
+      const documentosPosteriores = f29 && !f29ConDiferencia ? Number(f29.posteriores || 0) : 0;
+      const honorariosSinFechaPago = Number(mapaHonorariosSinPago[id]?.sin_pago || 0);
+      const facturasCompra = Number(mapaFacturas46[id]?.facturas || 0);
+
       // Lo que hace que el panel sirva: un solo semáforo por empresa.
       // Rojo es algo que hace que lo declarado no cuadre; amarillo es algo que
       // conviene mirar; verde es que no hay nada pendiente.
@@ -385,14 +438,19 @@ async function obtenerPanelEstudio(req, res) {
       // Son las mismas nueve revisiones del cierre mensual y con la misma
       // gravedad: el panel y el detalle no pueden decir cosas distintas de la
       // misma empresa.
-      const errores = descuadre + duplicado + sinCuenta + (ivaDescuadrado ? 1 : 0);
+      const errores =
+        descuadre + duplicado + sinCuenta + (ivaDescuadrado ? 1 : 0) + comprasRezagadas + f29ConDiferencia;
       const avisos =
         sinAsiento +
         pendienteBanco +
         remuneracionesPendientes +
         foliosFaltantes +
         montosAtipicos +
-        (ivaComparable ? 0 : 1);
+        (ivaComparable ? 0 : 1) +
+        f29SinRegistrar +
+        (documentosPosteriores > 0 ? 1 : 0) +
+        honorariosSinFechaPago +
+        facturasCompra;
 
       return {
         empresa_id: id,
@@ -413,7 +471,19 @@ async function obtenerPanelEstudio(req, res) {
           folios_de_venta_faltantes: foliosFaltantes,
           montos_atipicos: montosAtipicos,
           cuentas_de_iva_sin_configurar: ivaComparable ? 0 : 1,
+          compras_fuera_de_plazo: comprasRezagadas,
+          f29_sin_registrar: f29SinRegistrar,
+          f29_con_diferencia: f29ConDiferencia,
+          documentos_posteriores_al_f29: documentosPosteriores,
+          honorarios_sin_fecha_pago: honorariosSinFechaPago,
+          facturas_de_compra: facturasCompra,
         },
+        f29_presentado: f29
+          ? {
+              fecha_presentacion: f29.fecha_presentacion,
+              total_pagado: Number(f29.total_pagado || 0),
+            }
+          : null,
 
         documentos_del_periodo: Number(doc.total || 0),
 

@@ -27,6 +27,7 @@ const {
   obtenerPeriodoDesdeFecha,
   mapearTipoDocumentoSII,
   codigoSiiDesdeTipoDocumento,
+  leerColumnasRcv,
 } = require("../helpers/siiCsv.helper");
 
 function esVerdadero(valor) {
@@ -109,6 +110,41 @@ function calcularOtrosImpuestosMonto({
 
   const diferencia = totalNum - baseNum;
   return Math.abs(diferencia) < 1 ? 0 : diferencia;
+}
+
+/**
+ * Escribe las columnas del RCV en la compra ya insertada o actualizada. Va
+ * aparte del INSERT para no tocar las sentencias que la reimportacion
+ * idempotente usa para decidir si un documento cambio.
+ */
+async function guardarColumnasRcv(client, compraId, extras) {
+  if (!extras) return;
+
+  await client.query(
+    `UPDATE compras
+     SET tipo_compra = $2,
+         codigo_iva_no_rec = $3,
+         iva_uso_comun = $4,
+         neto_activo_fijo = $5,
+         iva_activo_fijo = $6,
+         iva_no_retenido = $7,
+         codigo_otro_impuesto = $8,
+         tasa_otro_impuesto = $9,
+         fecha_recepcion = COALESCE($10, fecha_recepcion)
+     WHERE id = $1`,
+    [
+      compraId,
+      extras.tipo_compra,
+      extras.codigo_iva_no_rec,
+      Number(extras.iva_uso_comun || 0),
+      Number(extras.neto_activo_fijo || 0),
+      Number(extras.iva_activo_fijo || 0),
+      Number(extras.iva_no_retenido || 0),
+      extras.codigo_otro_impuesto,
+      extras.tasa_otro_impuesto,
+      extras.fecha_recepcion,
+    ]
+  );
 }
 
 async function crearCompra(req, res) {
@@ -546,6 +582,10 @@ async function importarComprasSII(req, res) {
           fila["Monto Iva No Recuperable"]
         );
         const total = convertirNumeroSII(fila["Monto Total"]);
+        // Tipo de compra, codigo de IVA no recuperable, uso comun, activo fijo,
+        // IVA no retenido, otros impuestos y fecha de recepcion. Sin esto no hay
+        // proporcionalidad, 27 bis ni credito con recepcion tardia.
+        const extrasRcv = leerColumnasRcv(fila);
         const otrosImpuestos = calcularOtrosImpuestosMonto({
           total,
           neto,
@@ -708,6 +748,7 @@ async function importarComprasSII(req, res) {
             }
           }
 
+          await guardarColumnasRcv(client, compraExistente.id, extrasRcv);
           return compraExistente;
         }
 
@@ -772,6 +813,7 @@ async function importarComprasSII(req, res) {
           comprobantesCreados += 1;
         }
 
+        await guardarColumnasRcv(client, compra.id, extrasRcv);
         return compra;
       },
       {
