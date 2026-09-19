@@ -43,6 +43,10 @@ export default function NuevoComprobante() {
   const [detalleVisibleId, setDetalleVisibleId] = useState(null);
   const [detalleComprobante, setDetalleComprobante] = useState([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  // Faltaba declararlo: la pantalla lo usaba al dibujar y lanzaba un error de
+  // referencia, y sin un limite de error React desmontaba toda la aplicacion.
+  // Pantalla en blanco al entrar a comprobantes.
+  const [cargando, setCargando] = useState(false);
   const [imprimiendoComprobanteId, setImprimiendoComprobanteId] = useState(null);
 
   const [cabecera, setCabecera] = useState({
@@ -64,6 +68,7 @@ export default function NuevoComprobante() {
   }, []);
 
   async function cargarDatos() {
+    setCargando(true);
     try {
       setError("");
       const anioActivo = obtenerAnioActivo();
@@ -90,6 +95,8 @@ export default function NuevoComprobante() {
       );
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 

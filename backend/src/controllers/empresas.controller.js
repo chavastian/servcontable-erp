@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { ROLES } = require("../helpers/roles.helper");
 const {
   esAdminSistema,
   obtenerEmpresasPermitidas,
@@ -88,7 +89,10 @@ async function crearEmpresa(req, res) {
     const empresaCreada = nuevaEmpresa.rows[0];
 
     if (!esAdminSistema(req.usuario?.rol)) {
-      await asignarUsuarioEmpresa(client, req.usuario.id, empresaCreada.id, "admin");
+      // Quien crea la empresa es su dueno. Antes se asignaba "admin" en
+      // minuscula, que la restriccion de roles rechaza desde la migracion:
+      // crear una empresa respondia 500 para todo administrador de cliente.
+      await asignarUsuarioEmpresa(client, req.usuario.id, empresaCreada.id, ROLES.OWNER);
     }
 
     await client.query("COMMIT");

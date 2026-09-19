@@ -74,7 +74,7 @@ async function asegurarEmpresaDemo(client, usuario, solicitud = {}) {
           [rutDemo, razonSocial]
         );
 
-  await asignarUsuarioEmpresa(client, usuarioId, empresa.rows[0].id, "admin");
+  await asignarUsuarioEmpresa(client, usuarioId, empresa.rows[0].id, "OWNER");
 
   return empresa.rows[0];
 }

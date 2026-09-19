@@ -12,16 +12,71 @@ const {
 } = require("../helpers/suscripcion.helper");
 const { sesionVigente } = require("../helpers/sesion.helper");
 
-function obtenerEmpresaIdRequest(req) {
-  return (
-    req.body?.empresa_id ||
-    req.body?.empresaId ||
-    req.query?.empresa_id ||
-    req.query?.empresaId ||
-    req.params?.empresa_id ||
-    req.params?.empresaId ||
-    null
-  );
+const CLAVES_EMPRESA = ["empresa_id", "empresaId"];
+
+/**
+ * Todos los valores de empresa que trae la peticion, vengan donde vengan.
+ *
+ * Antes se tomaba el primero que apareciera, en orden cuerpo, consulta,
+ * parametros, y se validaba solo ese. Pero el controlador leia el de la
+ * consulta. Un GET con cuerpo JSON (express.json lo parsea sin mirar el
+ * metodo) pasaba la membresia con la empresa propia en el cuerpo y consultaba
+ * la ajena en la query. Con eso se leian trabajadores, libros y balances de
+ * cualquier cliente.
+ */
+function valoresEmpresaRequest(req) {
+  const valores = [];
+
+  for (const contenedor of [req.body, req.query, req.params]) {
+    if (!contenedor || typeof contenedor !== "object") continue;
+
+    for (const clave of CLAVES_EMPRESA) {
+      const valor = contenedor[clave];
+
+      if (valor !== undefined && valor !== null && String(valor).trim() !== "") {
+        valores.push(String(valor).trim());
+      }
+    }
+  }
+
+  return valores;
+}
+
+/**
+ * Deja un solo empresa_id, ya validado, en los tres contenedores, y elimina
+ * la variante en camelCase para que no quede una segunda fuente de verdad.
+ * Es lo mismo que hace tenant.middleware: aca se repite porque verificarToken
+ * es la unica capa que tienen la mayoria de las rutas de lectura.
+ */
+function normalizarEmpresaRequest(req, empresaId) {
+  req.empresaId = empresaId;
+  req.tenantValidado = true;
+
+  // En Express 5, req.query es un getter que vuelve a parsear la URL en cada
+  // acceso: modificar el objeto que devuelve no sirve de nada. Se reemplaza
+  // por una propiedad propia con la copia ya normalizada, que es lo que los
+  // controladores van a leer.
+  const query = { ...(req.query || {}) };
+  Object.defineProperty(req, "query", {
+    value: query,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+
+  // Cuerpo y consulta reciben siempre el valor validado, aunque hayan venido
+  // solo con la variante en camelCase: el controlador lee empresa_id.
+  for (const contenedor of [req.body, query]) {
+    if (!contenedor || typeof contenedor !== "object") continue;
+
+    if ("empresaId" in contenedor) delete contenedor.empresaId;
+    contenedor.empresa_id = empresaId;
+  }
+
+  if (req.params && typeof req.params === "object") {
+    if ("empresaId" in req.params) delete req.params.empresaId;
+    if ("empresa_id" in req.params) req.params.empresa_id = empresaId;
+  }
 }
 
 function rutaAutenticadaSinAccesoOperativo(req, accesoSuscripcion) {
@@ -92,9 +147,18 @@ async function verificarToken(req, res, next) {
       });
     }
 
-    const empresaCruda = obtenerEmpresaIdRequest(req);
+    const valoresEmpresa = valoresEmpresaRequest(req);
 
-    if (empresaCruda !== null && String(empresaCruda).trim() !== "") {
+    // Dos valores distintos en la misma peticion no son un error de tipeo:
+    // son el vector de la fuga. Se rechaza antes de mirar cualquiera.
+    if (new Set(valoresEmpresa).size > 1) {
+      return res.status(400).json({
+        error: "La peticion trae mas de un empresa_id y no coinciden",
+      });
+    }
+
+    if (valoresEmpresa.length > 0) {
+      const empresaCruda = valoresEmpresa[0];
       const empresaId = Number(empresaCruda);
 
       // El formato se valida antes de consultar. Un valor como "abc" se
@@ -115,8 +179,7 @@ async function verificarToken(req, res, next) {
         });
       }
 
-      req.empresaId = empresaId;
-      req.tenantValidado = true;
+      normalizarEmpresaRequest(req, empresaId);
     }
 
     return next();

@@ -51,16 +51,29 @@ function normalizar(req, empresaId) {
   req.empresaId = empresaId;
   req.tenantValidado = true;
 
-  for (const contenedor of [req.body, req.query, req.params]) {
+  // req.query es un getter en Express 5 (ver auth.middleware): se sombrea con
+  // una copia propia para que la normalizacion persista.
+  const query = { ...(req.query || {}) };
+  Object.defineProperty(req, "query", {
+    value: query,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+
+  for (const contenedor of [req.body, query]) {
     if (!contenedor || typeof contenedor !== "object") continue;
 
     if ("empresaId" in contenedor) {
       delete contenedor.empresaId;
     }
 
-    if ("empresa_id" in contenedor) {
-      contenedor.empresa_id = empresaId;
-    }
+    contenedor.empresa_id = empresaId;
+  }
+
+  if (req.params && typeof req.params === "object") {
+    if ("empresaId" in req.params) delete req.params.empresaId;
+    if ("empresa_id" in req.params) req.params.empresa_id = empresaId;
   }
 }
 

@@ -308,3 +308,74 @@ test("un trabajador de otra empresa no se puede liquidar", async () => {
 
   assert.ok(status >= 400, `deberia rechazarse y dio ${status}`);
 });
+
+test("editar una liquidacion tambien recalcula en el servidor", async () => {
+  // Crear recalculaba; editar guardaba los montos del cliente tal cual. Bastaba
+  // crear y despues editar para saltarse el calculo.
+  const creada = await enviar("/api/liquidaciones", entradas());
+  assert.equal(creada.status, 201, JSON.stringify(creada.datos).slice(0, 200));
+
+  const id = creada.datos.liquidacion.id;
+
+  const editada = await enviar(
+    `/api/liquidaciones/${id}`,
+    entradas({
+      dias_trabajados: 30,
+      descuento_afp: 0,
+      descuento_salud: 0,
+      impuesto_unico: 0,
+      liquido_pagar: 99999999,
+      costo_empresa: 0,
+    }),
+    "PUT"
+  );
+
+  assert.equal(editada.status, 200, JSON.stringify(editada.datos).slice(0, 200));
+
+  const { rows } = await pool.query(
+    `SELECT descuento_afp, descuento_salud, liquido_pagar, costo_empresa
+     FROM liquidaciones WHERE id = $1`,
+    [id]
+  );
+
+  assert.ok(Number(rows[0].descuento_afp) > 0, "AFP no puede quedar en cero al editar");
+  assert.ok(Number(rows[0].descuento_salud) > 0, "salud tampoco");
+  assert.notEqual(Number(rows[0].liquido_pagar), 99999999);
+  assert.ok(Number(rows[0].costo_empresa) > 0);
+});
+
+test("editar una liquidacion no permite cambiarla a un trabajador de otra empresa", async () => {
+  // Solo puede existir una liquidacion por trabajador y periodo: se reutiliza la
+  // que crearon las pruebas anteriores.
+  const creada = {
+    datos: {
+      liquidacion: (
+        await pool.query(
+          `SELECT id FROM liquidaciones WHERE empresa_id = $1 AND estado <> 'eliminada' LIMIT 1`,
+          [ctx.empresa]
+        )
+      ).rows[0],
+    },
+  };
+  const otraEmpresa = (
+    await pool.query(
+      `INSERT INTO empresas (rut, razon_social, activa) VALUES ($1, $2, true) RETURNING id`,
+      [`Z${SUFIJO}-1`, `Ajena ${SUFIJO}`]
+    )
+  ).rows[0].id;
+  const ajeno = (
+    await pool.query(
+      `INSERT INTO trabajadores (empresa_id, rut, nombres, apellidos, fecha_ingreso, sueldo_base, estado, afp, salud)
+       VALUES ($1, $2, 'Otro', 'Ajeno', '2025-01-02', 500000, 'activo', 'MODELO', 'FONASA') RETURNING id`,
+      [otraEmpresa, `${SUFIJO}-2`]
+    )
+  ).rows[0].id;
+
+  const editada = await enviar(
+    `/api/liquidaciones/${creada.datos.liquidacion.id}`,
+    entradas({ trabajador_id: ajeno }),
+    "PUT"
+  );
+
+  assert.equal(editada.status, 403);
+});

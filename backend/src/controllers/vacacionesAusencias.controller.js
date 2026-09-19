@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { exigirDeEmpresa } = require("../helpers/empresa.helper");
 
 function numero(valor) {
   return Number(valor || 0);
@@ -55,6 +56,9 @@ async function crearRegistro(req, res) {
     const diasCalculados = dias !== undefined && dias !== null && dias !== ""
       ? numero(dias)
       : calcularDias(fecha_inicio, fecha_termino);
+
+    // El trabajador tiene que ser de esta empresa (ver haberesDescuentos).
+    await exigirDeEmpresa(pool, "trabajadores", trabajador_id, empresa_id, "id");
 
     const resultado = await pool.query(
       `
@@ -130,7 +134,9 @@ async function listarRegistros(req, res) {
         t.apellidos AS trabajador_apellidos,
         t.cargo AS trabajador_cargo
       FROM vacaciones_ausencias va
-      INNER JOIN trabajadores t ON t.id = va.trabajador_id
+      INNER JOIN trabajadores t
+        ON t.id = va.trabajador_id
+       AND t.empresa_id = va.empresa_id
       WHERE va.empresa_id = $1
         AND va.estado = 'vigente'
     `;

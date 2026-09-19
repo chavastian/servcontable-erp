@@ -38,7 +38,8 @@ router.put(
 router.put(
   "/:id/anular",
   verificarToken,
-  exigirPermiso("REGISTRAR"),
+  // Anular es una accion distinta de registrar: un EDITOR registra y no anula.
+  exigirPermiso("ANULAR"),
   bloquearDemo("la anulacion de honorarios se habilita en la version contratada."),
   anularHonorario
 );

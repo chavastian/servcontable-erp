@@ -2,6 +2,7 @@ const pool = require("../database/db");
 
 const {
   obtenerSiguienteNumeroComprobante,
+  insertarDetallesComprobante,
 } = require("../helpers/comprobante.helper");
 
 function obtenerDescripcionTipo(tipoPago) {
@@ -226,35 +227,10 @@ async function registrarPagoRemuneracion(req, res) {
 
     const comprobante = comprobanteResult.rows[0];
 
-    await client.query(
-      `
-      INSERT INTO comprobante_detalle
-      (
-        comprobante_id,
-        cuenta_id,
-        glosa,
-        debe,
-        haber
-      )
-      VALUES ($1,$2,$3,$4,$5)
-      `,
-      [comprobante.id, cuentaDebeId, glosa, montoNum, 0]
-    );
-
-    await client.query(
-      `
-      INSERT INTO comprobante_detalle
-      (
-        comprobante_id,
-        cuenta_id,
-        glosa,
-        debe,
-        haber
-      )
-      VALUES ($1,$2,$3,$4,$5)
-      `,
-      [comprobante.id, cuentaHaberId, glosa, 0, montoNum]
-    );
+    await insertarDetallesComprobante(client, comprobante.id, [
+      { cuenta_id: cuentaDebeId, glosa, debe: montoNum, haber: 0 },
+      { cuenta_id: cuentaHaberId, glosa, debe: 0, haber: montoNum },
+    ]);
 
     const pagoResult = await client.query(
       `

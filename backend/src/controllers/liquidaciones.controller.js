@@ -1,9 +1,11 @@
 const pool = require("../database/db");
+const { exigirDeEmpresa } = require("../helpers/empresa.helper");
 const {
   obtenerAusenciasLiquidacion,
 } = require("../helpers/ausenciasLiquidacion.helper");
 const {
   obtenerSiguienteNumeroComprobante,
+  insertarDetallesComprobante,
 } = require("../helpers/comprobante.helper");
 const { exigirPeriodoAbierto } = require("../helpers/periodo.helper");
 const { marcarCreacion } = require("../helpers/autoria.helper");
@@ -286,10 +288,15 @@ async function calcularLiquidacionCompleta(client, entradas) {
     );
 
     if (!configuracion) {
-      return res.status(400).json({
-        error:
-          "No existe Configuración de Remuneraciones para este período. Debes configurarla antes de calcular liquidaciones.",
-      });
+      // Esta funcion no tiene `res`: responder aqui lanzaba un error de
+      // referencia y el usuario recibia "error interno" justo en el caso mas
+      // comun de un cliente nuevo, que todavia no configuro el periodo.
+      throw Object.assign(
+        new Error(
+          "No existe Configuración de Remuneraciones para este período. Debes configurarla antes de calcular liquidaciones."
+        ),
+        { statusCode: 400 }
+      );
     }
 
     const afpParametro = await obtenerAfpTrabajador(
@@ -300,10 +307,12 @@ async function calcularLiquidacionCompleta(client, entradas) {
     );
 
     if (!afpParametro) {
-      return res.status(400).json({
-        error:
-          "La AFP del trabajador no está configurada para este período. Revisa la AFP del trabajador y la configuración de remuneraciones.",
-      });
+      throw Object.assign(
+        new Error(
+          "La AFP del trabajador no está configurada para este período. Revisa la AFP del trabajador y la configuración de remuneraciones."
+        ),
+        { statusCode: 400 }
+      );
     }
 
 
@@ -922,6 +931,15 @@ async function actualizarLiquidacion(req, res) {
       });
     }
 
+    // El trabajador tiene que ser de esta empresa: el PUT permitia cambiarlo
+    // por cualquier id.
+    await exigirDeEmpresa(pool, "trabajadores", trabajador_id, empresa_id, "id");
+
+    // Se recalcula igual que al crear. Crear ya recalculaba en el servidor,
+    // pero editar guardaba AFP, salud, impuesto y liquido tal como llegaban:
+    // bastaba crear y despues editar para saltarse el calculo.
+    const c = (await calcularLiquidacionCompleta(pool, req.body)).calculo;
+
 
     const resultado = await pool.query(
       `
@@ -985,54 +1003,54 @@ async function actualizarLiquidacion(req, res) {
         Number(empresa_id),
         Number(trabajador_id),
         periodo,
-        Number(dias_trabajados || 30),
-        Number(sueldo_base || 0),
-        Number(sueldo_proporcional || 0),
-        Number(gratificacion || 0),
-        normalizarTipoCalculoHorasExtras(tipo_calculo_horas_extras),
-        Number(horas_extras || 0),
-        Number(base_horas_extras || 0),
-        Number(jornada_horas_semanal || JORNADA_SEMANAL_DEFAULT),
-        Boolean(aplica_semana_corrida_horas_extras),
-        Number(semana_corrida_horas_extras || 0),
-        Number(recargo_horas_extras || RECARGO_HORA_EXTRA_DEFAULT),
-        Number(valor_hora_extra || 0),
-        Number(monto_horas_extras || 0),
-        Number(variables_haberes_imponibles || 0),
-        Number(variables_haberes_no_imponibles || 0),
-        Number(variables_descuentos || 0),
-        Number(dias_ausencia || 0),
-        Number(horas_ausencia || 0),
-        Number(descuento_ausencias || 0),
-        Number(base_imponible || 0),
-        Number(base_tributable || 0),
-        tramo_impuesto_unico_id || null,
-        Number(factor_impuesto_unico || 0),
-        Number(rebaja_impuesto_unico || 0),
-        Number(tope_imponible_pesos || 0),
-        Number(base_afecta_descuentos || 0),
-        Number(total_haberes_imponibles || 0),
-        Number(total_haberes_no_imponibles || 0),
-        Number(total_haberes || 0),
-        Number(tasa_afp || 0),
+        Number(c.dias_trabajados || 30),
+        Number(c.sueldo_base || 0),
+        Number(c.sueldo_proporcional || 0),
+        Number(c.gratificacion || 0),
+        normalizarTipoCalculoHorasExtras(c.tipo_calculo_horas_extras),
+        Number(c.horas_extras || 0),
+        Number(c.base_horas_extras || 0),
+        Number(c.jornada_horas_semanal || JORNADA_SEMANAL_DEFAULT),
+        Boolean(c.aplica_semana_corrida_horas_extras),
+        Number(c.semana_corrida_horas_extras || 0),
+        Number(c.recargo_horas_extras || RECARGO_HORA_EXTRA_DEFAULT),
+        Number(c.valor_hora_extra || 0),
+        Number(c.monto_horas_extras || 0),
+        Number(c.variables_haberes_imponibles || 0),
+        Number(c.variables_haberes_no_imponibles || 0),
+        Number(c.variables_descuentos || 0),
+        Number(c.dias_ausencia || 0),
+        Number(c.horas_ausencia || 0),
+        Number(c.descuento_ausencias || 0),
+        Number(c.base_imponible || 0),
+        Number(c.base_tributable || 0),
+        c.tramo_impuesto_unico_id || null,
+        Number(c.factor_impuesto_unico || 0),
+        Number(c.rebaja_impuesto_unico || 0),
+        Number(c.tope_imponible_pesos || 0),
+        Number(c.base_afecta_descuentos || 0),
+        Number(c.total_haberes_imponibles || 0),
+        Number(c.total_haberes_no_imponibles || 0),
+        Number(c.total_haberes || 0),
+        Number(c.tasa_afp || 0),
         TASA_SALUD_LEGAL,
-        Number(tasa_afc_trabajador || 0),
-        Number(tasa_afc_empleador || 0),
-        Number(tasa_sis || 0),
-        Number(tasa_seguro_social || 0),
-        Number(tasa_mutual || 0),
-        Number(descuento_afp || 0),
-        Number(descuento_salud || 0),
-        Number(descuento_afc || 0),
-        Number(impuesto_unico || 0),
-        Number(otros_descuentos || 0),
-        Number(total_descuentos || 0),
-        Number(liquido_pagar || 0),
-        Number(aporte_sis_empleador || 0),
-        Number(aporte_seguro_social_empleador || 0),
-        Number(aporte_afc_empleador || 0),
-        Number(aporte_mutual_empleador || 0),
-        Number(costo_empresa || 0),
+        Number(c.tasa_afc_trabajador || 0),
+        Number(c.tasa_afc_empleador || 0),
+        Number(c.tasa_sis || 0),
+        Number(c.tasa_seguro_social || 0),
+        Number(c.tasa_mutual || 0),
+        Number(c.descuento_afp || 0),
+        Number(c.descuento_salud || 0),
+        Number(c.descuento_afc || 0),
+        Number(c.impuesto_unico || 0),
+        Number(c.otros_descuentos || 0),
+        Number(c.total_descuentos || 0),
+        Number(c.liquido_pagar || 0),
+        Number(c.aporte_sis_empleador || 0),
+        Number(c.aporte_seguro_social_empleador || 0),
+        Number(c.aporte_afc_empleador || 0),
+        Number(c.aporte_mutual_empleador || 0),
+        Number(c.costo_empresa || 0),
       ]
     );
 
@@ -1608,30 +1626,10 @@ async function contabilizarLiquidaciones(req, res) {
       });
     }
 
-    for (const detalle of detalles) {
-      await client.query(
-        `
-        INSERT INTO comprobante_detalle
-        (
-          comprobante_id,
-          cuenta_id,
-          glosa,
-          debe,
-          haber,
-          rut_auxiliar
-        )
-        VALUES ($1,$2,$3,$4,$5,$6)
-        `,
-        [
-          comprobante.id,
-          Number(detalle.cuenta_id),
-          detalle.glosa,
-          Number(detalle.debe || 0),
-          Number(detalle.haber || 0),
-          detalle.rut_auxiliar || "",
-        ]
-      );
-    }
+    // Por el punto central: valida que cada cuenta sea de la empresa y que el
+    // ejercicio este abierto. Antes se insertaba directo y la nomina se podia
+    // contabilizar en un ano cerrado con cuentas de otra empresa.
+    await insertarDetallesComprobante(client, comprobante.id, detalles);
 
     await client.query(
       `

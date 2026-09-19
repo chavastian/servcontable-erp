@@ -11,6 +11,7 @@ const {
 } = require("../controllers/haberesDescuentos.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
   limitarCreacionDemoPorEmpresa,
@@ -21,6 +22,7 @@ router.get("/resumen-liquidacion", verificarToken, obtenerResumenLiquidacion);
 router.post(
   "/",
   verificarToken,
+  exigirPermiso("REMUNERACIONES"),
   limitarCreacionDemoPorEmpresa({
     modulo: "conceptos de haberes y descuentos",
     tabla: "haberes_descuentos_remuneraciones",
@@ -29,16 +31,18 @@ router.post(
   }),
   crearHaberDescuento
 );
-router.put("/:id", verificarToken, actualizarHaberDescuento);
+router.put("/:id", verificarToken, exigirPermiso("REMUNERACIONES"), actualizarHaberDescuento);
 router.put(
   "/:id/recurrente",
   verificarToken,
+  exigirPermiso("REMUNERACIONES"),
   bloquearDemo("los conceptos fijos mensuales se habilitan en la version contratada."),
   actualizarRecurrenteHaberDescuento
 );
 router.put(
   "/:id/eliminar",
   verificarToken,
+  exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la eliminacion de conceptos se habilita en la version contratada."),
   eliminarHaberDescuento
 );

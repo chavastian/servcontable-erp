@@ -48,7 +48,7 @@ const PENDIENTES = [
 // Los contadores que no tienen sentido mostrar como cantidad: son un si o un no.
 const SIN_CANTIDAD = ["iva_descuadrado", "cuentas_de_iva_sin_configurar"];
 
-export default function PanelEstudio({ irVista }) {
+export default function PanelEstudio({ irVista, alAbrirEmpresa }) {
   const [periodo, setPeriodo] = useState(obtenerPeriodoTrabajo());
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -77,20 +77,24 @@ export default function PanelEstudio({ irVista }) {
    * que a una le falta algo. Sin esto habría que volver al selector y buscarla.
    */
   function abrirEmpresa(fila) {
-    guardarEmpresaActiva({
+    const empresa = {
       id: fila.empresa_id,
       rut: fila.rut,
       razon_social: fila.razon_social,
       rol_empresa: fila.rol_empresa,
-    });
+    };
 
-    // Se recarga a proposito: la empresa activa vive tanto en sessionStorage
-    // como en el estado de la aplicacion, y cambiar solo una deja la cabecera
-    // mostrando una empresa distinta de la que se esta trabajando.
-    if (typeof irVista === "function") {
-      irVista("dashboardContable");
+    // La aplicacion es quien sabe cambiar de empresa: limpia el ejercicio y
+    // lleva al selector. La version anterior recargaba la pagina con la
+    // empresa nueva pero el ejercicio de la anterior, y la cabecera mostraba
+    // el ano y el estado de otra empresa.
+    if (typeof alAbrirEmpresa === "function") {
+      alAbrirEmpresa(empresa);
+      return;
     }
 
+    guardarEmpresaActiva(empresa);
+    sessionStorage.removeItem("ejercicioActivo");
     window.location.reload();
   }
 

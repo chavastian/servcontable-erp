@@ -145,7 +145,7 @@ async function usuarioPuedeAdministrarEmpresa(client, usuario, empresaId) {
      WHERE usuario_id = $1
        AND empresa_id = $2
        AND activo = true
-       AND rol_empresa IN ('admin', 'administrador')
+       AND rol_empresa IN ('OWNER', 'ADMIN')
      LIMIT 1`,
     [usuario?.id, empresaId]
   );
@@ -205,7 +205,7 @@ async function puedeAdministrarUsuarioObjetivo(client, solicitante, usuarioObjet
      JOIN usuarios_empresas ajeno ON ajeno.empresa_id = propio.empresa_id
      WHERE propio.usuario_id = $1
        AND propio.activo = true
-       AND LOWER(propio.rol_empresa) IN ('admin', 'administrador')
+       AND propio.rol_empresa IN ('OWNER', 'ADMIN')
        AND ajeno.usuario_id = $2
        AND ajeno.activo = true
      LIMIT 1`,
@@ -226,7 +226,7 @@ async function asignarUsuarioEmpresa(
   client,
   usuarioId,
   empresaId,
-  rolEmpresa = "usuario"
+  rolEmpresa = "CONSULTA"
 ) {
   await client.query(
     `INSERT INTO usuarios_empresas (usuario_id, empresa_id, rol_empresa, activo)

@@ -522,7 +522,9 @@ async function listarUsuarios(req, res) {
     if (!esAdminSistema(req.usuario.rol) && !empresa_id) {
       const empresas = await obtenerEmpresasPermitidas(pool, req.usuario);
       const empresasAdmin = empresas
-        .filter((empresa) => ["admin", "administrador"].includes(empresa.rol_empresa))
+        .filter((empresa) =>
+          ["OWNER", "ADMIN"].includes(normalizarRolDeEmpresa(empresa.rol_empresa))
+        )
         .map((empresa) => Number(empresa.id));
 
       if (empresasAdmin.length === 0) {
@@ -922,7 +924,9 @@ async function actualizarUsuarioCliente(req, res) {
     if (!esAdminSistema(req.usuario.rol)) {
       const empresasPermitidas = await obtenerEmpresasPermitidas(client, req.usuario);
       empresasAdministrables = empresasPermitidas
-        .filter((empresa) => ["admin", "administrador"].includes(empresa.rol_empresa))
+        .filter((empresa) =>
+          ["OWNER", "ADMIN"].includes(normalizarRolDeEmpresa(empresa.rol_empresa))
+        )
         .map((empresa) => Number(empresa.id));
 
       const empresasObjetivo = await client.query(
@@ -991,6 +995,13 @@ async function actualizarUsuarioCliente(req, res) {
         usuarioId,
       ]
     );
+
+    // Cambiar el rol tiene que cerrar las sesiones abiertas: el rol viaja
+    // dentro del token, y un superadministrador degradado seguia con su rol
+    // en cada peticion hasta que el token expirara, hasta cuatro horas.
+    if (rolNormalizado !== String(usuarioObjetivo.rol || "")) {
+      await revocarSesiones(client, usuarioId);
+    }
 
     if (rolNormalizado === "superadmin") {
       await client.query(

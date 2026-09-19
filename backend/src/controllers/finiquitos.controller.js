@@ -5,6 +5,7 @@ const {
 } = require("../helpers/vacaciones.helper");
 const {
   obtenerSiguienteNumeroComprobante,
+  insertarDetallesComprobante,
 } = require("../helpers/comprobante.helper");
 
 function numero(valor) {
@@ -470,6 +471,28 @@ async function eliminarFiniquito(req, res) {
       });
     }
 
+    // Un finiquito contabilizado o pagado tiene asientos vigentes. Anularlo a
+    // secas dejaba el asiento vivo y el finiquito fuera del listado: gasto e
+    // indemnizacion contabilizados para un documento que ya no existia.
+    const actual = await pool.query(
+      `SELECT id, contabilizado, pagado FROM finiquitos
+       WHERE id = $1 AND empresa_id = $2 AND estado = 'vigente'`,
+      [id, empresa_id]
+    );
+
+    if (actual.rows.length === 0) {
+      return res.status(404).json({
+        error: "Finiquito no encontrado",
+      });
+    }
+
+    if (actual.rows[0].contabilizado || actual.rows[0].pagado) {
+      return res.status(409).json({
+        error:
+          "El finiquito esta contabilizado o pagado. Anula primero sus comprobantes y despues eliminalo.",
+      });
+    }
+
     const resultado = await pool.query(
       `
       UPDATE finiquitos
@@ -481,12 +504,6 @@ async function eliminarFiniquito(req, res) {
       `,
       [id, empresa_id]
     );
-
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({
-        error: "Finiquito no encontrado",
-      });
-    }
 
     return res.json({
       mensaje: "Finiquito eliminado correctamente",
@@ -679,30 +696,20 @@ async function contabilizarFiniquito(req, res) {
 
     const comprobante = comprobanteResult.rows[0];
 
+    // Las lineas se juntan y pasan por el punto central, que valida cuenta y
+    // ejercicio abierto. Antes se insertaban directo.
+    const lineasAsiento = [];
+
     async function insertarDetalle(cuentaId, glosaDetalle, debe, haber) {
       if (!cuentaId) return;
       if (numero(debe) === 0 && numero(haber) === 0) return;
 
-      await client.query(
-        `
-        INSERT INTO comprobante_detalle
-        (
-          comprobante_id,
-          cuenta_id,
-          glosa,
-          debe,
-          haber
-        )
-        VALUES ($1,$2,$3,$4,$5)
-        `,
-        [
-          comprobante.id,
-          cuentaId,
-          glosaDetalle,
-          numero(debe),
-          numero(haber),
-        ]
-      );
+      lineasAsiento.push({
+        cuenta_id: cuentaId,
+        glosa: glosaDetalle,
+        debe: numero(debe),
+        haber: numero(haber),
+      });
     }
 
     await insertarDetalle(
@@ -732,6 +739,9 @@ async function contabilizarFiniquito(req, res) {
       0,
       totalDescuentos
     );
+
+    await insertarDetallesComprobante(client, comprobante.id, lineasAsiento);
+
 
     const updateResult = await client.query(
       `
@@ -910,29 +920,22 @@ async function pagarFiniquito(req, res) {
 
     const comprobante = comprobanteResult.rows[0];
 
-    await client.query(
-      `
-      INSERT INTO comprobante_detalle
-      (
-        comprobante_id,
-        cuenta_id,
-        glosa,
-        debe,
-        haber
-      )
-      VALUES
-      ($1,$2,$3,$4,0),
-      ($1,$5,$6,0,$4)
-      `,
-      [
-        comprobante.id,
-        cuentaFiniquitoPorPagar,
-        `Pago finiquito por pagar ${trabajadorNombre}`,
-        montoPago,
-        cuentaBanco,
-        `Salida banco pago finiquito ${trabajadorNombre}`,
-      ]
-    );
+    // cuentaBanco viene del cuerpo: el punto central comprueba que sea de
+    // esta empresa antes de imputarla.
+    await insertarDetallesComprobante(client, comprobante.id, [
+      {
+        cuenta_id: cuentaFiniquitoPorPagar,
+        glosa: `Pago finiquito por pagar ${trabajadorNombre}`,
+        debe: montoPago,
+        haber: 0,
+      },
+      {
+        cuenta_id: cuentaBanco,
+        glosa: `Salida banco pago finiquito ${trabajadorNombre}`,
+        debe: 0,
+        haber: montoPago,
+      },
+    ]);
 
     const updateResult = await client.query(
       `

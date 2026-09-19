@@ -288,6 +288,7 @@ export default function PanelPrincipal({
   cambiarEjercicio,
   volverASeleccionModulo,
   alCerrarSesion,
+  alSeleccionarEmpresa,
 }) {
   const [vistaActiva, setVistaActiva] = useState(() => vistaInicialPorModulo(moduloActivo));
   const [menuAbierto, setMenuAbierto] = useState(true);
@@ -588,7 +589,9 @@ export default function PanelPrincipal({
               mostrarHeroPanel ? " servcontable-has-panel-hero" : ""
             }`}
           >
-            {vistaActiva === "panelEstudio" && <PanelEstudio irVista={irVista} />}
+            {vistaActiva === "panelEstudio" && (
+              <PanelEstudio irVista={irVista} alAbrirEmpresa={alSeleccionarEmpresa} />
+            )}
             {vistaActiva === "cierreMensual" && <CierreMensual />}
             {vistaActiva === "calceBancario" && <CalceBancario />}
             {vistaActiva === "clasificarDocumentos" && <ClasificarDocumentos />}

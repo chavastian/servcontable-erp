@@ -296,6 +296,7 @@ function App() {
         alSeleccionarEmpresa={seleccionarEmpresa}
         volverASeleccionModulo={volverASeleccionModulo}
         alCerrarSesion={cerrarSesionVisual}
+        alSeleccionarEmpresa={seleccionarEmpresa}
       />
     );
   }

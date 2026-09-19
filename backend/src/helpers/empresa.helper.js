@@ -19,6 +19,9 @@ class ErrorEmpresaAjena extends Error {
     this.tabla = tabla;
     this.registroId = id;
     this.statusHttp = 403;
+    // Los catch de los controladores miran statusCode para decidir si el
+    // mensaje vuelve al cliente; sin esto respondian 500 "error interno".
+    this.statusCode = 403;
   }
 }
 

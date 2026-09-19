@@ -11,6 +11,7 @@ const {
 } = require("../controllers/configuracionRemuneraciones.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { bloquearDemo } = require("../middleware/demo.middleware");
 
 const uploadIndicadores = multer({
@@ -44,17 +45,18 @@ function cargarIndicadores(req, res, next) {
 }
 
 router.get("/", verificarToken, obtenerConfiguracionRemuneraciones);
-router.post("/", verificarToken, guardarConfiguracionRemuneraciones);
+router.post("/", verificarToken, exigirPermiso("REMUNERACIONES"), guardarConfiguracionRemuneraciones);
 router.post(
   "/importar-indicadores",
   verificarToken,
   cargarIndicadores,
   importarIndicadoresPrevisionales
 );
-router.post("/afp", verificarToken, guardarAFP);
+router.post("/afp", verificarToken, exigirPermiso("REMUNERACIONES"), guardarAFP);
 router.put(
   "/afp/:id/eliminar",
   verificarToken,
+  exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la eliminacion de AFP se habilita en la version contratada."),
   eliminarAFP
 );

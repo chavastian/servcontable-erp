@@ -24,6 +24,7 @@ router.post(
 router.put(
   "/:id/anular",
   verificarToken,
+  exigirPermiso("ANULAR"),
   bloquearDemo("la anulacion de pagos y cobros se habilita en la version contratada."),
   anularPagoCobro
 );

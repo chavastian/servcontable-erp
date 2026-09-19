@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { exigirDeEmpresa } = require("../helpers/empresa.helper");
 
 function esPeriodoValido(periodo) {
   return /^\d{4}-\d{2}$/.test(String(periodo || ""));
@@ -140,6 +141,11 @@ async function crearHaberDescuento(req, res) {
       });
     }
 
+    // El trabajador tiene que ser de esta empresa. Sin esto se insertaba el
+    // id del cuerpo tal cual y el listado devolvia despues el nombre y RUT
+    // del trabajador de otro cliente.
+    await exigirDeEmpresa(pool, "trabajadores", trabajador_id, empresa_id, "id");
+
     const resultado = await pool.query(
       `
       INSERT INTO haberes_descuentos_remuneraciones
@@ -222,6 +228,7 @@ async function listarHaberesDescuentos(req, res) {
       FROM haberes_descuentos_remuneraciones hd
       INNER JOIN trabajadores t
         ON t.id = hd.trabajador_id
+       AND t.empresa_id = hd.empresa_id
       WHERE hd.empresa_id = $1
         AND hd.estado = 'vigente'
         AND (
@@ -353,6 +360,10 @@ async function actualizarHaberDescuento(req, res) {
     }
 
     const actual = existenteResult.rows[0];
+
+    if (trabajador_id && Number(trabajador_id) !== Number(actual.trabajador_id)) {
+      await exigirDeEmpresa(pool, "trabajadores", trabajador_id, empresa_id, "id");
+    }
 
     const periodoFinal = periodo || actual.periodo;
     const nombreFinal = String(nombre ?? actual.nombre ?? "").trim();

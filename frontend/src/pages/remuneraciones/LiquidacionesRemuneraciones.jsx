@@ -47,6 +47,8 @@ export default function LiquidacionesRemuneraciones() {
   const [calculo, setCalculo] = useState(null);
   const [editandoLiquidacionId, setEditandoLiquidacionId] = useState(null);
   const [cargandoResumen, setCargandoResumen] = useState(false);
+  // Faltaba declararlo (ver NuevoComprobante): pantalla en blanco al entrar.
+  const [cargando, setCargando] = useState(false);
 
   const [formulario, setFormulario] = useState(FORMULARIO_INICIAL);
 
@@ -132,6 +134,7 @@ export default function LiquidacionesRemuneraciones() {
   }, [formulario.tipo_calculo_horas_extras]);
 
   async function cargarDatos() {
+    setCargando(true);
     try {
       setError("");
 
@@ -158,6 +161,8 @@ export default function LiquidacionesRemuneraciones() {
       );
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 

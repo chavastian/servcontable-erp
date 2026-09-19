@@ -9,6 +9,7 @@ const {
 } = require("../controllers/vacacionesAusencias.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
   limitarCreacionDemoPorEmpresa,
@@ -19,6 +20,7 @@ router.get("/resumen-trabajador", verificarToken, obtenerResumenTrabajador);
 router.post(
   "/",
   verificarToken,
+  exigirPermiso("REMUNERACIONES"),
   limitarCreacionDemoPorEmpresa({
     modulo: "registros de vacaciones o ausencias",
     tabla: "vacaciones_ausencias",
@@ -30,6 +32,7 @@ router.post(
 router.delete(
   "/:id",
   verificarToken,
+  exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la eliminacion de vacaciones y ausencias se habilita en la version contratada."),
   eliminarRegistro
 );
