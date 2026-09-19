@@ -10,7 +10,7 @@
     "migrate": "node-pg-migrate --config-file .migraterc.json up",
     "migrate:down": "node-pg-migrate --config-file .migraterc.json down 1",
     "migrate:create": "node-pg-migrate --config-file .migraterc.json create --migration-file-language js",
-    "migrate:status": "node-pg-migrate --config-file .migraterc.json --dry-run up",
+    "migrate:status": "node scripts/estado-migraciones.js",
     "schema:dump": "node scripts/dump-schema.js",
     "migrate:deploy": "node-pg-migrate --config-file .migraterc.json up --no-lock",
     "smoke": "node scripts/smoke-carga.js",

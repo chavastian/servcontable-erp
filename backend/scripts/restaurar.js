@@ -147,6 +147,14 @@ async function main() {
   const fallos = [];
 
   for (const [tabla, esperado] of Object.entries(manifiesto.tablas)) {
+    // `pgmigrations` es la contabilidad del migrador, no datos del cliente, y
+    // por definicion difiere: restaurar sobre una base recien migrada deja ahi
+    // las migraciones que se aplicaron para crear el esquema, que no son las que
+    // tenia el origen. Comparar esa tabla hacia fallar la prueba de
+    // restauracion justamente cuando el origen no tenia migraciones
+    // registradas, que es el caso de produccion antes del primer despliegue.
+    if (tabla === "pgmigrations") continue;
+
     const filas = (await client.query(`SELECT COUNT(*)::int AS n FROM "${tabla}"`)).rows[0].n;
     const huella = (
       await client.query(
@@ -172,8 +180,10 @@ async function main() {
     process.exit(1);
   }
 
+  const comparadas = Object.keys(manifiesto.tablas).filter((t) => t !== "pgmigrations").length;
+
   console.log(
-    `  OK: ${Object.keys(manifiesto.tablas).length} tablas, ${manifiesto.total_filas} filas, huellas identicas.`
+    `  OK: ${comparadas} tablas comparadas, ${manifiesto.total_filas} filas, huellas identicas.`
   );
 
   await client.end();

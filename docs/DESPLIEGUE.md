@@ -42,6 +42,16 @@ pasos es opcional.
    DATABASE_URL=<produccion> npm run migrate:status
    ```
 
+   `migrate:status` **solo lee**. Hasta el 19-09-2026 era
+   `node-pg-migrate --dry-run up`, y eso no era seguro: `--dry-run` evita
+   ejecutar las sentencias que una migración **encola** con `pgm.sql()`, pero no
+   las que corre de inmediato con `pgm.db.query()`, y las migraciones de este
+   proyecto usan mucho la segunda forma. Un `migrate:status` contra producción
+   llegó hasta el bloque 6 y falló ahí, dentro de la transacción. No dejó nada
+   aplicado, porque `--single-transaction` viene activado y revirtió todo, pero
+   escribió. Ahora apunta a `scripts/estado-migraciones.js`, que hace `SELECT` y
+   nada más, y además dice si alguna pieza del esquema quedó a medias.
+
    **Revisión del 19-09-2026, hecha:** de los 16 archivos de `database/migrations`
    el primero es la línea base, que describe el esquema que producción ya tiene.
    Quedan **15 pendientes**. Se leyeron todas y se comparó cada escritura de
