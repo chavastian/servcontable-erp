@@ -65,15 +65,15 @@ const PLAN_CUENTAS_BASE_TEXTO = `
 1401007|EQUIPOS DE AUDIO Y VIDEO|ACTIVO|Propiedades, planta y equipo
 1401008|BIENES RAICES|ACTIVO|Propiedades, planta y equipo
 1401009|ACTIVOS EN LEASING|ACTIVO|Propiedades, planta y equipo
-1501001|DEP. ACUMULADA MUEBLES Y UTILES|PASIVO|Propiedades, planta y equipo
-1501002|DEP. ACUMULADA EQUIPOS COMPUTACIONALES|PASIVO|Propiedades, planta y equipo
-1501003|DEP. ACUMULADA EQUIPOS Y HTAS.|PASIVO|Propiedades, planta y equipo
-1501004|DEP. ACUMULADA VEHICULOS|PASIVO|Propiedades, planta y equipo
-1501005|DEP. ACUMULADA INSTALACIONES|PASIVO|Propiedades, planta y equipo
-1501006|DEP. ACUMULADA MAQUINARIAS, EQUIPOS Y HTAS.|PASIVO|Propiedades, planta y equipo
-1501007|DEP. ACUMULADA EQUIPOS DE AUDIO Y VIDEO|PASIVO|Propiedades, planta y equipo
-1501008|DEP. ACUMULADA ACTIVOS EN LEASING|PASIVO|Propiedades, planta y equipo
-1501009|DEP. ACUMULADA|PASIVO|Propiedades, planta y equipo
+1501001|DEP. ACUMULADA MUEBLES Y UTILES|ACTIVO|Propiedades, planta y equipo
+1501002|DEP. ACUMULADA EQUIPOS COMPUTACIONALES|ACTIVO|Propiedades, planta y equipo
+1501003|DEP. ACUMULADA EQUIPOS Y HTAS.|ACTIVO|Propiedades, planta y equipo
+1501004|DEP. ACUMULADA VEHICULOS|ACTIVO|Propiedades, planta y equipo
+1501005|DEP. ACUMULADA INSTALACIONES|ACTIVO|Propiedades, planta y equipo
+1501006|DEP. ACUMULADA MAQUINARIAS, EQUIPOS Y HTAS.|ACTIVO|Propiedades, planta y equipo
+1501007|DEP. ACUMULADA EQUIPOS DE AUDIO Y VIDEO|ACTIVO|Propiedades, planta y equipo
+1501008|DEP. ACUMULADA ACTIVOS EN LEASING|ACTIVO|Propiedades, planta y equipo
+1501009|DEP. ACUMULADA|ACTIVO|Propiedades, planta y equipo
 1601001|INVERSIONES EN OTRAS SOCIEDADES|ACTIVO|Inversiones contabilizadas con el metodo de la participacion
 1601002|MENOR VALOR INVERSION|ACTIVO|Inversiones contabilizadas con el metodo de la participacion
 1601003|MAYOR VALOR INVERSION|ACTIVO|Inversiones contabilizadas con el metodo de la participacion
@@ -264,13 +264,19 @@ function obtenerTipo(tipoExcel) {
   return limpiarTexto(tipoExcel) || "Activo";
 }
 
-function obtenerNaturaleza(tipo) {
+function obtenerNaturaleza(tipo, nombre = "") {
   const t = normalizarTexto(tipo);
 
   if (t.includes("PASIVO")) return "Acreedora";
   if (t.includes("PATRIMONIO")) return "Acreedora";
   if (t.includes("GANANCIA")) return "Acreedora";
   if (t.includes("INGRESO")) return "Acreedora";
+
+  // Las cuentas complementarias de activo (depreciación y amortización
+  // acumuladas) son de activo con saldo acreedor: restan del rubro en lugar de
+  // sumar al pasivo. Antes estaban tipificadas como pasivo, contra lo que
+  // decían su propio código (15xxxxx) y su clasificación.
+  if (/ACUMULADA/.test(normalizarTexto(nombre))) return "Acreedora";
 
   return "Deudora";
 }
@@ -300,7 +306,7 @@ function obtenerPlanCuentasBase() {
         nombre: limpiarTexto(nombre),
         tipo,
         clasificacion: limpiarTexto(clasificacion),
-        naturaleza: obtenerNaturaleza(tipo),
+        naturaleza: obtenerNaturaleza(tipo, nombre),
         nivel: obtenerNivel(codigo),
       };
     })

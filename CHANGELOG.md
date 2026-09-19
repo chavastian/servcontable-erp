@@ -9,6 +9,24 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloque 7
+
+- **Activo fijo con depreciación automática.** Se registra el bien una vez —valor, vida
+  útil, cuentas— y cada mes el sistema calcula la depreciación y genera el asiento.
+- **La depreciación acelerada se calcula aparte y no se contabiliza.** Es solo tributaria
+  (artículo 31 N°5): el balance lleva la normal, y la diferencia entre las dos queda
+  guardada para la renta anual. Las dos se ven en la misma pantalla, en columnas
+  separadas.
+- **El bien termina exactamente en su valor residual:** la cuota del último mes cierra la
+  diferencia del redondeo, sin dejar pesos sueltos arrastrándose para siempre.
+- **Correr la depreciación dos veces no duplica el gasto,** y si falta una cuenta no se
+  contabiliza nada a medias.
+- **Dar de baja o vender un bien** pide motivo, detiene la depreciación y muestra el valor
+  libro y el resultado de la venta. El asiento no se genera solo: esas cuentas las decide
+  el contador.
+- **Libro de activo fijo** por categoría, con la columna tributaria y exportación a Excel.
+- La vida útil se propone según la tabla del SII, pero la fija el contador.
+
 ### Revisión del 19-09-2026: bloque 6
 
 - **Proveedores y clientes son una ficha, no un texto repetido en cada factura.** Guardan

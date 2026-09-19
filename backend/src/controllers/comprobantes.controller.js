@@ -628,6 +628,16 @@ async function anularComprobante(req, res) {
       [empresa_id, id]
     );
 
+    // La depreciación del activo fijo (bloque 7) se anula junto con su asiento:
+    // si la fila quedara vigente, el bien no se podría volver a depreciar en
+    // ese período por el índice único, y el gasto se perdería.
+    await client.query(
+      `UPDATE depreciaciones
+       SET estado = 'anulada', contabilizada = false, actualizado_en = NOW()
+       WHERE empresa_id = $1 AND comprobante_id = $2 AND estado = 'vigente'`,
+      [empresa_id, id]
+    );
+
     const pagosAnulados = await client.query(
       `
       UPDATE pagos_cobros

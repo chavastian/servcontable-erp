@@ -26,6 +26,9 @@ export default function PeriodoMesSelector({
   onChange,
   style,
   containerStyle,
+  // El `id` lo toma el selector de mes, que es el que la persona usa: así una
+  // etiqueta con `htmlFor` queda realmente asociada a un control.
+  id,
 }) {
   const anioActivo = String(obtenerAnioActivo());
   const mesActual = normalizarMes(String(value || "").split("-")[1]);
@@ -44,11 +47,16 @@ export default function PeriodoMesSelector({
         ...containerStyle,
       }}
     >
-      <select style={style} value={anioActivo} onChange={() => {}}>
+      <select
+        style={style}
+        value={anioActivo}
+        onChange={() => {}}
+        aria-label="Año del ejercicio"
+      >
         <option value={anioActivo}>{anioActivo}</option>
       </select>
 
-      <select style={style} value={mesActual} onChange={cambiarMes}>
+      <select id={id} style={style} value={mesActual} onChange={cambiarMes} aria-label="Mes">
         {MESES.map((mes) => (
           <option key={mes.valor} value={mes.valor}>
             {mes.nombre}

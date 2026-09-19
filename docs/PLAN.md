@@ -371,9 +371,41 @@ artefacto y sus bloques se cierran en este orden.
   existían: 234 terceros y los 431 documentos de compra, 158 de venta y 29 honorarios
   enlazados sin quedar ninguno huérfano.
 
-- [ ] Módulos 7, 10, 11 y 13 del informe (activo fijo y depreciación, declaraciones
-  juradas, boletas de honorarios desde el SII, proporcionalidad completa del IVA de uso
-  común).
+
+**Bloque 7 — Activo fijo y depreciación  ✅ 19-09-2026**
+- [x] Módulo 7: tablas `activos_fijos` y `depreciaciones`. Registro del bien con valor,
+  vida útil, cuentas propias y centro de costo; enlace opcional a la compra que lo
+  originó.
+- [x] Dos depreciaciones para el mismo bien, que es la parte que importa: la **normal**
+  es la financiera y es la que se contabiliza; la **acelerada** del artículo 31 N°5
+  reduce la vida útil a un tercio, no toca el balance y queda guardada para la renta
+  líquida imponible. La diferencia entre ambas se informa como el ajuste que corresponde.
+- [x] Lineal, mensual, y la cuota del último mes absorbe el redondeo: el bien termina
+  exactamente en su valor residual y no con pesos sueltos.
+- [x] Contabilización del mes en un asiento agrupado por cuenta y centro, fechado al
+  último día. Un bien se deprecia una sola vez por período (índice único además del
+  control en el código), y si falta una cuenta no se contabiliza nada a medias.
+- [x] Un bien con depreciación contabilizada no cambia de valor ni de vida útil. Un PUT
+  parcial ya no apaga la depreciación acelerada ni borra las cuentas del bien.
+- [x] Baja y venta con motivo obligatorio: deja de depreciar desde el mes siguiente y
+  entrega el valor libro y el resultado de la venta **sin generar el asiento**, porque
+  las cuentas del resultado son criterio contable.
+- [x] Libro de activo fijo por categoría, con columna tributaria y exportación a Excel.
+  Dice que está a costo histórico, sin corrección monetaria (módulo 8).
+- [x] Tabla de vidas útiles sugeridas (Resolución Exenta SII N°43 de 2002) marcada como
+  **REQUIERE VALIDACIÓN TRIBUTARIA**: la vida útil la fija el contador, el sistema no la
+  deduce.
+- [x] Plan de cuentas base: las nueve cuentas de depreciación acumulada estaban
+  tipificadas como pasivo contra lo que decían su propio código (15xxxxx) y su
+  clasificación; quedaron como activo con saldo acreedor. **No se tocaron los planes ya
+  cargados en las empresas existentes**: ese cambio es decisión del contador (el balance
+  de ocho columnas las presenta igual, porque clasifica por el signo del saldo).
+- [x] Migración `1758201100000_bloque7-activo-fijo`. 11 pruebas nuevas.
+
+- [ ] Módulos 10, 11 y 13 del informe (declaraciones juradas, boletas de honorarios desde
+  el SII, proporcionalidad completa del IVA de uso común). El 13 quedó cubierto en lo
+  esencial por el bloque 3: el factor acumulado anual ya se aplica y la parte no
+  recuperable se informa; falta su contabilización como gasto.
 - [ ] Módulos 8 y 9 (corrección monetaria y capital propio tributario; renta anual, RLI
   y F22). **Son los dos que el informe marca como imposibles de escribir sin definir
   criterio tributario antes**: esperan decisión.

@@ -406,6 +406,41 @@ const terceroEstado = z
   })
   .passthrough();
 
+const activoFijo = z
+  .object({
+    empresa_id: id,
+    codigo: texto(40).min(1, "es obligatorio"),
+    nombre: texto(200).min(1, "es obligatorio"),
+    fecha_adquisicion: fecha,
+    fecha_inicio_depreciacion: fechaOpcional,
+    valor_adquisicion: montoPositivo,
+    valor_residual: montoPositivo.optional(),
+    // La vida útil la fija el contador: el sistema no la deduce.
+    vida_util_meses: z.coerce
+      .number()
+      .int("debe ser un numero entero de meses")
+      .positive("debe ser mayor que cero")
+      .max(1200, "no puede superar 1200 meses"),
+    vida_util_acelerada_meses: z.coerce.number().int().positive().max(1200).optional().nullable(),
+    compra_id: idOpcional,
+    tercero_id: idOpcional,
+    centro_costo_id: idOpcional,
+    cuenta_activo_id: idOpcional,
+    cuenta_depreciacion_acumulada_id: idOpcional,
+    cuenta_gasto_depreciacion_id: idOpcional,
+  })
+  .passthrough();
+
+const bajaActivoFijo = z
+  .object({
+    empresa_id: id,
+    fecha_baja: fecha,
+    motivo: texto(1000).min(5, "indica el motivo (mínimo 5 caracteres)"),
+    tipo: z.enum(["baja", "vendido"]).optional(),
+    valor_venta: montoPositivo.optional().nullable(),
+  })
+  .passthrough();
+
 const centroCosto = z
   .object({
     empresa_id: id,
@@ -453,6 +488,8 @@ module.exports = {
     terceroActualizar,
     terceroEstado,
     centroCosto,
+    activoFijo,
+    bajaActivoFijo,
   },
   piezas: { id, idOpcional, fecha, periodo, monto, montoPositivo, texto, booleano },
 };
