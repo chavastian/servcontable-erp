@@ -1,4 +1,5 @@
 ﻿const pool = require("../database/db");
+const { categoriaResultadoPorTipo } = require("../helpers/tipoCuenta.helper");
 
 function numero(valor) {
   return Number(valor || 0);
@@ -27,6 +28,10 @@ function esCuentaPatrimonio(cuenta) {
 }
 
 function clasificarTipoCuenta(cuenta) {
+  // El tipo declarado manda; el texto solo para tipos desconocidos.
+  const porTipo = categoriaResultadoPorTipo(cuenta.tipo);
+  if (porTipo !== undefined) return porTipo;
+
   const codigo = String(cuenta.codigo || "").trim();
   const texto = normalizar(
     `${cuenta.tipo || ""} ${cuenta.clasificacion || ""} ${cuenta.nombre || ""}`

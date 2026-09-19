@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { signoDocumento } = require("./documentoTributario.helper");
 const { exigirPeriodoAbierto } = require("./periodo.helper");
 
 const {
@@ -26,6 +27,25 @@ async function obtenerSiguienteNumeroComprobante(client, empresaId, tipo = "") {
   );
 
   return Number(resultado.rows[0]?.siguiente || 1);
+}
+
+/**
+ * Invierte debe y haber de cada línea cuando el documento resta.
+ *
+ * Una nota de crédito rebaja la operación que corrige: su asiento es el inverso
+ * del de la factura (artículos 21 y 57 del DL 825). Antes el generador no
+ * miraba el tipo de documento y una nota de crédito de compra debitaba gasto e
+ * IVA crédito igual que una factura: el F29 la restaba (fase 4) pero la
+ * contabilidad la sumaba.
+ */
+function aplicarSignoALineas(detalles, signo) {
+  if (signo >= 0) return detalles;
+
+  return detalles.map((linea) => ({
+    ...linea,
+    debe: Number(linea.haber || 0),
+    haber: Number(linea.debe || 0),
+  }));
 }
 
 async function crearComprobanteAutomaticoVenta(client, venta, configuracion) {
@@ -72,7 +92,10 @@ async function crearComprobanteAutomaticoVenta(client, venta, configuracion) {
 
   const folioDocumento = texto(folio);
   const rutAuxiliar = normalizarRutDocumentoOpcional(rut_cliente);
-  const glosa = `Folio ${folioDocumento || ""} ${razon_social_cliente || ""}`.trim();
+  const signo = signoDocumento(venta);
+  const glosa = `${signo < 0 ? "NC " : ""}Folio ${folioDocumento || ""} ${
+    razon_social_cliente || ""
+  }`.trim();
 
   const comprobanteResult = await client.query(
     `
@@ -120,7 +143,11 @@ async function crearComprobanteAutomaticoVenta(client, venta, configuracion) {
     },
   ];
 
-  await insertarDetallesComprobante(client, comprobante.id, detalles);
+  await insertarDetallesComprobante(
+    client,
+    comprobante.id,
+    aplicarSignoALineas(detalles, signo)
+  );
   return comprobante;
 }
 
@@ -181,7 +208,10 @@ function construirAsientoCompra(compra, configuracion = {}) {
     netoNum + exentoNum + ivaCreditoNum + ivaNoRecNum + otrosImpuestosNum;
   const folioDocumento = texto(folio);
   const rutAuxiliar = normalizarRutDocumentoOpcional(rut_proveedor);
-  const glosa = `Folio ${folioDocumento || ""} ${razon_social_proveedor || ""}`.trim();
+  const signo = signoDocumento(compra);
+  const glosa = `${signo < 0 ? "NC " : ""}Folio ${folioDocumento || ""} ${
+    razon_social_proveedor || ""
+  }`.trim();
 
   return {
     empresa_id,
@@ -191,7 +221,8 @@ function construirAsientoCompra(compra, configuracion = {}) {
     glosa,
     totalDebe,
     totalHaber: totalNum,
-    detalles: [
+    signo,
+    detalles: aplicarSignoALineas([
       {
         cuenta_id: cuentaGasto,
         glosa,
@@ -221,7 +252,7 @@ function construirAsientoCompra(compra, configuracion = {}) {
         folio: folioDocumento,
         rut_auxiliar: rutAuxiliar,
       },
-    ],
+    ], signo),
   };
 }
 

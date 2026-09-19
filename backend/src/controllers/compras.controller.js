@@ -26,6 +26,7 @@ const {
   convertirNumeroSII,
   obtenerPeriodoDesdeFecha,
   mapearTipoDocumentoSII,
+  codigoSiiDesdeTipoDocumento,
 } = require("../helpers/siiCsv.helper");
 
 function esVerdadero(valor) {
@@ -80,8 +81,9 @@ async function obtenerCuentaGastoFallback(client, empresaId) {
   ]);
   if (cuentaPerdida) return cuentaPerdida;
 
-  const cuentaActivo = await obtenerCuentaPorTipos(client, empresaId, ["Activo"]);
-  if (cuentaActivo) return cuentaActivo;
+  // Sin cuenta de gasto no se adivina. Antes se tomaba la primera cuenta de
+  // Activo, que en el plan base es CAJA: todas las compras de una empresa sin
+  // configurar quedaban imputadas a caja, con asiento y todo.
 
   return null;
 }
@@ -186,12 +188,17 @@ async function crearCompra(req, res) {
       });
     }
 
+    // El codigo SII se deriva del tipo: sin el, el indice unico de compras
+    // no aplicaba a las manuales y la misma factura entraba dos veces.
+    const siiTipoDocManual = codigoSiiDesdeTipoDocumento(tipo_documento);
+
     const compraResult = await client.query(
       `INSERT INTO compras
        (empresa_id, periodo, fecha, tipo_documento, folio, rut_proveedor,
          razon_social_proveedor, neto, exento, iva_credito, iva_no_recuperable,
-         otros_impuestos, total, cuenta_gasto_id, cuenta_otros_impuestos_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         otros_impuestos, total, cuenta_gasto_id, cuenta_otros_impuestos_id,
+         sii_tipo_doc)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING *`,
       [
         empresa_id,
@@ -209,6 +216,7 @@ async function crearCompra(req, res) {
         totalNum,
         cuentaGastoId,
         cuentaOtrosImpuestosId,
+        siiTipoDocManual,
       ]
     );
 
@@ -279,6 +287,15 @@ async function crearCompra(req, res) {
     });
   } catch (error) {
     await client.query("ROLLBACK");
+
+    // El indice unico por proveedor, tipo y folio rechaza la misma factura dos
+    // veces. Es una respuesta esperada, no un error interno.
+    if (error.code === "23505") {
+      return res.status(409).json({
+        error:
+          "Ya existe una compra vigente con ese proveedor, tipo de documento y folio.",
+      });
+    }
 
     console.error("Error al crear compra:", error);
 
@@ -537,14 +554,23 @@ async function importarComprasSII(req, res) {
           );
         }
 
+        // El folio lo asigna el proveedor: el mismo folio en dos proveedores son
+        // dos documentos. Sin el RUT en la busqueda, el segundo se tomaba como
+        // reimportacion del primero y lo sobrescribia.
         const existe = await client.query(
           `SELECT *
            FROM compras
            WHERE empresa_id = $1
              AND sii_tipo_doc = $2
              AND folio = $3
+             AND UPPER(REPLACE(REPLACE(COALESCE(rut_proveedor, ''), '.', ''), ' ', '')) = $4
            LIMIT 1`,
-          [empresa_id, siiTipoDoc, folio]
+          [
+            empresa_id,
+            siiTipoDoc,
+            folio,
+            String(rutProveedorNormalizado || "").toUpperCase().replace(/[.\s]/g, ""),
+          ]
         );
 
         if (existe.rows.length > 0) {

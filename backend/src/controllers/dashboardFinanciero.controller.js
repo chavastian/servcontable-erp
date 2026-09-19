@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { categoriaResultadoPorTipo } = require("../helpers/tipoCuenta.helper");
 
 async function obtenerDashboardFinanciero(req, res) {
   try {
@@ -167,7 +168,7 @@ async function obtenerDashboardFinanciero(req, res) {
        AND c.fecha BETWEEN $2 AND $3
       WHERE pc.empresa_id = $1
         AND pc.activo = true
-        AND pc.tipo IN ('Ingreso', 'Costo', 'Gasto')
+        AND pc.tipo IN ('Ingreso', 'Ganancia', 'Costo', 'Gasto', 'Pérdida')
       GROUP BY pc.tipo
       `,
       [empresa_id, fecha_desde, fecha_hasta]
@@ -224,15 +225,19 @@ async function obtenerDashboardFinanciero(req, res) {
       const debitos = Number(fila.debitos || 0);
       const creditos = Number(fila.creditos || 0);
 
-      if (fila.tipo === "Ingreso") {
+      // El plan base carga Ganancia y Pérdida; otros planes, Ingreso y Gasto.
+      // Comparar contra un solo valor dejaba el resultado en cero.
+      const categoria = categoriaResultadoPorTipo(fila.tipo);
+
+      if (categoria === "ingreso") {
         totalIngresos += creditos - debitos;
       }
 
-      if (fila.tipo === "Costo") {
+      if (categoria === "costo") {
         totalCostos += debitos - creditos;
       }
 
-      if (fila.tipo === "Gasto") {
+      if (categoria === "gasto") {
         totalGastos += debitos - creditos;
       }
     }

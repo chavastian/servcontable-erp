@@ -9,6 +9,29 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloques 0 y 1
+
+- **Fuga de lectura entre empresas cerrada.** Una petición con la empresa propia en el
+  cuerpo y otra en la consulta leía datos de cualquier cliente. Dos valores distintos
+  ahora responden 400.
+- **Crear empresa y administrar usuarios vuelven a funcionar** para un administrador de
+  cliente tras la migración de roles.
+- **Comprobantes contables y Liquidaciones** ya no quedan en blanco al abrirse.
+- **Las notas de crédito se contabilizan al revés de la factura**, como corresponde, y
+  dejan de aparecer como documentos por pagar o cobrar.
+- **La retención de honorarios sale de la fecha de emisión:** 15,25% en 2026, 16% en
+  2027, 17% desde 2028. Si el formulario manda otra tasa, se reemplaza y se avisa.
+- **Gratificación con tope legal, ausencias que no se descuentan dos veces, seguro de
+  cesantía con tope propio y reglas por tipo de contrato.** Una base tributable sobre
+  el mínimo exento sin tramos cargados ya no se liquida con impuesto cero.
+- **Los paneles muestran el resultado real:** clasificaban por valores que el plan base
+  no usa. El tipo de cuenta es ahora un dominio cerrado en la base.
+- **Dos proveedores con el mismo folio ya no se pisan al importar**, y la misma factura
+  manual no entra dos veces.
+- **El número de asiento lo asigna el servidor.** Editar no renumera.
+- **Autoría en las doce tablas contables**, fijada por la base en cada escritura.
+- **Borrar una empresa a mano ya no borra su contabilidad en cascada.**
+
 ### Seis funciones nuevas, ninguna con inteligencia artificial
 
 Todas leen datos que ya están en el sistema y los ordenan de una forma que hoy hay

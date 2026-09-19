@@ -25,6 +25,7 @@ const {
   diasDesdeHasta,
   sumarDiasAFecha,
 } = require("./fecha.helper");
+const { expresionSigno } = require("./documentoTributario.helper");
 
 const DIA = 86400000;
 
@@ -83,6 +84,7 @@ async function porCobrarPendiente(cliente, empresaId, hasta) {
      AND pc.estado = 'vigente'
     WHERE v.empresa_id = $1
       AND v.estado = 'vigente'
+      AND (${expresionSigno("v")}) > 0
       AND v.fecha <= $2
     GROUP BY v.id, v.fecha, v.folio, v.tipo_documento, v.rut_cliente,
              v.razon_social_cliente, v.total
@@ -114,6 +116,7 @@ async function porPagarPendiente(cliente, empresaId, hasta) {
      AND pc.estado = 'vigente'
     WHERE c.empresa_id = $1
       AND c.estado = 'vigente'
+      AND (${expresionSigno("c")}) > 0
       AND c.fecha <= $2
     GROUP BY c.id, c.fecha, c.folio, c.tipo_documento, c.rut_proveedor,
              c.razon_social_proveedor, c.total

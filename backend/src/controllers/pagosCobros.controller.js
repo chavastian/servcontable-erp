@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { expresionSigno } = require("../helpers/documentoTributario.helper");
 
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const {
@@ -296,6 +297,9 @@ async function obtenerDocumentosPendientesPorOperacion(
        AND pc.estado = 'vigente'
       WHERE v.empresa_id = $1
         AND v.estado = 'vigente'
+        AND (${expresionSigno("v")}) > 0
+        -- Una nota de credito no es un documento por cobrar: rebaja otro.
+        AND (${expresionSigno("v")}) > 0
         ${filtroIds}
       GROUP BY
         v.id,
@@ -343,6 +347,7 @@ async function obtenerDocumentosPendientesPorOperacion(
        AND pc.estado = 'vigente'
       WHERE c.empresa_id = $1
         AND c.estado = 'vigente'
+        AND (${expresionSigno("c")}) > 0
         ${filtroIds}
       GROUP BY
         c.id,
@@ -447,6 +452,7 @@ async function listarDocumentosPendientes(req, res) {
          AND pc.estado = 'vigente'
         WHERE v.empresa_id = $1
           AND v.estado = 'vigente'
+          AND (${expresionSigno("v")}) > 0
         GROUP BY
           v.id,
           v.fecha,
@@ -481,6 +487,7 @@ async function listarDocumentosPendientes(req, res) {
          AND pc.estado = 'vigente'
         WHERE c.empresa_id = $1
           AND c.estado = 'vigente'
+          AND (${expresionSigno("c")}) > 0
         GROUP BY
           c.id,
           c.fecha,

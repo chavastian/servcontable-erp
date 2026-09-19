@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { expresionSigno } = require("../helpers/documentoTributario.helper");
 
 async function obtenerCuentasPorCobrar(req, res) {
   try {
@@ -36,6 +37,7 @@ async function obtenerCuentasPorCobrar(req, res) {
        AND pc.estado = 'vigente'
       WHERE v.empresa_id = $1
         AND v.estado = 'vigente'
+        AND (${expresionSigno("v")}) > 0
         AND v.fecha BETWEEN $2 AND $3
       GROUP BY
         v.id,
@@ -124,6 +126,7 @@ async function obtenerCuentasPorPagar(req, res) {
        AND pc.estado = 'vigente'
       WHERE c.empresa_id = $1
         AND c.estado = 'vigente'
+        AND (${expresionSigno("c")}) > 0
         AND c.fecha BETWEEN $2 AND $3
       GROUP BY
         c.id,

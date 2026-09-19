@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { tasaRetencionVigente } = require("../helpers/retencionHonorarios.helper");
 const {
   insertarDetallesComprobante,
   obtenerSiguienteNumeroComprobante,
@@ -36,7 +37,14 @@ async function crearHonorario(req, res) {
     }
 
     const brutoNum = Number(bruto || 0);
-    const tasaNum = Number(tasa_retencion || 0);
+    // La tasa la decide la fecha de emision (Ley 21.133), no el formulario:
+    // el valor propuesto era 14,5% fijo y en 2026 se retenia de menos.
+    const tasaNum = tasaRetencionVigente(fecha_emision);
+    const tasaEnviada = Number(tasa_retencion || 0);
+    const avisoTasa =
+      tasaEnviada > 0 && Math.abs(tasaEnviada - tasaNum) > 0.001
+        ? `La tasa enviada (${tasaEnviada}%) se reemplazo por la vigente a la fecha de emision (${tasaNum}%).`
+        : null;
     const rutPrestadorNormalizado = normalizarRutDocumento(
       rut_prestador,
       "RUT del prestador"
@@ -95,6 +103,7 @@ async function crearHonorario(req, res) {
     );
 
     return res.status(201).json({
+      aviso: avisoTasa,
       mensaje: "Honorario registrado correctamente",
       honorario: resultado.rows[0],
     });

@@ -251,7 +251,7 @@ async function obtenerDashboardContable(req, res) {
         COALESCE(
           SUM(
             CASE
-              WHEN pc.tipo = 'Ingreso' THEN cd.haber - cd.debe
+              WHEN pc.tipo IN ('Ingreso', 'Ganancia') THEN cd.haber - cd.debe
               ELSE 0
             END
           ),
@@ -260,7 +260,7 @@ async function obtenerDashboardContable(req, res) {
         COALESCE(
           SUM(
             CASE
-              WHEN pc.tipo = 'Gasto' THEN cd.debe - cd.haber
+              WHEN pc.tipo IN ('Gasto', 'Costo', 'Pérdida') THEN cd.debe - cd.haber
               ELSE 0
             END
           ),

@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { columnaBalancePorTipo } = require("../helpers/tipoCuenta.helper");
 
 function numero(valor) {
   return Number(valor || 0);
@@ -30,6 +31,11 @@ function obtenerRangoDesdePeriodo(periodo) {
 }
 
 function clasificarCuenta(cuenta) {
+  // El tipo declarado manda. El texto del nombre queda solo para cuentas con
+  // un tipo fuera de los ocho, que la base ya no admite.
+  const porTipo = columnaBalancePorTipo(cuenta.tipo);
+  if (porTipo) return porTipo;
+
   const tipo = normalizar(cuenta.tipo);
   const clasificacion = normalizar(cuenta.clasificacion);
   const nombre = normalizar(cuenta.nombre);

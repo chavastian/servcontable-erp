@@ -63,10 +63,10 @@ async function crearComprobante(req, res) {
       });
     }
 
-    const numeroFinal =
-      numero && Number(numero) > 0
-        ? Number(numero)
-        : await obtenerSiguienteNumeroComprobante(client, empresa_id, tipo);
+    // El correlativo lo asigna siempre el servidor. Aceptar el numero del
+    // cuerpo permitia saltos de miles de numeros y duplicados entre tipos
+    // cuando dos personas abrian "nuevo asiento" a la vez.
+    const numeroFinal = await obtenerSiguienteNumeroComprobante(client, empresa_id, tipo);
 
     const comprobanteResult = await client.query(
       `
@@ -380,10 +380,8 @@ async function actualizarComprobante(req, res) {
 
     const comprobanteAnterior = existe.rows[0];
 
-    const numeroFinal =
-      numero && Number(numero) > 0
-        ? Number(numero)
-        : Number(comprobanteAnterior.numero);
+    // Editar no renumera: el numero es la identidad del asiento en los libros.
+    const numeroFinal = Number(comprobanteAnterior.numero);
 
     const periodoComprobante = periodo || obtenerPeriodoDesdeFecha(fecha);
     const cambios = [];

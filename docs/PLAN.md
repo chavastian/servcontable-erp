@@ -209,6 +209,56 @@ las reglas de cada una y sus límites, está en `docs/ASISTENTES.md`.
 - [ ] **Paso siguiente natural:** agregar fecha de vencimiento a compras y ventas,
   para que el flujo de caja deje de estimar.
 
+### Fase 11 — Revisión completa del 19-09-2026  🔄 en curso
+
+Cuatro revisores (backend, contable, frontend, datos) más pruebas de auditor sobre la
+copia de producción dejaron 106 hallazgos. El informe completo está publicado como
+artefacto y sus bloques se cierran en este orden.
+
+**Bloque 0 — lo que bloqueaba probar la versión nueva  ✅ 19-09-2026**
+- [x] C-01 Fuga de lectura entre empresas por cuerpo y consulta en desacuerdo. De paso:
+  en Express 5 `req.query` es un getter que se recalcula en cada acceso, así que la
+  normalización de `tenant.middleware` tampoco persistía; ambos middlewares la sombrean.
+- [x] C-02 Roles migrados en mayúscula: crear empresa y administrar usuarios vuelven a
+  funcionar para un administrador de cliente.
+- [x] C-03 Dos pantallas en blanco por un estado sin declarar (era mío, fase 6).
+- [x] A-01 a A-07 y A-19: trabajador ajeno en haberes y ausencias, trece rutas sin
+  permiso, PUT de liquidación que recalcula, cuatro inserciones directas de líneas de
+  asiento, eliminar finiquito contabilizado, error de referencia al calcular, sesiones
+  al cambiar de rol, ejercicio arrastrado desde el panel.
+- [x] **Reabiertos de la auditoría de septiembre**, porque estaban cerrados solo en
+  parte: C4 (haberes y ausencias), A2 (contabilizaciones de remuneraciones), A13
+  (editar liquidación y finiquitos), A18 (finiquitos). Todos cerrados en este bloque
+  salvo finiquitos en el servidor (bloque 4).
+
+**Bloque 1 — lo que declaraba mal  ✅ 19-09-2026**
+- [x] C-04 Las notas de crédito generan el asiento inverso y no aparecen como
+  documentos por pagar o cobrar ni en el flujo de caja.
+- [x] C-05 Retención de honorarios por fecha de emisión (Ley 21.133), no por formulario.
+- [x] C-06 Gratificación mensual con tope de 4,75 ingresos mínimos al año.
+  **REQUIERE VALIDACIÓN LABORAL:** el tope no se prorratea por días del mes.
+- [x] C-07 Las ausencias rebajan los días devengados una sola vez y no se restan
+  después de cotizar. La nómina con ausencias vuelve a cuadrar al contabilizar.
+- [x] A-08 Tipo de cuenta como dominio cerrado en la base (ocho valores); balance,
+  estado de resultados, análisis de cuentas y los dos paneles clasifican por tipo y no
+  por palabras del nombre. El panel dejó de mostrar resultado cero.
+- [x] A-09 Sin tramos de impuesto único, una base sobre 13,5 UTM no se liquida.
+  **REQUIERE VALIDACIÓN TRIBUTARIA:** la UTM por omisión cuando el período no la trae.
+- [x] A-10 Una empresa sin cuenta de gasto ya no importa compras a Caja: falla con mensaje.
+- [x] A-13 Tope propio del seguro de cesantía y reglas por contrato (plazo fijo, obra o
+  faena, indefinido, más de once años). **REQUIERE VALIDACIÓN LABORAL** del 0,8%.
+- [x] C-11 Índice único de compras por empresa, RUT, tipo y folio; el alta manual deriva
+  el código SII; la reimportación busca con RUT. Cero choques en la copia.
+- [x] A-18 El número del comprobante lo asigna siempre el servidor y editar no renumera.
+  La unicidad por empresa y número no se pudo agregar: la copia ya tiene números
+  repetidos entre tipos en una empresa inactiva.
+- [x] A-22 Autoría por disparador desde `app.usuario_id`, que la capa de base fija en
+  cada escritura a partir de un AsyncLocalStorage que llena `verificarToken`.
+- [x] A-23 Cascadas contables a RESTRICT; pagos de suscripción a SET NULL.
+- [ ] Bloque 2 (anular y editar documentos, responsive, doble envío, frontend de las
+  seis pantallas, tildes), bloque 3 (F29 y parámetros nacionales), bloque 4 (ejercicio y
+  remuneraciones), bloque 5 (deuda técnica).
+
 ## Flujo de trabajo
 
 - Ramas `feat/*`, `fix/*`, `security/*`, `chore/*` → PR a `main` de `chavastian/servcontable-erp` → revisión → merge.

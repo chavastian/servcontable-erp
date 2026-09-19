@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { tasaRetencionVigente } from "../utils/retencionHonorarios";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import {
   crearHonorario,
@@ -36,7 +37,7 @@ export default function Honorarios() {
     nombre_prestador: "",
     glosa: "",
     bruto: "",
-    tasa_retencion: "14.5",
+    tasa_retencion: String(tasaRetencionVigente(new Date().toISOString().slice(0, 10))),
   });
 
   const [honorarios, setHonorarios] = useState([]);

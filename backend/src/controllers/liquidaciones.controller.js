@@ -31,6 +31,21 @@ function normalizarFactorImpuestoUnico(factor) {
 
 const TASA_SEGURO_SOCIAL_DEFAULT = 1;
 const TASA_SALUD_LEGAL = 7;
+// Solo se usa cuando el periodo no trae UTM en sus indicadores. Es un valor
+// bajo a proposito, para que el aviso de tramos faltantes salte antes que
+// despues. REQUIERE VALIDACION TRIBUTARIA.
+const UTM_CONSERVADORA = 65000;
+
+function aniosEntre(desde, hasta) {
+  const inicio = desde ? new Date(desde) : null;
+  const fin = hasta ? new Date(hasta) : null;
+
+  if (!inicio || !fin || Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
+    return 0;
+  }
+
+  return Math.max(0, (fin.getTime() - inicio.getTime()) / (365.25 * 86400000));
+}
 const JORNADA_SEMANAL_DEFAULT = 42;
 const RECARGO_HORA_EXTRA_DEFAULT = 50;
 
@@ -403,19 +418,42 @@ async function calcularLiquidacionCompleta(client, entradas) {
       ingreso_minimo: configuracion.ingreso_minimo,
     });
 
-    const sueldoProporcional = redondear((sueldoBase / 30) * dias);
+    // Los dias no trabajados rebajan la remuneracion devengada (articulos 41 y
+    // 42 del Codigo del Trabajo), no son un descuento posterior. Antes el
+    // sueldo se prorrateaba por los dias informados y ademas se restaba un
+    // descuento por las ausencias registradas: se cotizaba e imponia sobre
+    // remuneracion no devengada, y con 27 dias informados mas 3 ausencias se
+    // descontaba dos veces. Una sola fuente: los dias efectivos son los
+    // informados, acotados por las ausencias registradas.
+    const diasEfectivos = Math.max(0, Math.min(dias, 30 - diasAusencia));
+    const sueldoProporcional = redondear((sueldoBase / 30) * diasEfectivos);
+    const descuentoHorasYManual = Math.max(
+      0,
+      descuentoAusencias - Number(ausenciasLiquidacion.descuento_dias_ausencia || 0)
+    );
+    const sueldoDevengado = Math.max(0, sueldoProporcional - descuentoHorasYManual);
     const imponibleSinGratificacion =
-      sueldoProporcional +
+      sueldoDevengado +
       variablesImponibles +
       Number(calculoHorasExtras.monto_horas_extras || 0);
     const tipoGratificacion = normalizarTipoGratificacion(tipo_gratificacion);
 
     let gratificacionNum = 0;
+    let gratificacionTopada = false;
 
     if (tipoGratificacion === "ANUAL") {
       gratificacionNum = Number(gratificacion || 0);
     } else if (tipoGratificacion === "MENSUAL") {
-      gratificacionNum = redondear(imponibleSinGratificacion * 0.25);
+      // Articulo 50 del Codigo del Trabajo: 25% de lo devengado con tope de
+      // 4,75 ingresos minimos mensuales al ano, mensualizado en doceavos.
+      // REQUIERE VALIDACION LABORAL: el tope no se prorratea por dias
+      // trabajados en el mes; es el criterio mas extendido de la DT.
+      const ingresoMinimo = Number(configuracion.ingreso_minimo || 0);
+      const topeMensual = ingresoMinimo > 0 ? redondear((4.75 * ingresoMinimo) / 12) : null;
+      const sinTope = redondear(imponibleSinGratificacion * 0.25);
+
+      gratificacionNum = topeMensual !== null ? Math.min(sinTope, topeMensual) : sinTope;
+      gratificacionTopada = topeMensual !== null && sinTope > topeMensual;
     }
 
     const noImponibles = variablesNoImponibles;
@@ -443,26 +481,47 @@ async function calcularLiquidacionCompleta(client, entradas) {
 
     const tasaSalud = TASA_SALUD_LEGAL;
 
-    const contratoPlazoFijo =
-      String(trabajador.tipo_contrato || "")
-        .trim()
-        .toLowerCase() === "plazo fijo";
+    // Seguro de cesantia (Ley 19.728): plazo fijo y obra o faena cotizan 3%
+    // de cargo del empleador y 0% del trabajador; indefinido 0,6% trabajador y
+    // 2,4% empleador; despues de once anos de contrato indefinido el empleador
+    // aporta solo 0,8% al fondo solidario. Antes solo "plazo fijo" recibia el
+    // 3% y "obra o faena" cotizaba como indefinido.
+    const tipoContrato = String(trabajador.tipo_contrato || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const contratoTemporal =
+      tipoContrato.includes("plazo fijo") ||
+      tipoContrato.includes("obra") ||
+      tipoContrato.includes("faena");
+    const aniosContrato = aniosEntre(trabajador.fecha_ingreso, `${periodo}-01`);
+    const indefinidoMasDeOnce = !contratoTemporal && aniosContrato >= 11;
 
-    const tasaAfcTrabajador = contratoPlazoFijo
+    const tasaAfcTrabajador = contratoTemporal || indefinidoMasDeOnce
       ? 0
       : Number(configuracion.tasa_afc_trabajador || 0);
 
-    const tasaAfcEmpleador = contratoPlazoFijo
+    const tasaAfcEmpleador = contratoTemporal
       ? 3
+      : indefinidoMasDeOnce
+      ? 0.8
       : Number(configuracion.tasa_afc_empleador || 0);
     const tasaMutual = Number(configuracion.tasa_mutual || 0);
 
+    // El seguro de cesantia tiene tope propio, distinto del de AFP (135,1 UF
+    // contra 89,9 UF en 2026). Previred lo entrega en los indicadores del
+    // periodo; si no esta, se usa el de AFP, que es mas bajo.
+    const indicadores = configuracion.indicadores_previsionales || {};
+    const topeAfcUf = Number(indicadores.renta_tope_seguro_cesantia_uf || 0);
+    const topeAfcPesos =
+      topeAfcUf > 0 ? topeAfcUf * Number(configuracion.valor_uf || 0) : topeImponiblePesos;
+    const baseAfectaAfc =
+      topeAfcPesos > 0 ? Math.min(baseImponible, topeAfcPesos) : baseImponible;
+
     const descuentoAfp = calcularMonto(baseAfectaDescuentos, tasaAfp);
     const descuentoSalud = calcularMonto(baseAfectaDescuentos, tasaSalud);
-    const descuentoAfc = calcularMonto(
-      baseAfectaDescuentos,
-      tasaAfcTrabajador
-    );
+    const descuentoAfc = calcularMonto(baseAfectaAfc, tasaAfcTrabajador);
 
     const descuentosPrevisionalesTributarios =
       Number(descuentoAfp || 0) +
@@ -484,8 +543,32 @@ async function calcularLiquidacionCompleta(client, entradas) {
     const impuestoUnico = impuestoUnicoResult.impuesto;
     const tramoImpuestoUnico = impuestoUnicoResult.tramo;
     const advertenciasCalculo = [
-      "Calculo parametrizado segun configuracion del periodo. Las ausencias, permisos sin goce, atrasos o suspensiones que afecten remuneracion ya quedan incorporadas como descuento.",
+      "Calculo parametrizado segun configuracion del periodo. Las ausencias registradas rebajan los dias devengados y no se descuentan dos veces.",
     ];
+
+    if (gratificacionTopada) {
+      advertenciasCalculo.push(
+        "La gratificacion mensual quedo en el tope legal de 4,75 ingresos minimos anuales (articulo 50 del Codigo del Trabajo)."
+      );
+    }
+
+    // Sin tramo no hay impuesto, y eso solo es correcto bajo el minimo exento
+    // de 13,5 UTM (articulo 43 N°1 de la Ley de la Renta). Sobre ese monto,
+    // guardar con impuesto cero es una liquidacion incorrecta, no un aviso.
+    // La UTM sale de los indicadores del periodo; sin ellos se usa un valor
+    // conservador. REQUIERE VALIDACION TRIBUTARIA del valor por omision.
+    if (!tramoImpuestoUnico && baseTributable > 0) {
+      const utm = Number(indicadores.valor_utm || 0) || UTM_CONSERVADORA;
+
+      if (baseTributable > 13.5 * utm) {
+        throw Object.assign(
+          new Error(
+            `La base tributable (${baseTributable.toLocaleString("es-CL")}) supera el minimo exento y no hay tramos de impuesto unico cargados para ${periodo}. Carga los tramos del periodo antes de liquidar.`
+          ),
+          { statusCode: 409 }
+        );
+      }
+    }
 
     if (!tramoImpuestoUnico) {
       advertenciasCalculo.push(
@@ -499,22 +582,19 @@ async function calcularLiquidacionCompleta(client, entradas) {
     const totalHaberesNoImponibles = noImponibles;
     const totalHaberes = totalHaberesImponibles + totalHaberesNoImponibles;
 
+    // Las ausencias ya rebajaron el devengo; no se restan otra vez.
     const totalDescuentos =
       Number(descuentoAfp || 0) +
       Number(descuentoSalud || 0) +
       Number(descuentoAfc || 0) +
       Number(impuestoUnico || 0) +
-      Number(otrosDesc || 0) +
-      Number(descuentoAusencias || 0);
+      Number(otrosDesc || 0);
 
     const liquidoPagar =
       Number(totalHaberes || 0) - Number(totalDescuentos || 0);
 
     const aporteSisEmpleador = calcularMonto(baseAfectaDescuentos, tasaSis);
-    const aporteAfcEmpleador = calcularMonto(
-      baseAfectaDescuentos,
-      tasaAfcEmpleador
-    );
+    const aporteAfcEmpleador = calcularMonto(baseAfectaAfc, tasaAfcEmpleador);
     const aporteMutualEmpleador = calcularMonto(
       baseAfectaDescuentos,
       tasaMutual

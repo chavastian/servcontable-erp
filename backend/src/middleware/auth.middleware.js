@@ -11,6 +11,7 @@ const {
   validarAccesoSuscripcion,
 } = require("../helpers/suscripcion.helper");
 const { sesionVigente } = require("../helpers/sesion.helper");
+const { conUsuario } = require("../helpers/contextoUsuario.helper");
 
 const CLAVES_EMPRESA = ["empresa_id", "empresaId"];
 
@@ -182,7 +183,9 @@ async function verificarToken(req, res, next) {
       normalizarEmpresaRequest(req, empresaId);
     }
 
-    return next();
+    // Desde aqui, toda consulta a la base sabe quien la pide: la capa de base
+    // de datos lo entrega a PostgreSQL y los disparadores fijan la autoria.
+    return conUsuario(decoded.id, () => next());
   } catch (error) {
     return res.status(401).json({
       error: "Token invalido o vencido",
