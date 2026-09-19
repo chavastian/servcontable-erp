@@ -6,6 +6,7 @@ const {
   obtenerSiguienteNumeroComprobante,
 } = require("../helpers/comprobante.helper");
 const { exigirPeriodoAbierto } = require("../helpers/periodo.helper");
+const { marcarCreacion } = require("../helpers/autoria.helper");
 
 function calcularMonto(base, tasa) {
   return Math.round(Number(base || 0) * (Number(tasa || 0) / 100));
@@ -219,10 +220,25 @@ async function calcularImpuestoUnico(client, empresaId, periodo, baseTributable)
   };
 }
 
-async function calcularLiquidacionBase(req, res) {
-  const client = await pool.connect();
-
-  try {
+/**
+ * Calcula una liquidación completa a partir de sus entradas.
+ *
+ * Vive aparte del endpoint a propósito. Antes el cálculo terminaba en una
+ * respuesta HTTP, así que guardarLiquidacion no podía usarlo y recibía del
+ * cliente todos los montos ya calculados: AFP, salud, impuesto único, líquido a
+ * pagar. Los guardaba tal cual.
+ *
+ * Una liquidación es un documento legal que se entrega al trabajador y la base
+ * de lo que se cotiza en AFP, salud y seguro de cesantía. Los montos tienen que
+ * salir del servidor a partir de los parámetros del período y del contrato, no
+ * de lo que el navegador informe.
+ *
+ * Del cliente se aceptan solo las **entradas**: días trabajados, horas extras,
+ * haberes y descuentos variables, ausencias. Todo lo demás se calcula.
+ *
+ * Lanza un error con `statusCode` si las entradas no permiten calcular.
+ */
+async function calcularLiquidacionCompleta(client, entradas) {
     const {
       empresa_id,
       trabajador_id,
@@ -239,12 +255,11 @@ async function calcularLiquidacionBase(req, res) {
       aplica_semana_corrida_horas_extras = false,
       semana_corrida_horas_extras = 0,
       recargo_horas_extras = RECARGO_HORA_EXTRA_DEFAULT,
-    } = req.body;
+    } = entradas;
+
 
     if (!empresa_id || !trabajador_id || !periodo) {
-      return res.status(400).json({
-        error: "Empresa, trabajador y período son obligatorios",
-      });
+      throw Object.assign(new Error("Empresa, trabajador y período son obligatorios"), { statusCode: 400 });
     }
 
     const trabajadorResult = await client.query(
@@ -259,9 +274,7 @@ async function calcularLiquidacionBase(req, res) {
     );
 
     if (trabajadorResult.rows.length === 0) {
-      return res.status(404).json({
-        error: "Trabajador no encontrado o inactivo",
-      });
+      throw Object.assign(new Error("Trabajador no encontrado o inactivo"), { statusCode: 404 });
     }
 
     const trabajador = trabajadorResult.rows[0];
@@ -509,7 +522,8 @@ async function calcularLiquidacionBase(req, res) {
       aporteMutualEmpleador +
       aporteSeguroSocialEmpleador;
 
-    return res.json({
+
+  return {
       trabajador,
       configuracion: {
         periodo,
@@ -588,7 +602,16 @@ async function calcularLiquidacionBase(req, res) {
         costo_empresa: costoEmpresa,
       },
       advertencia: advertenciasCalculo.join(" "),
-    });
+  };
+}
+
+
+async function calcularLiquidacionBase(req, res) {
+  const client = await pool.connect();
+
+  try {
+    const resultado = await calcularLiquidacionCompleta(client, req.body);
+    return res.json(resultado);
   } catch (error) {
     console.error("Error al calcular liquidación:", error);
 
@@ -603,68 +626,25 @@ async function calcularLiquidacionBase(req, res) {
   }
 }
 
+
+/**
+ * Guarda una liquidación.
+ *
+ * Los montos NO llegan del cliente: se calculan acá con los parámetros del
+ * período y los datos del contrato. Del cuerpo de la petición se aceptan solo
+ * las entradas.
+ *
+ * Antes se recibían ya calculados —AFP, salud, impuesto único, líquido a
+ * pagar— y se guardaban tal cual. Una liquidación es un documento legal que se
+ * entrega al trabajador y la base de lo que se cotiza en AFP, salud y seguro de
+ * cesantía: un monto manipulado, o simplemente un error del navegador, quedaba
+ * guardado como si fuera correcto.
+ */
 async function guardarLiquidacion(req, res) {
+  const client = await pool.connect();
+
   try {
-    const {
-      empresa_id,
-      trabajador_id,
-      periodo,
-
-      dias_trabajados,
-      sueldo_base,
-      sueldo_proporcional,
-      gratificacion,
-      tipo_calculo_horas_extras,
-      horas_extras,
-      base_horas_extras,
-      jornada_horas_semanal,
-      aplica_semana_corrida_horas_extras,
-      semana_corrida_horas_extras,
-      recargo_horas_extras,
-      valor_hora_extra,
-      monto_horas_extras,
-
-      variables_haberes_imponibles,
-      variables_haberes_no_imponibles,
-      variables_descuentos,
-
-      dias_ausencia,
-      horas_ausencia,
-      descuento_ausencias,
-
-      base_imponible,
-      base_tributable,
-      tramo_impuesto_unico_id,
-      factor_impuesto_unico,
-      rebaja_impuesto_unico,
-      tope_imponible_pesos,
-      base_afecta_descuentos,
-
-      total_haberes_imponibles,
-      total_haberes_no_imponibles,
-      total_haberes,
-
-      tasa_afp,
-      tasa_afc_trabajador,
-      tasa_afc_empleador,
-      tasa_sis,
-      tasa_seguro_social,
-      tasa_mutual,
-
-      descuento_afp,
-      descuento_salud,
-      descuento_afc,
-      impuesto_unico,
-      otros_descuentos,
-      total_descuentos,
-      liquido_pagar,
-
-      aporte_sis_empleador,
-      aporte_seguro_social_empleador,
-      aporte_afc_empleador,
-      aporte_mutual_empleador,
-      costo_empresa,
-    } = req.body;
+    const { empresa_id, trabajador_id, periodo } = req.body;
 
     if (!empresa_id || !trabajador_id || !periodo) {
       return res.status(400).json({
@@ -672,8 +652,15 @@ async function guardarLiquidacion(req, res) {
       });
     }
 
+    // Se recalcula con las mismas entradas que usa la pantalla de cálculo. Lo
+    // que el cliente haya enviado como resultado se ignora.
+    const resultadoCalculo = await calcularLiquidacionCompleta(client, req.body);
 
-    const resultado = await pool.query(
+    // Los montos viven en `calculo`; `configuracion` trae las tasas del
+    // periodo y de la AFP del trabajador.
+    const c = resultadoCalculo.calculo;
+
+    const resultado = await client.query(
       `
       INSERT INTO liquidaciones
       (
@@ -760,84 +747,93 @@ async function guardarLiquidacion(req, res) {
         trabajador_id,
         periodo,
 
-        Number(dias_trabajados || 30),
-        Number(sueldo_base || 0),
-        Number(sueldo_proporcional || 0),
-        Number(gratificacion || 0),
-        normalizarTipoCalculoHorasExtras(tipo_calculo_horas_extras),
-        Number(horas_extras || 0),
-        Number(base_horas_extras || 0),
-        Number(jornada_horas_semanal || JORNADA_SEMANAL_DEFAULT),
-        Boolean(aplica_semana_corrida_horas_extras),
-        Number(semana_corrida_horas_extras || 0),
-        Number(recargo_horas_extras || RECARGO_HORA_EXTRA_DEFAULT),
-        Number(valor_hora_extra || 0),
-        Number(monto_horas_extras || 0),
+        Number(c.dias_trabajados || 30),
+        Number(c.sueldo_base || 0),
+        Number(c.sueldo_proporcional || 0),
+        Number(c.gratificacion || 0),
+        normalizarTipoCalculoHorasExtras(c.tipo_calculo_horas_extras),
+        Number(c.horas_extras || 0),
+        Number(c.base_horas_extras || 0),
+        Number(c.jornada_horas_semanal || JORNADA_SEMANAL_DEFAULT),
+        Boolean(c.aplica_semana_corrida_horas_extras),
+        Number(c.semana_corrida_horas_extras || 0),
+        Number(c.recargo_horas_extras || RECARGO_HORA_EXTRA_DEFAULT),
+        Number(c.valor_hora_extra || 0),
+        Number(c.monto_horas_extras || 0),
 
-        Number(variables_haberes_imponibles || 0),
-        Number(variables_haberes_no_imponibles || 0),
-        Number(variables_descuentos || 0),
+        Number(c.variables_haberes_imponibles || 0),
+        Number(c.variables_haberes_no_imponibles || 0),
+        Number(c.variables_descuentos || 0),
 
-        Number(dias_ausencia || 0),
-        Number(horas_ausencia || 0),
-        Number(descuento_ausencias || 0),
+        Number(c.dias_ausencia || 0),
+        Number(c.horas_ausencia || 0),
+        Number(c.descuento_ausencias || 0),
 
-        Number(base_imponible || 0),
-        Number(base_tributable || 0),
-        tramo_impuesto_unico_id || null,
-        Number(factor_impuesto_unico || 0),
-        Number(rebaja_impuesto_unico || 0),
-        Number(tope_imponible_pesos || 0),
-        Number(base_afecta_descuentos || 0),
+        Number(c.base_imponible || 0),
+        Number(c.base_tributable || 0),
+        c.tramo_impuesto_unico_id || null,
+        Number(c.factor_impuesto_unico || 0),
+        Number(c.rebaja_impuesto_unico || 0),
+        Number(c.tope_imponible_pesos || 0),
+        Number(c.base_afecta_descuentos || 0),
 
-        Number(total_haberes_imponibles || 0),
-        Number(total_haberes_no_imponibles || 0),
-        Number(total_haberes || 0),
+        Number(c.total_haberes_imponibles || 0),
+        Number(c.total_haberes_no_imponibles || 0),
+        Number(c.total_haberes || 0),
 
-        Number(tasa_afp || 0),
+        Number(c.tasa_afp || 0),
         TASA_SALUD_LEGAL,
-        Number(tasa_afc_trabajador || 0),
-        Number(tasa_afc_empleador || 0),
-        Number(tasa_sis || 0),
-        Number(tasa_seguro_social || 0),
-        Number(tasa_mutual || 0),
+        Number(c.tasa_afc_trabajador || 0),
+        Number(c.tasa_afc_empleador || 0),
+        Number(c.tasa_sis || 0),
+        Number(c.tasa_seguro_social || 0),
+        Number(c.tasa_mutual || 0),
 
-        Number(descuento_afp || 0),
-        Number(descuento_salud || 0),
-        Number(descuento_afc || 0),
-        Number(impuesto_unico || 0),
-        Number(otros_descuentos || 0),
-        Number(total_descuentos || 0),
-        Number(liquido_pagar || 0),
+        Number(c.descuento_afp || 0),
+        Number(c.descuento_salud || 0),
+        Number(c.descuento_afc || 0),
+        Number(c.impuesto_unico || 0),
+        Number(c.otros_descuentos || 0),
+        Number(c.total_descuentos || 0),
+        Number(c.liquido_pagar || 0),
 
-        Number(aporte_sis_empleador || 0),
-        Number(aporte_seguro_social_empleador || 0),
-        Number(aporte_afc_empleador || 0),
-        Number(aporte_mutual_empleador || 0),
-        Number(costo_empresa || 0),
+        Number(c.aporte_sis_empleador || 0),
+        Number(c.aporte_seguro_social_empleador || 0),
+        Number(c.aporte_afc_empleador || 0),
+        Number(c.aporte_mutual_empleador || 0),
+        Number(c.costo_empresa || 0),
       ]
     );
 
+    const liquidacion = resultado.rows[0];
+
+    await marcarCreacion(client, "liquidaciones", liquidacion.id, req);
+
     return res.status(201).json({
       mensaje: "Liquidación guardada correctamente",
-      liquidacion: resultado.rows[0],
+      liquidacion,
+      // Se devuelve el cálculo del servidor para que la pantalla muestre
+      // exactamente lo que quedó guardado.
+      calculo: c,
+      configuracion: resultadoCalculo.configuracion,
+      advertencia: resultadoCalculo.advertencia || "",
     });
   } catch (error) {
     console.error("Error al guardar liquidación:", error);
 
     if (error.code === "23505") {
-      return res.status(400).json({
-        error:
-          "Ya existe una liquidación para este trabajador en el período indicado",
+      return res.status(409).json({
+        error: "Ya existe una liquidación para ese trabajador y período",
       });
     }
 
     return res.status(error.statusCode || 500).json({
-      // El mensaje de PostgreSQL no vuelve al cliente: revela tablas,
-      // columnas y restricciones. Los errores de validacion propios
-      // si conservan su mensaje y su codigo.
-      error: error.statusCode ? error.message : "Error interno al guardar liquidación",
+      error: error.statusCode
+        ? error.message
+        : "Error interno al guardar liquidación",
     });
+  } finally {
+    client.release();
   }
 }
 

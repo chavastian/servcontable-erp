@@ -151,8 +151,14 @@ async function obtenerAnalisisCuentas(req, res) {
         pc.tipo,
         pc.clasificacion,
         pc.naturaleza,
-        COALESCE(SUM(cd.debe), 0) AS total_debe,
-        COALESCE(SUM(cd.haber), 0) AS total_haber
+        -- El CASE no es adorno: los filtros de fecha y estado viven en el ON
+        -- del segundo LEFT JOIN, pero el detalle se une sin filtro alguno. Sin
+        -- esta comprobación, una línea cuyo comprobante está anulado o fuera
+        -- del rango pedido igual sumaba, porque su propio join sí calzó. El
+        -- análisis de cuentas informaba movimientos que no correspondían al
+        -- período y asientos que ya no existen.
+        COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN cd.debe ELSE 0 END), 0) AS total_debe,
+        COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN cd.haber ELSE 0 END), 0) AS total_haber
       FROM plan_cuentas pc
       LEFT JOIN comprobante_detalle cd
         ON cd.cuenta_id = pc.id
@@ -183,8 +189,11 @@ async function obtenerAnalisisCuentas(req, res) {
         pc.clasificacion,
         pc.naturaleza
       HAVING
-        COALESCE(SUM(cd.debe), 0) <> 0
-        OR COALESCE(SUM(cd.haber), 0) <> 0
+        -- Con la misma protección que los totales: si no, una cuenta cuyos
+        -- únicos movimientos están anulados pasaba el filtro y aparecía en el
+        -- listado con saldo cero.
+        COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN cd.debe ELSE 0 END), 0) <> 0
+        OR COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN cd.haber ELSE 0 END), 0) <> 0
       ORDER BY pc.codigo ASC
     `;
 

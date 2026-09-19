@@ -95,7 +95,7 @@ arrancar contra un esquema que no corresponde.
 | Routers | 41 |
 | Módulos del backend | 116 |
 | Pantallas del frontend | 39 |
-| Pruebas automatizadas | 119 |
+| Pruebas automatizadas | 130 |
 | Base de producción | 12 MB |
 
 ## Lo que no hay, y está bien que no haya

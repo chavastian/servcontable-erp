@@ -60,6 +60,13 @@ Nada de esto está en producción todavía. Se puede revisar en
   dentro del período firme y los libros dejaban de cuadrar con lo declarado.
 - Un asiento ya no se guarda si no cuadra, si es por cero, o si una línea lleva
   debe y haber a la vez.
+- **El análisis de cuentas y el panel financiero sumaban asientos anulados y de
+  otros períodos** (A11). Una cuenta con todos sus movimientos anulados
+  aparecía además con saldo cero en lugar de no aparecer.
+- **Las liquidaciones de sueldo aceptaban los montos que enviara el navegador**
+  (A13), incluidos AFP, salud, impuesto único y líquido a pagar. Una liquidación
+  con cero de cotización previsional quedaba guardada como correcta. Ahora los
+  montos los calcula el servidor y del cliente se aceptan solo las entradas.
 
 ### Cobranza y suscripciones
 
@@ -117,7 +124,7 @@ Nada de esto está en producción todavía. Se puede revisar en
 - Chequeo de salud que de verdad comprueba la base. Antes decía «Activo» con la
   base caída.
 - Entorno de revisión en línea, en paralelo a producción.
-- 119 pruebas automatizadas donde no había ninguna.
+- 130 pruebas automatizadas donde no había ninguna.
 - Documentación: arquitectura, seguridad, despliegue, respaldos, entornos,
   esquema, costos, onboarding y términos.
 

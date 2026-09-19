@@ -151,8 +151,12 @@ async function obtenerDashboardFinanciero(req, res) {
       `
       SELECT
         pc.tipo,
-        COALESCE(SUM(cd.debe), 0) AS debitos,
-        COALESCE(SUM(cd.haber), 0) AS creditos
+        -- Los filtros de estado y fecha viven en el ON del comprobante, pero el
+        -- detalle se une sin filtro. Sin este CASE, un asiento anulado o de otro
+        -- período igual sumaba, porque su propio join sí calzó: el panel mostraba
+        -- ingresos, costos y gastos que no correspondían.
+        COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN cd.debe ELSE 0 END), 0) AS debitos,
+        COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN cd.haber ELSE 0 END), 0) AS creditos
       FROM plan_cuentas pc
       LEFT JOIN comprobante_detalle cd
         ON cd.cuenta_id = pc.id
