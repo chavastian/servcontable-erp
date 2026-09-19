@@ -9,6 +9,18 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloque 8
+
+- **Declaraciones juradas 1879 y 1887 armadas por el sistema.** Los datos ya estaban ahí y
+  había que sacarlos a mano cada marzo. La 1879 va por fecha de pago, como corresponde, y
+  avisa de las boletas que no tienen fecha registrada.
+- **Certificados en PDF para el prestador y para el trabajador,** con el detalle mes a mes
+  en el de sueldos. Salen del mismo cálculo que la declaración, así que el certificado y
+  la jurada no pueden decir cifras distintas.
+- **Archivo de carga en CSV** para subir al SII, y exportación a Excel del resumen.
+- Dos advertencias van a la vista y también impresas en el certificado: el formato del SII
+  cambia casi todos los años, y las cifras no están reajustadas al 31 de diciembre.
+
 ### Revisión del 19-09-2026: bloque 7
 
 - **Activo fijo con depreciación automática.** Se registra el bien una vez —valor, vida

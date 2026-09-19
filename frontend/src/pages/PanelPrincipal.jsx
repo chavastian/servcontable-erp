@@ -39,6 +39,7 @@ const FlujoCaja = lazy(() => import("./FlujoCaja"));
 const Terceros = lazy(() => import("./Terceros"));
 const CentrosCosto = lazy(() => import("./CentrosCosto"));
 const ActivoFijo = lazy(() => import("./ActivoFijo"));
+const DeclaracionesJuradas = lazy(() => import("./DeclaracionesJuradas"));
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 const LOGO_SRC = "/servcontable-logo.png";
@@ -295,6 +296,7 @@ function vistaInicialPorModulo(moduloActivo) {
 }
 
 const VISTAS_VALIDAS = new Set([
+  "declaracionesJuradas",
   "activoFijo",
   "terceros",
   "centrosCosto",
@@ -509,6 +511,7 @@ export default function PanelPrincipal({
         { id: "remanenteIVA", label: "Control Remanente IVA" },
         { id: "cierreMensual", label: "Cierre mensual" },
         { id: "calendarioTributario", label: "Calendario tributario" },
+        { id: "declaracionesJuradas", label: "Declaraciones juradas" },
       ],
     },
     {
@@ -732,6 +735,7 @@ export default function PanelPrincipal({
             {vistaActiva === "terceros" && <Terceros />}
             {vistaActiva === "centrosCosto" && <CentrosCosto />}
             {vistaActiva === "activoFijo" && <ActivoFijo />}
+            {vistaActiva === "declaracionesJuradas" && <DeclaracionesJuradas />}
             {vistaActiva === "inicio" && <DashboardFinanciero irVista={irVista} />}
             {vistaActiva === "dashboardContable" && <DashboardContable irVista={irVista} />}
             {vistaActiva === "empresas" && <Empresas />}

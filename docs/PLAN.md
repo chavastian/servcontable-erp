@@ -402,10 +402,31 @@ artefacto y sus bloques se cierran en este orden.
   de ocho columnas las presenta igual, porque clasifica por el signo del saldo).
 - [x] Migración `1758201100000_bloque7-activo-fijo`. 11 pruebas nuevas.
 
-- [ ] Módulos 10, 11 y 13 del informe (declaraciones juradas, boletas de honorarios desde
-  el SII, proporcionalidad completa del IVA de uso común). El 13 quedó cubierto en lo
-  esencial por el bloque 3: el factor acumulado anual ya se aplica y la parte no
-  recuperable se informa; falta su contabilización como gasto.
+
+**Bloque 8 — Declaraciones juradas y certificados  ✅ 19-09-2026**
+- [x] Módulo 10: declaración jurada **1879** (retenciones del artículo 42 N°2) por
+  prestador, **por fecha de pago** y no de emisión (artículo 74 N°2). Las boletas sin
+  fecha de pago se cuentan por su emisión y se avisa, igual que en el F29. Las anuladas
+  no se declaran.
+- [x] Declaración jurada **1887** (rentas del artículo 42 N°1) por trabajador, sumando
+  las liquidaciones emitidas del año, con el detalle mes a mes y separando las rentas no
+  gravadas de la renta imponible.
+- [x] Archivo de carga en CSV para las dos, y exportación a Excel del resumen. Un año sin
+  datos responde 404 en lugar de entregar un archivo vacío que parezca válido.
+- [x] Certificados en PDF para el prestador y para el trabajador, con la identidad visual
+  del resto de los documentos. Salen del mismo cálculo que la declaración, así que no
+  pueden diferir; los avisos de validación van impresos en el certificado.
+- [x] **REQUIERE VALIDACIÓN TRIBUTARIA** en dos puntos que quedan dichos en pantalla y en
+  el PDF: el SII cambia el formato y los códigos de columna casi todos los años por
+  resolución, y las cifras no están reajustadas al 31 de diciembre.
+- [x] 6 pruebas nuevas. Sin migración: se arma con lo ya registrado.
+
+- [ ] Módulo 11 (boletas de honorarios electrónicas desde el SII). **Necesito un archivo
+  real de ejemplo**: las columnas del CSV de BHE recibidas no se pueden adivinar sin
+  inventar nombres, y eso es justo lo que este proyecto no hace.
+- [ ] Módulo 13: quedó cubierto en lo esencial por el bloque 3 (el factor acumulado anual
+  ya se aplica y la parte no recuperable se informa en el F29). Falta contabilizar esa
+  parte como gasto, que es una decisión de criterio.
 - [ ] Módulos 8 y 9 (corrección monetaria y capital propio tributario; renta anual, RLI
   y F22). **Son los dos que el informe marca como imposibles de escribir sin definir
   criterio tributario antes**: esperan decisión.

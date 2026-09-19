@@ -147,6 +147,8 @@ async function main() {
       ["GET /api/activos-fijos/vidas-utiles", `/api/activos-fijos/vidas-utiles`],
       ["GET /api/activos-fijos/depreciacion", `/api/activos-fijos/depreciacion?empresa_id=${empresa.id}&periodo=${periodo}`],
       ["GET /api/activos-fijos/informe", `/api/activos-fijos/informe?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/declaraciones-juradas/1879", `/api/declaraciones-juradas/1879?empresa_id=${empresa.id}&anio=${periodo.slice(0, 4)}`],
+      ["GET /api/declaraciones-juradas/1887", `/api/declaraciones-juradas/1887?empresa_id=${empresa.id}&anio=${periodo.slice(0, 4)}`],
       ["GET /api/centros-costo/informe", `/api/centros-costo/informe?empresa_id=${empresa.id}&fecha_desde=${periodo}-01&fecha_hasta=${periodo}-28`],
       ["GET /api/configuracion-contable", `/api/configuracion-contable?empresa_id=${empresa.id}`],
       ["GET /api/ejercicios", `/api/ejercicios?empresa_id=${empresa.id}`],

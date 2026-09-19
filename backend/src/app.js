@@ -61,6 +61,7 @@ const f29Routes = require("./routes/f29.routes");
 const tercerosRoutes = require("./routes/terceros.routes");
 const centrosCostoRoutes = require("./routes/centrosCosto.routes");
 const activosFijosRoutes = require("./routes/activosFijos.routes");
+const declaracionesJuradasRoutes = require("./routes/declaracionesJuradas.routes");
 
 
 const app = express();
@@ -170,6 +171,7 @@ app.use("/api/ejercicios", ejerciciosRoutes);
 app.use("/api/terceros", tercerosRoutes);
 app.use("/api/centros-costo", centrosCostoRoutes);
 app.use("/api/activos-fijos", activosFijosRoutes);
+app.use("/api/declaraciones-juradas", declaracionesJuradasRoutes);
 app.use("/api/auditoria", auditoriaRoutes);
 app.use("/api/pagos-flow", pagosFlowRoutes);
 app.use("/api/contacto", contactoRoutes);
