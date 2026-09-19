@@ -24,6 +24,9 @@ export default function LibroMayor() {
 
   const [cuentas, setCuentas] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
+  // Saldo de cada cuenta antes de fecha_desde. Antes el mayor arrancaba de
+  // cero y el acumulado seguía de una cuenta a la siguiente.
+  const [saldosIniciales, setSaldosIniciales] = useState([]);
 
   const [totales, setTotales] = useState({
     total_debe: 0,
@@ -73,6 +76,7 @@ export default function LibroMayor() {
         : [];
 
       setMovimientos(movimientosBackend);
+      setSaldosIniciales(Array.isArray(data.saldos_iniciales) ? data.saldos_iniciales : []);
 
       setTotales(
         data.totales || {
@@ -103,35 +107,56 @@ export default function LibroMayor() {
 
   function agruparPorCuenta() {
     const grupos = {};
+    const inicialPorCuenta = {};
 
-    movimientos.forEach((mov) => {
-      const cuentaKey = String(mov.cuenta_id || "sin-cuenta");
+    saldosIniciales.forEach((s) => {
+      inicialPorCuenta[String(s.cuenta_id)] = s;
+    });
+
+    function grupoDe(cuenta) {
+      const cuentaKey = String(cuenta.cuenta_id || "sin-cuenta");
 
       if (!grupos[cuentaKey]) {
+        const inicial = numero(inicialPorCuenta[cuentaKey]?.saldo);
+
         grupos[cuentaKey] = {
-          cuenta_id: mov.cuenta_id,
-          cuenta_codigo: mov.cuenta_codigo,
-          cuenta_nombre: mov.cuenta_nombre,
-          cuenta_naturaleza: mov.cuenta_naturaleza,
+          cuenta_id: cuenta.cuenta_id,
+          cuenta_codigo: cuenta.cuenta_codigo,
+          cuenta_nombre: cuenta.cuenta_nombre,
+          cuenta_naturaleza: cuenta.cuenta_naturaleza,
           movimientos: [],
+          saldo_inicial: inicial,
           total_debe: 0,
           total_haber: 0,
-          saldo: 0,
+          saldo: inicial,
         };
       }
 
-      grupos[cuentaKey].total_debe += numero(mov.debe);
-      grupos[cuentaKey].total_haber += numero(mov.haber);
-      grupos[cuentaKey].saldo =
-        grupos[cuentaKey].total_debe - grupos[cuentaKey].total_haber;
+      return grupos[cuentaKey];
+    }
 
-      grupos[cuentaKey].movimientos.push({
+    movimientos.forEach((mov) => {
+      const grupo = grupoDe(mov);
+
+      grupo.total_debe += numero(mov.debe);
+      grupo.total_haber += numero(mov.haber);
+      grupo.saldo = grupo.saldo_inicial + grupo.total_debe - grupo.total_haber;
+
+      grupo.movimientos.push({
         ...mov,
-        saldo_cuenta: grupos[cuentaKey].saldo,
+        saldo_cuenta: grupo.saldo,
       });
     });
 
-    return Object.values(grupos);
+    // Cuentas con saldo anterior y sin movimiento en el rango también se
+    // muestran: el mayor de marzo debe listar Caja aunque marzo no la toque.
+    saldosIniciales.forEach((s) => {
+      if (numero(s.saldo) !== 0) grupoDe(s);
+    });
+
+    return Object.values(grupos).sort((a, b) =>
+      String(a.cuenta_codigo).localeCompare(String(b.cuenta_codigo))
+    );
   }
 
   const gruposCuenta = agruparPorCuenta();
@@ -386,6 +411,7 @@ export default function LibroMayor() {
             </div>
 
             <div style={resumenCuenta}>
+              <p>Saldo inicial: {formato(grupo.saldo_inicial)}</p>
               <p>Debe: {formato(grupo.total_debe)}</p>
               <p>Haber: {formato(grupo.total_haber)}</p>
               <strong>Saldo: {formato(grupo.saldo)}</strong>
@@ -407,6 +433,15 @@ export default function LibroMayor() {
               </thead>
 
               <tbody>
+                {numero(grupo.saldo_inicial) !== 0 && (
+                  <tr>
+                    <td style={td}>{fechaCL(fechaDesde)}</td>
+                    <td style={td} colSpan={3}>Saldo inicial</td>
+                    <td style={tdNumero}></td>
+                    <td style={tdNumero}></td>
+                    <td style={tdNumero}>{formato(grupo.saldo_inicial)}</td>
+                  </tr>
+                )}
                 {grupo.movimientos.map((item) => (
                   <tr key={item.detalle_id}>
                     <td style={td}>{fechaCL(item.fecha)}</td>

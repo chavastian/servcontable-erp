@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
-import { listarLiquidaciones } from "../../services/liquidacionesService";
+import { listarLiquidaciones, descargarLre } from "../../services/liquidacionesService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
 import PeriodoMesSelector from "../../components/PeriodoMesSelector";
 import * as XLSX from "xlsx";
@@ -74,6 +74,30 @@ export default function LibroRemuneraciones() {
 
   function nombreTrabajador(item) {
     return `${item.nombres || ""} ${item.apellidos || ""}`.trim();
+  }
+
+  // Archivo de carga del LRE de la Dirección del Trabajo. Primera versión:
+  // los códigos requieren validación contra el formato vigente.
+  async function exportarLreClick() {
+    try {
+      setMensaje("");
+      setError("");
+
+      const blob = await descargarLre(empresaActiva.id, periodo);
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+
+      enlace.href = url;
+      enlace.download = `LRE_${periodo}.csv`;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(url);
+
+      setMensaje("Archivo LRE generado. Revisa los códigos contra el formato vigente de la DT antes de cargarlo.");
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   function exportarExcel() {
@@ -387,6 +411,10 @@ export default function LibroRemuneraciones() {
 
           <button type="button" style={botonPDF} onClick={exportarPDF}>
             Exportar PDF
+          </button>
+
+          <button type="button" style={botonExcel} onClick={exportarLreClick}>
+            Archivo LRE (DT)
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ const {
   listarFiniquitos,
   obtenerFiniquito,
   calcularVacacionesFiniquito,
+  calcularFiniquitoPrevio,
   eliminarFiniquito,
   contabilizarFiniquito,
   pagarFiniquito,
@@ -23,6 +24,12 @@ router.get(
   "/calcular-vacaciones",
   verificarToken,
   calcularVacacionesFiniquito
+);
+router.post(
+  "/calcular",
+  verificarToken,
+  exigirPermiso("REMUNERACIONES"),
+  calcularFiniquitoPrevio
 );
 router.get("/:id", verificarToken, obtenerFiniquito);
 router.post(

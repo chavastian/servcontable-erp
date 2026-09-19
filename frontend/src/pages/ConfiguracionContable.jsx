@@ -25,6 +25,8 @@ export default function ConfiguracionContable() {
     cuenta_gasto_honorarios_id: "",
     cuenta_retencion_honorarios_id: "",
     cuenta_pago_honorarios_id: "",
+    // Contrapartida del cierre de resultados al cerrar el año.
+    cuenta_resultado_ejercicio_id: "",
 
     // Lo que el F29 y el calendario necesitan de la empresa. La tasa de PPM se
     // digitaba en el resumen F29 y no se guardaba.
@@ -72,6 +74,8 @@ export default function ConfiguracionContable() {
             configData.configuracion.cuenta_retencion_honorarios_id || "",
           cuenta_pago_honorarios_id:
             configData.configuracion.cuenta_pago_honorarios_id || "",
+          cuenta_resultado_ejercicio_id:
+            configData.configuracion.cuenta_resultado_ejercicio_id || "",
           tasa_ppm: String(configData.configuracion.tasa_ppm ?? 0),
           facturador_electronico: configData.configuracion.facturador_electronico !== false,
           previred_electronico: configData.configuracion.previred_electronico !== false,
@@ -133,6 +137,8 @@ export default function ConfiguracionContable() {
           configuracion.cuenta_retencion_honorarios_id || null,
         cuenta_pago_honorarios_id:
           configuracion.cuenta_pago_honorarios_id || null,
+        cuenta_resultado_ejercicio_id:
+          configuracion.cuenta_resultado_ejercicio_id || null,
         tasa_ppm: Number(configuracion.tasa_ppm || 0),
         facturador_electronico: configuracion.facturador_electronico !== false,
         previred_electronico: configuracion.previred_electronico !== false,
@@ -312,6 +318,14 @@ export default function ConfiguracionContable() {
                 {cuenta.codigo} - {cuenta.nombre}
               </option>
             ))}
+          />
+
+          <CampoCuenta
+            label="Cuenta Resultado del Ejercicio (cierre anual)"
+            name="cuenta_resultado_ejercicio_id"
+            value={configuracion.cuenta_resultado_ejercicio_id}
+            onChange={cambiarConfiguracion}
+            opciones={opcionesCuentas(["Patrimonio", "Pasivo"])}
           />
         </div>
 

@@ -9,6 +9,24 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloque 4
+
+- **Cerrar el año ahora cierra de verdad:** genera el asiento de cierre de resultados y
+  el de apertura del año siguiente, y deja registrado quién cerró. Reabrir pide motivo,
+  queda auditado y anula los dos asientos. Hay que configurar la cuenta de Resultado del
+  Ejercicio en Configuración Contable.
+- **El libro mayor parte del saldo anterior** al rango consultado, cuenta por cuenta.
+- **Isapre con plan en UF:** el trabajador guarda su plan y la liquidación descuenta el
+  mayor entre el 7% y el plan; el adicional se informa aparte y no rebaja el impuesto.
+- **El finiquito lo calcula el servidor:** tope de 90 UF, sustitutiva del aviso, años con
+  fracción y tope 11, obra o faena, descuento del aporte AFC del empleador e impuesto sobre
+  la indemnización voluntaria. La pantalla muestra los avisos de lo que requiere
+  validación.
+- **Vacaciones en días hábiles** con feriados, feriado progresivo con los años previos del
+  trabajador, y el mismo devengo en el saldo y en el finiquito.
+- **Archivo LRE para la Dirección del Trabajo,** primera versión; los códigos deben
+  cotejarse con el formato vigente antes de cargarlo.
+
 ### Revisión del 19-09-2026: bloques 2 y 3
 
 - **Ahora se pueden anular y editar compras y ventas.** Anular pide motivo, deja quién y

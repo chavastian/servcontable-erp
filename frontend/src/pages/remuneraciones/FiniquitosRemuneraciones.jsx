@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { listarTrabajadores } from "../../services/trabajadoresService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
@@ -10,10 +10,22 @@ import {
   obtenerFiniquito,
   contabilizarFiniquito,
   pagarFiniquito,
-  calcularVacacionesFiniquito,
+  calcularFiniquito,
 } from "../../services/finiquitosService";
 import { listarLiquidaciones } from "../../services/liquidacionesService";
 import { exportarFiniquitoPDF } from "../../utils/finiquitoPdf";
+
+const listaAvisos = {
+  margin: "10px 0 0",
+  padding: "10px 14px 10px 30px",
+  background: "#fff7ed",
+  border: "1px solid #fdba74",
+  borderRadius: 10,
+  color: "#9a3412",
+  fontSize: 13,
+  display: "grid",
+  gap: 4,
+};
 
 const CAUSALES = [
   "Art. 159 Nro.1 - Mutuo acuerdo de las partes",
@@ -119,9 +131,18 @@ export default function FiniquitosRemuneraciones() {
 
     revisado: false,
     pagado: false,
+
+    impuesto_unico_finiquito: 0,
+    tope_90_uf_aplicado: false,
   };
 
   const [form, setForm] = useState(estadoInicial);
+  // Lo que el servidor avisa sobre el cálculo (tope de 90 UF, AFC estimado,
+  // impuesto sobre la voluntaria). La regla legal vive en el servidor; la
+  // pantalla solo estima mientras llega la respuesta.
+  const [avisosServidor, setAvisosServidor] = useState([]);
+  const [calculandoServidor, setCalculandoServidor] = useState(false);
+  const solicitudCalculo = useRef(0);
   const [liquidacionPendiente, setLiquidacionPendiente] = useState(null);
 
   const [modal, setModal] = useState({
@@ -146,51 +167,96 @@ export default function FiniquitosRemuneraciones() {
   }, [periodo, form.trabajador_id, form.fecha_termino]);
 
   useEffect(() => {
-    if (!empresaActiva || !form.trabajador_id || !form.fecha_termino) return;
+    if (!empresaActiva || !form.trabajador_id || !form.fecha_termino || !form.causal) return;
 
-    let cancelado = false;
+    const numeroSolicitud = solicitudCalculo.current + 1;
+    solicitudCalculo.current = numeroSolicitud;
 
-    async function cargarVacacionesAutomaticas() {
+    const temporizador = setTimeout(async () => {
       try {
-        const data = await calcularVacacionesFiniquito({
-          empresaId: empresaActiva.id,
-          trabajadorId: form.trabajador_id,
-          fechaTermino: form.fecha_termino,
-          sueldoBase: form.base_vacaciones || form.sueldo_base,
+        setCalculandoServidor(true);
+
+        const data = await calcularFiniquito({
+          empresa_id: empresaActiva.id,
+          trabajador_id: form.trabajador_id,
+          fecha_termino: form.fecha_termino,
+          fecha_aviso: form.fecha_aviso || null,
+          causal: form.causal,
+          hubo_aviso_30_dias: form.hubo_aviso_30_dias,
+          incluir_liquidacion_pendiente: form.incluir_liquidacion_pendiente,
+          dias_trabajados_mes: form.dias_trabajados_mes,
+          indemnizacion_voluntaria: form.indemnizacion_voluntaria,
+          otros_haberes: form.otros_haberes,
+          descuentos: form.descuentos,
+          otros_descuentos: form.otros_descuentos,
+          seguro_cesantia_descuento: form.seguro_cesantia_manual ? form.seguro_cesantia_descuento : undefined,
         });
 
-        if (cancelado) return;
+        // Una respuesta vieja no pisa una nueva.
+        if (solicitudCalculo.current !== numeroSolicitud) return;
 
-        const vacaciones = data.vacaciones || {};
+        const c = data.calculo || {};
 
-        setForm((prev) => {
-          const actualizado = {
-            ...prev,
-            dias_vacaciones_devengadas: vacaciones.dias_devengados || 0,
-            dias_vacaciones_usadas: vacaciones.dias_usados || 0,
-            dias_vacaciones_pendientes: Math.max(
-              0,
-              numero(vacaciones.dias_pendientes)
-            ),
-          };
-
-          aplicarCalculosAutomaticos(actualizado, "vacaciones_auto");
-
-          return actualizado;
-        });
+        setForm((prev) => ({
+          ...prev,
+          sueldo_base: c.sueldo_base,
+          sueldo_pendiente: c.sueldo_pendiente,
+          dias_trabajados_mes: c.dias_trabajados_mes,
+          vacaciones_pendientes: c.vacaciones_pendientes,
+          valor_dia_vacaciones: c.valor_dia_vacaciones,
+          base_vacaciones: c.base_vacaciones,
+          vacaciones_proporcionales: c.vacaciones_proporcionales,
+          dias_vacaciones_devengadas: c.dias_vacaciones_devengadas,
+          dias_vacaciones_usadas: c.dias_vacaciones_usadas,
+          dias_vacaciones_pendientes: c.dias_vacaciones_pendientes,
+          dias_vacaciones_a_pagar: c.dias_vacaciones_a_pagar,
+          monto_vacaciones_pendientes: c.monto_vacaciones_pendientes,
+          sueldo_indemnizable: c.sueldo_indemnizable,
+          base_indemnizacion: c.base_indemnizacion,
+          anios_servicio: c.anios_servicio,
+          meses_servicio: c.meses_servicio,
+          dias_servicio: c.dias_servicio,
+          indemnizacion_aviso_previo: c.indemnizacion_aviso_previo,
+          indemnizacion_anios_servicio: c.indemnizacion_anios_servicio,
+          seguro_cesantia_descuento: c.seguro_cesantia_descuento,
+          impuesto_unico_finiquito: c.impuesto_unico_finiquito,
+          tope_90_uf_aplicado: Boolean(c.tope_90_uf_aplicado),
+          observacion_sueldo_pendiente: c.observacion_sueldo_pendiente || "",
+          observacion_vacaciones: c.observacion_vacaciones || "",
+          observacion_aviso_previo: c.observacion_aviso_previo || "",
+          observacion_anios_servicio: c.observacion_anios_servicio || "",
+          observacion_indemnizacion_voluntaria: c.observacion_indemnizacion_voluntaria || prev.observacion_indemnizacion_voluntaria,
+          observacion_descuentos: c.observacion_descuentos || prev.observacion_descuentos,
+        }));
+        setAvisosServidor(Array.isArray(data.avisos) ? data.avisos : []);
+        setError("");
       } catch (err) {
-        if (!cancelado) {
+        if (solicitudCalculo.current === numeroSolicitud) {
           setError(err.message);
         }
+      } finally {
+        if (solicitudCalculo.current === numeroSolicitud) {
+          setCalculandoServidor(false);
+        }
       }
-    }
+    }, 350);
 
-    cargarVacacionesAutomaticas();
-
-    return () => {
-      cancelado = true;
-    };
-  }, [form.trabajador_id, form.fecha_termino, form.sueldo_base, form.base_vacaciones]);
+    return () => clearTimeout(temporizador);
+  }, [
+    form.trabajador_id,
+    form.fecha_termino,
+    form.fecha_aviso,
+    form.causal,
+    form.hubo_aviso_30_dias,
+    form.incluir_liquidacion_pendiente,
+    form.dias_trabajados_mes,
+    form.indemnizacion_voluntaria,
+    form.otros_haberes,
+    form.descuentos,
+    form.otros_descuentos,
+    form.seguro_cesantia_descuento,
+    form.seguro_cesantia_manual,
+  ]);
 
   useEffect(() => {
     setForm((prev) => {
@@ -496,6 +562,10 @@ export default function FiniquitosRemuneraciones() {
         [name]: type === "checkbox" ? checked : value,
       };
 
+      if (name === "seguro_cesantia_descuento") {
+        actualizado.seguro_cesantia_manual = true;
+      }
+
       aplicarCalculosAutomaticos(actualizado, name, value);
 
       return actualizado;
@@ -632,7 +702,8 @@ export default function FiniquitosRemuneraciones() {
     return (
       numero(form.descuentos) +
       numero(form.seguro_cesantia_descuento) +
-      numero(form.otros_descuentos)
+      numero(form.otros_descuentos) +
+      numero(form.impuesto_unico_finiquito)
     );
   }
 
@@ -680,17 +751,35 @@ export default function FiniquitosRemuneraciones() {
         return;
       }
 
-      const formularioFinal = { ...form };
-      aplicarCalculosAutomaticos(formularioFinal, "guardar");
-
+      // El servidor recalcula todo a partir de los supuestos; los montos del
+      // formulario son solo la vista previa.
       const data = await crearFiniquito({
         empresa_id: empresaActiva.id,
-        trabajador_id: formularioFinal.trabajador_id,
-        periodo,
-        ...formularioFinal,
+        trabajador_id: form.trabajador_id,
+        fecha_termino: form.fecha_termino,
+        fecha_aviso: form.fecha_aviso || null,
+        fecha_pago: form.fecha_pago || null,
+        causal: form.causal,
+        hubo_aviso_30_dias: form.hubo_aviso_30_dias,
+        incluir_liquidacion_pendiente: form.incluir_liquidacion_pendiente,
+        dias_trabajados_mes: form.dias_trabajados_mes,
+        indemnizacion_voluntaria: form.indemnizacion_voluntaria,
+        otros_haberes: form.otros_haberes,
+        descuentos: form.descuentos,
+        otros_descuentos: form.otros_descuentos,
+        seguro_cesantia_descuento: form.seguro_cesantia_manual ? form.seguro_cesantia_descuento : undefined,
+        observacion: form.observacion,
+        observacion_otros_haberes: form.observacion_otros_haberes,
+        revisado: form.revisado,
+        pagado: form.pagado,
       });
 
-      setMensaje(data.mensaje);
+      setMensaje(
+        Array.isArray(data.avisos) && data.avisos.length > 0
+          ? `${data.mensaje}. ${data.avisos.join(" ")}`
+          : data.mensaje
+      );
+      setAvisosServidor([]);
       setForm(estadoInicial);
       setLiquidacionPendiente(null);
       await cargarDatos();
@@ -898,7 +987,18 @@ export default function FiniquitosRemuneraciones() {
           </label>
         </div>
 
-        <div style={alertaCalculo}>{reglaFiniquito.mensaje}</div>
+        <div style={alertaCalculo}>
+          {reglaFiniquito.mensaje}
+          {calculandoServidor ? " Calculando en el servidor…" : ""}
+        </div>
+
+        {avisosServidor.length > 0 && (
+          <ul style={listaAvisos}>
+            {avisosServidor.map((aviso) => (
+              <li key={aviso}>{aviso}</li>
+            ))}
+          </ul>
+        )}
 
         <h2 style={tituloSeccionSeparado}>Conceptos del finiquito</h2>
 
@@ -968,6 +1068,17 @@ export default function FiniquitosRemuneraciones() {
             negativo
             onEditar={() => abrirModal("otrosDescuentos", "Otros descuentos")}
           />
+
+          {numero(form.impuesto_unico_finiquito) > 0 && (
+            <ConceptoCard
+              titulo="Impuesto único sobre voluntaria"
+              monto={formato(form.impuesto_unico_finiquito)}
+              detalle="Calculado por el servidor sobre lo que excede la indemnización legal"
+              obs={form.observacion_indemnizacion_voluntaria}
+              negativo
+              onEditar={() => abrirModal("voluntaria", "Indemnizacion voluntaria")}
+            />
+          )}
         </div>
 
         <div style={totalesBox}>

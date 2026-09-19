@@ -61,6 +61,8 @@ async function guardarConfiguracionContable(req, res) {
       tasa_ppm,
       facturador_electronico,
       previred_electronico,
+      // Contrapartida del cierre de resultados al cerrar el año.
+      cuenta_resultado_ejercicio_id,
     } = req.body;
 
     const tasaPpm = Number(tasa_ppm || 0);
@@ -104,6 +106,7 @@ async function guardarConfiguracionContable(req, res) {
           tasa_ppm = $13,
           facturador_electronico = $14,
           previred_electronico = $15,
+          cuenta_resultado_ejercicio_id = $16,
           actualizado_en = NOW()
         WHERE empresa_id = $1
         RETURNING *
@@ -124,6 +127,7 @@ async function guardarConfiguracionContable(req, res) {
           tasaPpm,
           esFacturadorElectronico,
           pagaEnPrevired,
+          cuenta_resultado_ejercicio_id || null,
         ]
       );
     } else {
@@ -145,10 +149,11 @@ async function guardarConfiguracionContable(req, res) {
           cuenta_pago_honorarios_id,
           tasa_ppm,
           facturador_electronico,
-          previred_electronico
+          previred_electronico,
+          cuenta_resultado_ejercicio_id
         )
         VALUES
-        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, $13, $14, $15)
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, $13, $14, $15, $16)
         RETURNING *
         `,
         [
@@ -167,6 +172,7 @@ async function guardarConfiguracionContable(req, res) {
           tasaPpm,
           esFacturadorElectronico,
           pagaEnPrevired,
+          cuenta_resultado_ejercicio_id || null,
         ]
       );
     }

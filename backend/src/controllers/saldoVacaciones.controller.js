@@ -4,33 +4,19 @@ function numero(valor) {
   return Number(valor || 0);
 }
 
-function diferenciaDias(fechaInicio, fechaFin) {
-  if (!fechaInicio || !fechaFin) return 0;
+// El devengo se calcula en vacaciones.helper: 15 días hábiles al año más el
+// feriado progresivo. Este controlador tenía su propio algoritmo (1,25 por
+// cada 30 días corridos) y daba saldos distintos a los del finiquito.
+const { calcularVacacionesDevengadas } = require("../helpers/vacaciones.helper");
 
-  const inicio = new Date(fechaInicio);
-  const fin = new Date(fechaFin);
+function ultimoDiaDelPeriodo(periodo) {
+  const [anio, mes] = String(periodo).split("-").map(Number);
 
-  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
-    return 0;
-  }
+  if (!anio || !mes) return null;
 
-  const diffMs = fin.getTime() - inicio.getTime();
-  const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
 
-  return dias > 0 ? dias : 0;
-}
-
-function calcularVacacionesDevengadas(fechaIngreso, fechaCorte) {
-  const diasTrabajados = diferenciaDias(fechaIngreso, fechaCorte);
-
-  if (diasTrabajados <= 0) return 0;
-
-  // Regla general Chile: 15 días hábiles por año.
-  // Para control interno se calcula proporcional mensual: 1,25 días por mes.
-  const mesesTrabajados = diasTrabajados / 30;
-  const diasDevengados = mesesTrabajados * 1.25;
-
-  return Math.round(diasDevengados * 100) / 100;
+  return `${anio}-${String(mes).padStart(2, "0")}-${String(ultimo).padStart(2, "0")}`;
 }
 
 async function obtenerSaldoVacaciones(req, res) {
@@ -43,7 +29,13 @@ async function obtenerSaldoVacaciones(req, res) {
       });
     }
 
-    const fechaCorte = `${periodo}-31`;
+    // `${periodo}-31` no existe en febrero, abril, junio, septiembre ni
+    // noviembre: el corte era una fecha inválida y el devengo daba cero.
+    const fechaCorte = ultimoDiaDelPeriodo(periodo);
+
+    if (!fechaCorte) {
+      return res.status(400).json({ error: "El periodo debe tener formato AAAA-MM" });
+    }
 
     let queryTrabajadores = `
       SELECT
@@ -53,7 +45,8 @@ async function obtenerSaldoVacaciones(req, res) {
         apellidos,
         cargo,
         fecha_ingreso,
-        estado
+        estado,
+        COALESCE(anios_cotizados_previos, 0) AS anios_cotizados_previos
       FROM trabajadores
       WHERE empresa_id = $1
         AND estado = 'activo'
@@ -132,7 +125,8 @@ async function obtenerSaldoVacaciones(req, res) {
 
       const diasDevengados = calcularVacacionesDevengadas(
         trabajador.fecha_ingreso,
-        fechaCorte
+        fechaCorte,
+        trabajador.anios_cotizados_previos
       );
 
       const diasUsados = numero(usadosResult.rows[0]?.dias_usados);

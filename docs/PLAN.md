@@ -289,7 +289,38 @@ artefacto y sus bloques se cierran en este orden.
 - [x] Pantallas: Resumen F29 rehecho con las líneas nuevas y el registro del presentado;
   control de remanente encadenado; configuración contable con tasa de PPM y las dos
   condiciones de plazo.
-- [ ] Bloque 4 (ejercicio y remuneraciones) y bloque 5 (deuda técnica).
+
+**Bloque 4 — Cierre de ejercicio y remuneraciones completas  ✅ 19-09-2026**
+- [x] A-11 Cerrar el año genera el asiento de cierre de resultados (31-12) contra la
+  cuenta de Resultado del Ejercicio configurada, y el de apertura del año siguiente
+  (01-01) con los saldos de balance. Crea el año siguiente si no existe. Reabrir exige
+  motivo, guarda quién y cuándo, y anula ambos asientos. No se cierra con el anterior
+  abierto ni se reabre con el siguiente cerrado (`helpers/ejercicio.helper.js`).
+- [x] Libro mayor con saldo inicial por cuenta anterior a `fecha_desde`; el acumulado se
+  reinicia por cuenta y las cuentas con saldo previo sin movimiento también aparecen.
+- [x] A-12 Isapre con plan en UF (`trabajadores.plan_salud_uf`): se descuenta el mayor
+  entre el 7% y el plan; el adicional se guarda aparte
+  (`liquidaciones.descuento_salud_adicional`) y no rebaja la base tributable.
+- [x] A-15 Finiquito calculado en el servidor (`helpers/finiquito.helper.js`,
+  `POST /api/finiquitos/calcular`; el guardado recalcula desde los supuestos): base del
+  artículo 172 sin horas extra y con tope de 90 UF, sustitutiva del aviso previo cuando
+  no hubo 30 días, años reconocidos con fracción y tope 11, obra o faena 2,5 días por mes,
+  descuento del aporte del empleador a la AFC (estimado en 1,6% si no se informa),
+  impuesto único sobre la indemnización voluntaria. **REQUIERE VALIDACIÓN LABORAL Y
+  TRIBUTARIA**: estimación del aporte AFC y ausencia del promedio de 24 meses.
+- [x] A-16 Vacaciones en días hábiles con feriados del calendario, feriado progresivo con
+  `trabajadores.anios_cotizados_previos`, valor día con remuneración íntegra (sueldo más
+  gratificación; **REQUIERE VALIDACIÓN LABORAL** para haberes variables). Un solo devengo
+  para saldo y finiquito; el saldo ya no usa `${periodo}-31`.
+- [x] Módulo 6: archivo de carga del Libro de Remuneraciones Electrónico
+  (`GET /api/liquidaciones/lre`, CSV con códigos DT). **REQUIERE VALIDACIÓN** de cada
+  código contra el formato vigente de la DT antes de cargarlo.
+- [x] Pantallas: trabajadores con plan UF y años previos; finiquitos calcula en el
+  servidor con los avisos a la vista; selector de año muestra quién cerró o reabrió y
+  los comprobantes; configuración contable con la cuenta de resultado; libro mayor con
+  saldo inicial; libro de remuneraciones con el botón del LRE.
+- [ ] Asignación familiar por tramo en la liquidación (queda para el bloque 5).
+- [ ] Bloque 5 (deuda técnica).
 
 ## Flujo de trabajo
 

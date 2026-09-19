@@ -536,12 +536,26 @@ async function calcularLiquidacionCompleta(client, entradas) {
       topeAfcPesos > 0 ? Math.min(baseImponible, topeAfcPesos) : baseImponible;
 
     const descuentoAfp = calcularMonto(baseAfectaDescuentos, tasaAfp);
-    const descuentoSalud = calcularMonto(baseAfectaDescuentos, tasaSalud);
+    // Isapre: se descuenta el mayor entre el 7% legal y el plan pactado en
+    // UF. Lo que excede el 7% no rebaja la base tributable (artículo 42
+    // N°1 de la Ley de la Renta). Antes todo trabajador cotizaba 7%.
+    const descuentoSaludLegal = calcularMonto(baseAfectaDescuentos, tasaSalud);
+    const planSaludUf = Number(trabajador.plan_salud_uf || 0);
+    const valorUfPeriodo = Number(configuracion.valor_uf || 0);
+    const planSaludPesos =
+      planSaludUf > 0 && valorUfPeriodo > 0 ? redondear(planSaludUf * valorUfPeriodo) : 0;
+    const advertenciaSalud =
+      planSaludUf > 0 && valorUfPeriodo <= 0
+        ? "El trabajador tiene plan de Isapre en UF pero el periodo no tiene valor de UF: se desconto solo el 7% legal."
+        : "";
+
+    const descuentoSalud = Math.max(descuentoSaludLegal, planSaludPesos);
+    const descuentoSaludAdicional = descuentoSalud - descuentoSaludLegal;
     const descuentoAfc = calcularMonto(baseAfectaAfc, tasaAfcTrabajador);
 
     const descuentosPrevisionalesTributarios =
       Number(descuentoAfp || 0) +
-      Number(descuentoSalud || 0) +
+      Number(descuentoSaludLegal || 0) +
       Number(descuentoAfc || 0);
 
     const baseTributable = Math.max(
@@ -561,6 +575,10 @@ async function calcularLiquidacionCompleta(client, entradas) {
     const advertenciasCalculo = [
       "Calculo parametrizado segun configuracion del periodo. Las ausencias registradas rebajan los dias devengados y no se descuentan dos veces.",
     ];
+
+    if (advertenciaSalud) {
+      advertenciasCalculo.push(advertenciaSalud);
+    }
 
     if (gratificacionTopada) {
       advertenciasCalculo.push(
@@ -708,6 +726,9 @@ async function calcularLiquidacionCompleta(client, entradas) {
 
         descuento_afp: descuentoAfp,
         descuento_salud: descuentoSalud,
+        descuento_salud_legal: descuentoSaludLegal,
+        descuento_salud_adicional: descuentoSaludAdicional,
+        plan_salud_uf: planSaludUf,
         descuento_afc: descuentoAfc,
         impuesto_unico: impuestoUnico,
         otros_descuentos: otrosDesc,
@@ -924,6 +945,14 @@ async function guardarLiquidacion(req, res) {
         Number(c.costo_empresa || 0),
       ]
     );
+
+    // El adicional de Isapre se guarda aparte: Previred y el libro de
+    // remuneraciones lo informan separado del 7%.
+    await client.query(
+      `UPDATE liquidaciones SET descuento_salud_adicional = $3 WHERE id = $1 AND empresa_id = $2`,
+      [resultado.rows[0].id, empresa_id, Number(c.descuento_salud_adicional || 0)]
+    );
+    resultado.rows[0].descuento_salud_adicional = Number(c.descuento_salud_adicional || 0);
 
     const liquidacion = resultado.rows[0];
 
@@ -1164,6 +1193,14 @@ async function actualizarLiquidacion(req, res) {
         Number(c.costo_empresa || 0),
       ]
     );
+
+    if (resultado.rows[0]) {
+      await pool.query(
+        `UPDATE liquidaciones SET descuento_salud_adicional = $3 WHERE id = $1 AND empresa_id = $2`,
+        [resultado.rows[0].id, empresa_id, Number(c.descuento_salud_adicional || 0)]
+      );
+      resultado.rows[0].descuento_salud_adicional = Number(c.descuento_salud_adicional || 0);
+    }
 
     return res.json({
       mensaje: "Liquidacion actualizada correctamente",

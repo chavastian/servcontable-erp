@@ -3,6 +3,7 @@ const pool = require("../database/db");
 const {
   calcularVacacionesPendientesFiniquito,
 } = require("../helpers/vacaciones.helper");
+const { calcularFiniquito } = require("../helpers/finiquito.helper");
 const {
   obtenerSiguienteNumeroComprobante,
   insertarDetallesComprobante,
@@ -57,115 +58,68 @@ async function crearFiniquito(req, res) {
     const {
       empresa_id,
       trabajador_id,
-      periodo,
-
       fecha_aviso,
       fecha_termino,
       fecha_pago,
       causal,
-
-      dias_trabajados_mes,
-      sueldo_base,
-      sueldo_pendiente,
-
-      vacaciones_pendientes,
-      valor_dia_vacaciones,
-      base_vacaciones,
-      vacaciones_proporcionales,
-
-      dias_vacaciones_devengadas,
-      dias_vacaciones_usadas,
-      dias_vacaciones_pendientes,
-      dias_vacaciones_a_pagar,
-      monto_vacaciones_pendientes,
-
-      sueldo_indemnizable,
-      base_indemnizacion,
-      anios_servicio,
-      meses_servicio,
-      dias_servicio,
-      indemnizacion_aviso_previo,
-      indemnizacion_anios_servicio,
-      indemnizacion_voluntaria,
-
-      otros_haberes,
-      descuentos,
-      seguro_cesantia_descuento,
-      otros_descuentos,
-
       observacion,
-      observacion_sueldo_pendiente,
-      observacion_vacaciones,
-      observacion_aviso_previo,
-      observacion_anios_servicio,
-      observacion_indemnizacion_voluntaria,
       observacion_otros_haberes,
-      observacion_descuentos,
-
       revisado,
       pagado,
     } = req.body;
 
-    if (!empresa_id || !trabajador_id || !periodo || !fecha_termino || !causal) {
+    if (!empresa_id || !trabajador_id || !fecha_termino || !causal) {
       return res.status(400).json({
         error:
-          "Debe indicar empresa_id, trabajador_id, período, fecha de término y causal",
+          "Debe indicar empresa_id, trabajador_id, fecha de término y causal",
       });
     }
 
-    const vacacionesAuto = await calcularVacacionesPendientesFiniquito({
-      empresa_id,
-      trabajador_id,
-      fecha_termino,
-      sueldo_base,
-    });
+    // El servidor calcula el finiquito. Del cliente solo se toman los
+    // supuestos (causal, fechas, aviso, montos voluntarios y descuentos);
+    // antes se guardaba cualquier monto que llegara en el cuerpo.
+    const resultadoCalculo = await calcularFiniquito(pool, req.body);
+    const c = resultadoCalculo.calculo;
+    const periodo = c.periodo;
+    const vacacionesAuto = {
+      dias_devengados: c.dias_vacaciones_devengadas,
+      dias_usados: c.dias_vacaciones_usadas,
+      dias_pendientes: c.dias_vacaciones_pendientes,
+      dias_a_pagar: c.dias_vacaciones_a_pagar,
+      valor_dia_vacaciones: c.valor_dia_vacaciones,
+      monto_vacaciones_pendientes: c.monto_vacaciones_pendientes,
+    };
 
-    const diasVacacionesDevengadas =
-      dias_vacaciones_devengadas !== undefined
-        ? numero(dias_vacaciones_devengadas)
-        : numero(vacacionesAuto.dias_devengados);
-
-    const diasVacacionesUsadas =
-      dias_vacaciones_usadas !== undefined
-        ? numero(dias_vacaciones_usadas)
-        : numero(vacacionesAuto.dias_usados);
-
-    const diasVacacionesPendientes =
-      dias_vacaciones_pendientes !== undefined
-        ? numero(dias_vacaciones_pendientes)
-        : numero(vacacionesAuto.dias_pendientes);
-
-    const diasVacacionesAPagar =
-      dias_vacaciones_a_pagar !== undefined
-        ? numero(dias_vacaciones_a_pagar)
-        : numero(vacacionesAuto.dias_a_pagar);
-
-    const valorDiaVacaciones =
-      valor_dia_vacaciones !== undefined
-        ? numero(valor_dia_vacaciones)
-        : numero(vacacionesAuto.valor_dia_vacaciones);
-
-    const montoVacacionesPendientes =
-      monto_vacaciones_pendientes !== undefined
-        ? numero(monto_vacaciones_pendientes)
-        : vacaciones_proporcionales !== undefined
-        ? numero(vacaciones_proporcionales)
-        : numero(vacacionesAuto.monto_vacaciones_pendientes);
-
-    const totalDescuentos =
-      numero(descuentos) +
-      numero(seguro_cesantia_descuento) +
-      numero(otros_descuentos);
-
-    const totalHaberes =
-      numero(sueldo_pendiente) +
-      montoVacacionesPendientes +
-      numero(indemnizacion_aviso_previo) +
-      numero(indemnizacion_anios_servicio) +
-      numero(indemnizacion_voluntaria) +
-      numero(otros_haberes);
-
-    const totalFiniquito = totalHaberes - totalDescuentos;
+    const dias_trabajados_mes = c.dias_trabajados_mes;
+    const sueldo_base = c.sueldo_base;
+    const sueldo_pendiente = c.sueldo_pendiente;
+    const base_vacaciones = c.base_vacaciones;
+    const diasVacacionesDevengadas = c.dias_vacaciones_devengadas;
+    const diasVacacionesUsadas = c.dias_vacaciones_usadas;
+    const diasVacacionesPendientes = c.dias_vacaciones_pendientes;
+    const diasVacacionesAPagar = c.dias_vacaciones_a_pagar;
+    const valorDiaVacaciones = c.valor_dia_vacaciones;
+    const montoVacacionesPendientes = c.monto_vacaciones_pendientes;
+    const sueldo_indemnizable = c.sueldo_indemnizable;
+    const base_indemnizacion = c.base_indemnizacion;
+    const anios_servicio = c.anios_servicio;
+    const meses_servicio = c.meses_servicio;
+    const dias_servicio = c.dias_servicio;
+    const indemnizacion_aviso_previo = c.indemnizacion_aviso_previo;
+    const indemnizacion_anios_servicio = c.indemnizacion_anios_servicio;
+    const indemnizacion_voluntaria = c.indemnizacion_voluntaria;
+    const otros_haberes = c.otros_haberes;
+    const seguro_cesantia_descuento = c.seguro_cesantia_descuento;
+    const otros_descuentos = c.otros_descuentos;
+    const totalDescuentos = c.total_descuentos;
+    const totalHaberes = c.total_haberes;
+    const totalFiniquito = c.total_finiquito;
+    const observacion_sueldo_pendiente = c.observacion_sueldo_pendiente;
+    const observacion_vacaciones = c.observacion_vacaciones;
+    const observacion_aviso_previo = c.observacion_aviso_previo;
+    const observacion_anios_servicio = c.observacion_anios_servicio;
+    const observacion_indemnizacion_voluntaria = c.observacion_indemnizacion_voluntaria;
+    const observacion_descuentos = c.observacion_descuentos;
 
     const resultado = await pool.query(
       `
@@ -276,7 +230,7 @@ async function crearFiniquito(req, res) {
         numero(indemnizacion_voluntaria),
 
         numero(otros_haberes),
-        totalDescuentos,
+        numero(c.descuentos),
         numero(seguro_cesantia_descuento),
         numero(otros_descuentos),
 
@@ -297,10 +251,39 @@ async function crearFiniquito(req, res) {
       ]
     );
 
+    // Lo que el cálculo del servidor agrega respecto del formulario antiguo.
+    const detalle = await pool.query(
+      `UPDATE finiquitos
+       SET impuesto_unico_finiquito = $3,
+           tope_90_uf_aplicado = $4,
+           valor_uf = $5,
+           calculado_en_servidor = true,
+           supuestos = $6
+       WHERE id = $1 AND empresa_id = $2
+       RETURNING *`,
+      [
+        resultado.rows[0].id,
+        empresa_id,
+        numero(c.impuesto_unico_finiquito),
+        Boolean(c.tope_90_uf_aplicado),
+        c.valor_uf,
+        JSON.stringify({
+          causal,
+          hubo_aviso_30_dias: c.hubo_aviso_30_dias,
+          fecha_aviso: c.fecha_aviso,
+          incluir_liquidacion_pendiente: Boolean(req.body.incluir_liquidacion_pendiente),
+          base_indemnizacion_sin_tope: c.base_indemnizacion_sin_tope,
+          regla: resultadoCalculo.regla,
+          avisos: resultadoCalculo.avisos,
+        }),
+      ]
+    );
+
     return res.status(201).json({
       mensaje: "Finiquito registrado correctamente",
-      finiquito: resultado.rows[0],
+      finiquito: detalle.rows[0] || resultado.rows[0],
       vacaciones: vacacionesAuto,
+      avisos: resultadoCalculo.avisos,
     });
   } catch (error) {
     console.error("Error al crear finiquito:", error);
@@ -974,6 +957,32 @@ async function pagarFiniquito(req, res) {
   }
 }
 
+/**
+ * Simula el finiquito con las reglas del servidor sin guardarlo. La pantalla
+ * lo llama en cada cambio del formulario.
+ */
+async function calcularFiniquitoPrevio(req, res) {
+  try {
+    const { empresa_id, trabajador_id, fecha_termino, causal } = req.body;
+
+    if (!empresa_id || !trabajador_id || !fecha_termino || !causal) {
+      return res.status(400).json({
+        error: "Debe indicar empresa_id, trabajador_id, fecha_termino y causal",
+      });
+    }
+
+    const resultado = await calcularFiniquito(pool, req.body);
+
+    return res.json(resultado);
+  } catch (error) {
+    console.error("Error al calcular finiquito:", error);
+
+    return res.status(error.statusCode || 500).json({
+      error: error.statusCode ? error.message : "Error interno al calcular finiquito",
+    });
+  }
+}
+
 async function calcularVacacionesFiniquito(req, res) {
   try {
     const { empresa_id, trabajador_id, fecha_termino, sueldo_base } = req.query;
@@ -997,9 +1006,8 @@ async function calcularVacacionesFiniquito(req, res) {
   } catch (error) {
     console.error("Error al calcular vacaciones de finiquito:", error);
 
-    return res.status(500).json({
-      error:
-        error.message || "Error interno al calcular vacaciones de finiquito",
+    return res.status(error.statusCode || 500).json({
+      error: error.statusCode ? error.message : "Error interno al calcular vacaciones de finiquito",
     });
   }
 }
@@ -1012,5 +1020,6 @@ module.exports = {
   contabilizarFiniquito,
   pagarFiniquito,
   calcularVacacionesFiniquito,
+  calcularFiniquitoPrevio,
 };
 

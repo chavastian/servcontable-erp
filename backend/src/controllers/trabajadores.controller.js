@@ -37,6 +37,10 @@ async function crearTrabajador(req, res) {
       movimiento_personal,
       fecha_movimiento_desde,
       fecha_movimiento_hasta,
+      // Plan de Isapre pactado en UF (0 = 7% legal) y años de cotizaciones
+      // anteriores a esta empresa, para el feriado progresivo.
+      plan_salud_uf,
+      anios_cotizados_previos,
     } = req.body;
 
     if (!empresa_id || !rut || !nombres || !fecha_ingreso) {
@@ -83,6 +87,8 @@ async function crearTrabajador(req, res) {
         movimiento_personal,
         fecha_movimiento_desde,
         fecha_movimiento_hasta,
+        plan_salud_uf,
+        anios_cotizados_previos,
 
         estado
       )
@@ -91,7 +97,7 @@ async function crearTrabajador(req, res) {
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
         $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,
-        $31,$32,$33,'activo'
+        $31,$32,$33,$34,$35,'activo'
       )
       RETURNING *
       `,
@@ -130,6 +136,8 @@ async function crearTrabajador(req, res) {
         movimiento_personal || "0",
         fecha_movimiento_desde || null,
         fecha_movimiento_hasta || null,
+        Number(plan_salud_uf || 0),
+        Math.max(0, Math.trunc(Number(anios_cotizados_previos || 0))),
       ]
     );
 
@@ -236,6 +244,10 @@ async function actualizarTrabajador(req, res) {
       movimiento_personal,
       fecha_movimiento_desde,
       fecha_movimiento_hasta,
+      // Plan de Isapre pactado en UF (0 = 7% legal) y años de cotizaciones
+      // anteriores a esta empresa, para el feriado progresivo.
+      plan_salud_uf,
+      anios_cotizados_previos,
     } = req.body;
 
     if (!empresa_id || !rut || !nombres || !fecha_ingreso) {
@@ -281,7 +293,9 @@ async function actualizarTrabajador(req, res) {
         seguro_cesantia = $30,
         movimiento_personal = $31,
         fecha_movimiento_desde = $32,
-        fecha_movimiento_hasta = $33
+        fecha_movimiento_hasta = $33,
+        plan_salud_uf = $36,
+        anios_cotizados_previos = $37
 
       WHERE id = $34
         AND empresa_id = $35
@@ -325,6 +339,8 @@ async function actualizarTrabajador(req, res) {
 
         id,
         empresa_id,
+        Number(plan_salud_uf || 0),
+        Math.max(0, Math.trunc(Number(anios_cotizados_previos || 0))),
       ]
     );
 

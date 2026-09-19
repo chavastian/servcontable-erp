@@ -139,3 +139,23 @@ export async function contabilizarLiquidaciones(empresaId, periodo) {
 
   return data;
 }
+
+/**
+ * Descarga el Libro de Remuneraciones Electrónico del período como CSV.
+ * Devuelve el Blob; la página decide cómo ofrecerlo.
+ */
+export async function descargarLre(empresaId, periodo) {
+  const token = obtenerToken();
+  const params = new URLSearchParams({ empresa_id: empresaId, periodo });
+
+  const respuesta = await fetch(`${API_URL}/liquidaciones/lre?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!respuesta.ok) {
+    const data = await respuesta.json().catch(() => ({}));
+    throw new Error(data.error || "Error al exportar el libro electrónico");
+  }
+
+  return respuesta.blob();
+}

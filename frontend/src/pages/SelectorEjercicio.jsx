@@ -24,6 +24,7 @@ export default function SelectorEjercicio({
   const [observacion, setObservacion] = useState("");
 
   const [mostrarCrear, setMostrarCrear] = useState(false);
+  const [procesando, setProcesando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const puedeCrearEjercicio = true;
@@ -106,20 +107,34 @@ export default function SelectorEjercicio({
       }
 
       const confirmar = window.confirm(
-        `¿Seguro que deseas cerrar el año ${ejercicioSeleccionado.anio}? Luego no debería modificarse información de ese período.`
+        `¿Cerrar el año ${ejercicioSeleccionado.anio}? Se generará el asiento de cierre de resultados al 31-12 y el de apertura del año ${Number(ejercicioSeleccionado.anio) + 1} al 01-01. Necesitas la cuenta de Resultado del Ejercicio en Configuración Contable.`
       );
 
       if (!confirmar) return;
+
+      setProcesando(true);
 
       const data = await cerrarEjercicio(ejercicioSeleccionado.id, {
         empresa_id: empresaActiva.id,
         observacion,
       });
 
-      setMensaje(data.mensaje || "Año cerrado correctamente.");
+      const detalle = [
+        data.comprobante_cierre ? `Cierre N° ${data.comprobante_cierre.numero}` : "",
+        data.comprobante_apertura ? `Apertura N° ${data.comprobante_apertura.numero}` : "",
+        data.resultado_ejercicio !== null && data.resultado_ejercicio !== undefined
+          ? `Resultado del ejercicio: $${Number(data.resultado_ejercicio).toLocaleString("es-CL")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      setMensaje(`${data.mensaje || "Año cerrado correctamente."}${detalle ? ` (${detalle})` : ""}`);
       await cargarEjercicios();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setProcesando(false);
     }
   }
 
@@ -133,20 +148,31 @@ export default function SelectorEjercicio({
         return;
       }
 
-      const confirmar = window.confirm(
-        `¿Seguro que deseas reabrir el año ${ejercicioSeleccionado.anio}?`
+      // La reapertura queda auditada: quién, cuándo y por qué.
+      const motivo = window.prompt(
+        `Motivo de la reapertura del año ${ejercicioSeleccionado.anio} (queda registrado y anula los asientos de cierre y apertura):`
       );
 
-      if (!confirmar) return;
+      if (motivo === null) return;
+
+      if (String(motivo).trim().length < 5) {
+        setError("Indica un motivo de al menos 5 caracteres.");
+        return;
+      }
+
+      setProcesando(true);
 
       const data = await reabrirEjercicio(ejercicioSeleccionado.id, {
         empresa_id: empresaActiva.id,
+        motivo: String(motivo).trim(),
       });
 
       setMensaje(data.mensaje || "Año reabierto correctamente.");
       await cargarEjercicios();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setProcesando(false);
     }
   }
 
@@ -239,6 +265,25 @@ export default function SelectorEjercicio({
                 <span>Estado: {ejercicioSeleccionado.estado}</span>
                 <span>Inicio: {String(ejercicioSeleccionado.fecha_inicio || "").substring(0, 10)}</span>
                 <span>Término: {String(ejercicioSeleccionado.fecha_termino || "").substring(0, 10)}</span>
+                {ejercicioSeleccionado.estado === "cerrado" && (
+                  <span>
+                    Cerrado el {String(ejercicioSeleccionado.fecha_cierre || "").substring(0, 10)}
+                    {ejercicioSeleccionado.cerrado_por_nombre ? ` por ${ejercicioSeleccionado.cerrado_por_nombre}` : ""}
+                    {ejercicioSeleccionado.comprobante_cierre_numero
+                      ? ` · Cierre N° ${ejercicioSeleccionado.comprobante_cierre_numero}`
+                      : ""}
+                    {ejercicioSeleccionado.comprobante_apertura_numero
+                      ? ` · Apertura N° ${ejercicioSeleccionado.comprobante_apertura_numero}`
+                      : ""}
+                  </span>
+                )}
+                {ejercicioSeleccionado.reabierto_en && (
+                  <span>
+                    Reabierto el {String(ejercicioSeleccionado.reabierto_en).substring(0, 10)}
+                    {ejercicioSeleccionado.reabierto_por_nombre ? ` por ${ejercicioSeleccionado.reabierto_por_nombre}` : ""}
+                    {ejercicioSeleccionado.motivo_reapertura ? `: ${ejercicioSeleccionado.motivo_reapertura}` : ""}
+                  </span>
+                )}
               </div>
             )}
 
@@ -288,14 +333,14 @@ export default function SelectorEjercicio({
             )}
 
             {ejercicioSeleccionado?.estado === "abierto" && (
-              <button type="button" style={botonCerrarAnio} onClick={cerrarAnio}>
-                Cerrar año seleccionado
+              <button type="button" style={botonCerrarAnio} onClick={cerrarAnio} disabled={procesando}>
+                {procesando ? "Procesando…" : "Cerrar año seleccionado"}
               </button>
             )}
 
             {ejercicioSeleccionado?.estado === "cerrado" && (
-              <button type="button" style={botonReabrir} onClick={reabrirAnio}>
-                Reabrir año seleccionado
+              <button type="button" style={botonReabrir} onClick={reabrirAnio} disabled={procesando}>
+                {procesando ? "Procesando…" : "Reabrir año seleccionado"}
               </button>
             )}
           </div>

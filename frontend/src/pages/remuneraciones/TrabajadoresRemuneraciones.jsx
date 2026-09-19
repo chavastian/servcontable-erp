@@ -93,6 +93,8 @@ export default function TrabajadoresRemuneraciones() {
     sueldo_base: "",
     afp: "",
     salud: "",
+    plan_salud_uf: "",
+    anios_cotizados_previos: 0,
     tramo_asignacion: "",
     cargas: 0,
     banco: "",
@@ -157,6 +159,8 @@ export default function TrabajadoresRemuneraciones() {
         ...formulario,
         sueldo_base: Number(formulario.sueldo_base || 0),
         cargas: Number(formulario.cargas || 0),
+        plan_salud_uf: Number(formulario.plan_salud_uf || 0),
+        anios_cotizados_previos: Number(formulario.anios_cotizados_previos || 0),
       };
 
       const data = editandoId
@@ -191,6 +195,8 @@ export default function TrabajadoresRemuneraciones() {
       sueldo_base: item.sueldo_base || "",
       afp: item.afp || "",
       salud: item.salud || "",
+      plan_salud_uf: Number(item.plan_salud_uf || 0) > 0 ? item.plan_salud_uf : "",
+      anios_cotizados_previos: item.anios_cotizados_previos || 0,
       tramo_asignacion: item.tramo_asignacion || "",
       cargas: item.cargas || 0,
       banco: item.banco || "",
@@ -355,7 +361,21 @@ export default function TrabajadoresRemuneraciones() {
             options={OPCIONES_SALUD}
           />
           <Campo
-            label="Tramo asignacion"
+            label="Plan Isapre (UF, 0 = 7% legal)"
+            type="number"
+            name="plan_salud_uf"
+            value={formulario.plan_salud_uf}
+            onChange={cambiarFormulario}
+          />
+          <Campo
+            label="Años cotizados antes (feriado progresivo)"
+            type="number"
+            name="anios_cotizados_previos"
+            value={formulario.anios_cotizados_previos}
+            onChange={cambiarFormulario}
+          />
+          <Campo
+            label="Tramo asignación"
             name="tramo_asignacion"
             value={formulario.tramo_asignacion}
             onChange={cambiarFormulario}

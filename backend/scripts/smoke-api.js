@@ -158,6 +158,9 @@ async function main() {
       ["GET /api/flujo-caja", `/api/flujo-caja?empresa_id=${empresa.id}`],
       ["GET /api/f29", `/api/f29?empresa_id=${empresa.id}&periodo=${periodo}`],
       ["GET /api/f29/presentadas", `/api/f29/presentadas?empresa_id=${empresa.id}`],
+      ["GET /api/ejercicios", `/api/ejercicios?empresa_id=${empresa.id}`],
+      ["GET /api/libro-mayor", `/api/libro-mayor?empresa_id=${empresa.id}&fecha_desde=${periodo}-01&fecha_hasta=${periodo}-28`],
+      ["GET /api/saldo-vacaciones", `/api/saldo-vacaciones?empresa_id=${empresa.id}&periodo=${periodo}`],
     ];
 
     for (const [nombre, ruta] of rutas) {

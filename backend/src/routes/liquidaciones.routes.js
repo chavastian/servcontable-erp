@@ -9,6 +9,7 @@ const {
   listarLiquidaciones,
   contabilizarLiquidaciones,
 } = require("../controllers/liquidaciones.controller");
+const { exportarLre } = require("../controllers/libroRemuneracionesElectronico.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirPermiso } = require("../middleware/tenant.middleware");
@@ -18,6 +19,7 @@ const {
 } = require("../middleware/demo.middleware");
 
 router.get("/", verificarToken, listarLiquidaciones);
+router.get("/lre", verificarToken, exigirPermiso("REMUNERACIONES"), exportarLre);
 router.post("/calcular", verificarToken,
   exigirPermiso("REMUNERACIONES"), calcularLiquidacionBase);
 router.post(

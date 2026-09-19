@@ -51,6 +51,30 @@ export async function crearFiniquito(datos) {
   return data;
 }
 
+/**
+ * Cálculo completo del finiquito en el servidor, sin guardarlo.
+ */
+export async function calcularFiniquito(datos) {
+  const token = obtenerToken();
+
+  const respuesta = await fetch(`${API_URL}/finiquitos/calcular`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(datos),
+  });
+
+  const data = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(data.error || "Error al calcular finiquito");
+  }
+
+  return data;
+}
+
 export async function calcularVacacionesFiniquito({
   empresaId,
   trabajadorId,
