@@ -6,6 +6,7 @@ const {
   importarCartola,
   actualizarEstado,
 } = require("../controllers/conciliacionBancaria.controller");
+const { sugerirCalces } = require("../controllers/calceBancario.controller");
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
@@ -17,6 +18,10 @@ const {
 const { bloquearDemo } = require("../middleware/demo.middleware");
 
 router.get("/", verificarToken, listarMovimientos);
+
+// Propuestas de calce. Solo lee: la confirmacion sigue pasando por
+// PUT /:id/estado, que es el unico lugar donde se escribe el estado.
+router.get("/sugerencias", verificarToken, exigirEmpresa, sugerirCalces);
 router.post(
   "/importar",
   limiteImportacion,
@@ -35,6 +40,11 @@ router.put(
   limiteImportacion,
   verificarToken,
   bloquearDemo("la conciliacion bancaria se habilita en la version contratada."),
+  // Faltaba: el controlador filtraba por el empresa_id del cuerpo sin comprobar
+  // que el usuario fuera miembro de esa empresa, asi que cualquiera autenticado
+  // podia marcar como conciliado un movimiento de otro cliente.
+  exigirEmpresa,
+  exigirPermiso("REGISTRAR"),
   actualizarEstado
 );
 

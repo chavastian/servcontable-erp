@@ -52,6 +52,11 @@ const pagosFlowRoutes = require("./routes/pagosFlow.routes");
 const contactoRoutes = require("./routes/contacto.routes");
 const adminSuscripcionesRoutes = require("./routes/adminSuscripciones.routes");
 const adminUsuariosRoutes = require("./routes/adminUsuarios.routes");
+const panelEstudioRoutes = require("./routes/panelEstudio.routes");
+const cierreMensualRoutes = require("./routes/cierreMensual.routes");
+const calendarioTributarioRoutes = require("./routes/calendarioTributario.routes");
+const flujoCajaRoutes = require("./routes/flujoCaja.routes");
+const sugerenciasCuentaRoutes = require("./routes/sugerenciasCuenta.routes");
 
 
 const app = express();
@@ -163,6 +168,11 @@ app.use("/api/pagos-flow", pagosFlowRoutes);
 app.use("/api/contacto", contactoRoutes);
 app.use("/api/admin-suscripciones", adminSuscripcionesRoutes);
 app.use("/api/admin-usuarios", adminUsuariosRoutes);
+app.use("/api/panel-estudio", panelEstudioRoutes);
+app.use("/api/cierre-mensual", cierreMensualRoutes);
+app.use("/api/calendario-tributario", calendarioTributarioRoutes);
+app.use("/api/flujo-caja", flujoCajaRoutes);
+app.use("/api/sugerencias-cuenta", sugerenciasCuentaRoutes);
 
 app.use(rutaNoEncontrada);
 app.use(manejadorDeErrores);

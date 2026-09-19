@@ -30,11 +30,47 @@ import AnalisisCuentas from "./AnalisisCuentas";
 import AuditoriaSistema from "./AuditoriaSistema";
 import UsuariosSistema from "./UsuariosSistema";
 import AdminSuscripciones from "./AdminSuscripciones";
+import PanelEstudio from "./PanelEstudio";
+import CierreMensual from "./CierreMensual";
+import CalceBancario from "./CalceBancario";
+import ClasificarDocumentos from "./ClasificarDocumentos";
+import CalendarioTributario from "./CalendarioTributario";
+import FlujoCaja from "./FlujoCaja";
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 const LOGO_SRC = "/servcontable-logo.png";
 
 const HEROES_CONTABLE = {
+  panelEstudio: {
+    titulo: "Panel del estudio",
+    descripcion:
+      "Todas tus empresas en una pantalla, con lo que le falta a cada una en el período.",
+  },
+  cierreMensual: {
+    titulo: "Cierre mensual",
+    descripcion:
+      "Las revisiones que hay que hacer antes de declarar, y si el período está listo.",
+  },
+  calceBancario: {
+    titulo: "Calce automático del banco",
+    descripcion:
+      "Propone a qué documento corresponde cada movimiento pendiente de la cartola.",
+  },
+  clasificarDocumentos: {
+    titulo: "Clasificar documentos",
+    descripcion:
+      "Asigna la cuenta que esta empresa ya usaba para el mismo proveedor o cliente.",
+  },
+  calendarioTributario: {
+    titulo: "Calendario tributario",
+    descripcion:
+      "F29, cotizaciones y libro de remuneraciones, con sus fechas de referencia.",
+  },
+  flujoCaja: {
+    titulo: "Flujo de caja",
+    descripcion:
+      "Antigüedad de lo que te deben y debes, más una proyección semana a semana.",
+  },
   comprobantes: {
     titulo: "Comprobantes contables",
     descripcion: "Registra, revisa y controla los asientos contables de la empresa activa.",
@@ -301,6 +337,7 @@ export default function PanelPrincipal({
     {
       grupo: "Principal",
       items: [
+        { id: "panelEstudio", label: "Panel del estudio" },
         { id: "inicio", label: "Dashboard financiero" },
         { id: "dashboardContable", label: "Dashboard contable" },
       ],
@@ -317,6 +354,8 @@ export default function PanelPrincipal({
         { id: "cuentasPendientes", label: "Cuentas por Cobrar/Pagar" },
         { id: "cartolaRut", label: "Cartola por RUT" },
         { id: "conciliacionBancaria", label: "Conciliacion Bancaria" },
+        { id: "calceBancario", label: "Calce automático del banco" },
+        { id: "clasificarDocumentos", label: "Clasificar documentos" },
       ],
     },
     {
@@ -328,6 +367,7 @@ export default function PanelPrincipal({
         { id: "balance8", label: "Balance 8 Columnas" },
         { id: "estadoResultados", label: "Estado de Resultados" },
         { id: "librosCompraVenta", label: "Libros Compra/Venta" },
+        { id: "flujoCaja", label: "Flujo de caja" },
       ],
     },
     {
@@ -336,6 +376,8 @@ export default function PanelPrincipal({
         { id: "resumenIVA", label: "Resumen IVA" },
         { id: "resumenF29", label: "Resumen F29" },
         { id: "remanenteIVA", label: "Control Remanente IVA" },
+        { id: "cierreMensual", label: "Cierre mensual" },
+        { id: "calendarioTributario", label: "Calendario tributario" },
       ],
     },
     {
@@ -546,6 +588,12 @@ export default function PanelPrincipal({
               mostrarHeroPanel ? " servcontable-has-panel-hero" : ""
             }`}
           >
+            {vistaActiva === "panelEstudio" && <PanelEstudio irVista={irVista} />}
+            {vistaActiva === "cierreMensual" && <CierreMensual />}
+            {vistaActiva === "calceBancario" && <CalceBancario />}
+            {vistaActiva === "clasificarDocumentos" && <ClasificarDocumentos />}
+            {vistaActiva === "calendarioTributario" && <CalendarioTributario />}
+            {vistaActiva === "flujoCaja" && <FlujoCaja />}
             {vistaActiva === "inicio" && <DashboardFinanciero irVista={irVista} />}
             {vistaActiva === "dashboardContable" && <DashboardContable irVista={irVista} />}
             {vistaActiva === "empresas" && <Empresas />}

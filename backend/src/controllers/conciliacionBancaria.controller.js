@@ -292,7 +292,7 @@ async function importarCartola(req, res) {
 async function actualizarEstado(req, res) {
   try {
     const { id } = req.params;
-    const { empresa_id, estado } = req.body;
+    const { empresa_id, estado, comprobante_id } = req.body;
     const estadosValidos = ["pendiente", "conciliado"];
 
     if (!empresa_id) {
@@ -303,15 +303,44 @@ async function actualizarEstado(req, res) {
       return res.status(400).json({ error: "Estado no valido" });
     }
 
+    // Con que documento se concilio. Es opcional porque no todo movimiento
+    // corresponde a un asiento (una comision del banco, un traspaso entre
+    // cuentas propias), pero cuando viene hay que comprobar que el comprobante
+    // sea de esta empresa: sin eso el calce podria apuntar al asiento de otro
+    // cliente y la cartola quedaria explicada con datos ajenos.
+    let comprobanteConciliado = null;
+
+    if (comprobante_id !== undefined && comprobante_id !== null && comprobante_id !== "") {
+      const numeroComprobante = Number(comprobante_id);
+
+      if (!Number.isInteger(numeroComprobante) || numeroComprobante <= 0) {
+        return res.status(400).json({ error: "comprobante_id no valido" });
+      }
+
+      const { rows: comprobantes } = await pool.query(
+        `SELECT id FROM comprobantes WHERE id = $1 AND empresa_id = $2`,
+        [numeroComprobante, empresa_id]
+      );
+
+      if (comprobantes.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "El comprobante no existe en esta empresa" });
+      }
+
+      comprobanteConciliado = numeroComprobante;
+    }
 
     const resultado = await pool.query(
       `
       UPDATE conciliacion_bancaria_movimientos
-      SET estado = $1, actualizado_en = NOW()
+      SET estado = $1,
+          comprobante_id = CASE WHEN $4::int IS NOT NULL THEN $4::int ELSE comprobante_id END,
+          actualizado_en = NOW()
       WHERE id = $2 AND empresa_id = $3
       RETURNING *
       `,
-      [estado, id, empresa_id]
+      [estado, id, empresa_id, comprobanteConciliado]
     );
 
     if (resultado.rows.length === 0) {

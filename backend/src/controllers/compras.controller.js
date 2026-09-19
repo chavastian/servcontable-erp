@@ -6,6 +6,10 @@ const {
 } = require("../helpers/comprobante.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const {
+  historialCuentasProveedor,
+  normalizarRut: normalizarRutHistorial,
+} = require("../helpers/sugerenciaCuenta.helper");
+const {
   normalizarRutDocumento,
   normalizarNombreTercero,
 } = require("../helpers/trazabilidadRut.helper");
@@ -457,6 +461,21 @@ async function importarComprasSII(req, res) {
       }
     }
 
+    // Cuenta que esta empresa uso antes para cada proveedor del archivo.
+    //
+    // Antes toda factura importada caia en la cuenta de gasto por defecto y
+    // alguien tenia que reclasificarlas una por una: cien facturas del SII, cien
+    // ediciones. La empresa ya decidio en que cuenta va cada proveedor cuando
+    // clasifico los documentos anteriores del mismo RUT; esto lee esa decision y
+    // la repite. Solo cuenta con dos o mas documentos previos, para no confundir
+    // una casualidad con un criterio.
+    const cuentasPorProveedor = await historialCuentasProveedor(
+      client,
+      empresa_id,
+      registros.map((fila) => fila["RUT Proveedor"])
+    );
+    let clasificadasPorHistorial = 0;
+
     await client.query("BEGIN");
 
     let insertadas = 0;
@@ -657,6 +676,19 @@ async function importarComprasSII(req, res) {
           return compraExistente;
         }
 
+        // La cuenta del historial manda sobre la cuenta por defecto: la segunda
+        // es una caja donde todo cae sin clasificar. El comprobante automatico
+        // usa la cuenta del documento, asi que el asiento tambien queda bien.
+        const sugerenciaProveedor =
+          cuentasPorProveedor[normalizarRutHistorial(rutProveedorNormalizado)] || null;
+        const cuentaGastoDelHistorial = sugerenciaProveedor
+          ? sugerenciaProveedor.cuenta_id
+          : null;
+
+        if (cuentaGastoDelHistorial) {
+          clasificadasPorHistorial += 1;
+        }
+
         const compraResult = await client.query(
           `INSERT INTO compras
            (empresa_id, periodo, fecha, tipo_documento, sii_tipo_doc, folio,
@@ -680,7 +712,7 @@ async function importarComprasSII(req, res) {
             ivaNoRecuperable,
             otrosImpuestos,
             total,
-            configuracion.cuenta_gasto_defecto_id || null,
+            cuentaGastoDelHistorial || configuracion.cuenta_gasto_defecto_id || null,
             cuentaOtrosImpuestosConfig,
           ]
         );
@@ -729,6 +761,7 @@ async function importarComprasSII(req, res) {
         actualizadas,
         omitidas,
         comprobantes_creados: comprobantesCreados,
+        clasificadas_por_historial: clasificadasPorHistorial,
       },
     });
 
@@ -744,6 +777,11 @@ async function importarComprasSII(req, res) {
         comprobantesCreados,
         errores,
       }),
+      clasificadas_por_historial: clasificadasPorHistorial,
+      detalle_clasificacion:
+        clasificadasPorHistorial > 0
+          ? `${clasificadasPorHistorial} documento(s) quedaron en la cuenta que esta empresa ya usaba para ese proveedor.`
+          : "Ningun proveedor del archivo tenia historial suficiente: los documentos quedaron en la cuenta por defecto.",
     });
   } catch (error) {
     await client.query("ROLLBACK");

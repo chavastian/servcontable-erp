@@ -56,7 +56,12 @@ export async function importarCartolaBancaria(empresaId, archivo) {
   return data;
 }
 
-export async function actualizarEstadoConciliacion(id, empresaId, estado) {
+export async function actualizarEstadoConciliacion(
+  id,
+  empresaId,
+  estado,
+  comprobanteId = null
+) {
   const token = obtenerToken();
 
   const respuesta = await fetch(`${API_URL}/conciliacion-bancaria/${id}/estado`, {
@@ -68,6 +73,9 @@ export async function actualizarEstadoConciliacion(id, empresaId, estado) {
     body: JSON.stringify({
       empresa_id: empresaId,
       estado,
+      // Con que asiento quedo conciliado, cuando se sabe. Sin esto, marcar un
+      // movimiento como conciliado no deja rastro de contra que se concilio.
+      comprobante_id: comprobanteId,
     }),
   });
 

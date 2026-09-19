@@ -148,6 +148,14 @@ async function main() {
       ["GET /api/libros-tributarios/ventas", `/api/libros-tributarios/ventas?empresa_id=${empresa.id}&${rango}`],
       ["GET /api/libros-tributarios/compras", `/api/libros-tributarios/compras?empresa_id=${empresa.id}&${rango}`],
       ["GET /api/remanente-iva", `/api/remanente-iva?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/panel-estudio", `/api/panel-estudio?periodo=${periodo}`],
+      ["GET /api/cierre-mensual", `/api/cierre-mensual?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/cierre-mensual/estado", `/api/cierre-mensual/estado?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/conciliacion-bancaria/sugerencias", `/api/conciliacion-bancaria/sugerencias?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/sugerencias-cuenta", `/api/sugerencias-cuenta?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/sugerencias-cuenta/por-rut", `/api/sugerencias-cuenta/por-rut?empresa_id=${empresa.id}&rut=77964779-K`],
+      ["GET /api/calendario-tributario", `/api/calendario-tributario?empresa_id=${empresa.id}&periodo=${periodo}`],
+      ["GET /api/flujo-caja", `/api/flujo-caja?empresa_id=${empresa.id}`],
     ];
 
     for (const [nombre, ruta] of rutas) {

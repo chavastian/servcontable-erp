@@ -9,7 +9,37 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Seis funciones nuevas, ninguna con inteligencia artificial
+
+Todas leen datos que ya están en el sistema y los ordenan de una forma que hoy hay
+que armar a mano. Proponen; no aplican nada por su cuenta. El detalle de cada una,
+con sus reglas y sus límites, en `docs/ASISTENTES.md`.
+
+- **Panel del estudio contable.** Todas las empresas en una pantalla, con un
+  semáforo por cada una: rojo si algo hace que lo declarado no cuadre, amarillo si
+  conviene mirarlo, verde si no hay nada pendiente. Antes, para saber si a una
+  empresa le faltaba algo había que entrar a ella y revisar módulo por módulo.
+- **Cierre mensual asistido.** Nueve comprobaciones antes de declarar y una
+  respuesta clara arriba. Antes cada revisión vivía en otro lugar y nadie las
+  juntaba, así que un error se descubría después de presentar el F29.
+- **Calce automático del banco.** Propone a qué documento corresponde cada
+  movimiento de la cartola. Cuando hay más de un candidato igual de bueno no
+  propone ninguno: adivinar entre dos es peor que no proponer.
+- **Clasificación por historial.** La cuenta que la empresa ya usaba para el mismo
+  proveedor, aplicada al importar del SII y ofrecida hacia atrás. Antes cien
+  facturas importadas quedaban todas en la cuenta por defecto.
+- **Calendario tributario.** F29, cotizaciones y libro de remuneraciones con sus
+  plazos. **Requiere validación tributaria:** los feriados móviles y las prórrogas
+  del SII no están incluidos, y cada fecha lo dice.
+- **Flujo de caja.** Antigüedad de lo que te deben y debes, más una proyección
+  marcada como estimación: el sistema no guarda fecha de vencimiento, así que el
+  plazo lo pone quien consulta.
+
 ### Datos que ya no se filtran entre clientes
+
+- **Cualquier usuario podía marcar como conciliado un movimiento bancario de otro
+  cliente.** La ruta que cambia el estado filtraba por el `empresa_id` del cuerpo
+  pero nunca comprobaba la membresía. Apareció al construir el calce automático.
 
 - **Cualquier usuario podía importar documentos a la empresa de otro cliente**
   (C1). La autenticación corría antes de leer el formulario, así que en las

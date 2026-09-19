@@ -149,6 +149,48 @@ Sin rediseño: se usan los mismos tokens `--sc-*` y componentes `sc-*`.
 - [ ] Exportación completa de los datos de un cliente, antes de prometerla en los términos.
 - [ ] Soporte: horario, tiempo de respuesta y quién atiende.
 
+### Fase 10 — Ventaja competitiva sin IA  ✅ 2026-09-19
+
+Seis funciones que sistemacontable.cl no tiene. Ninguna usa inteligencia
+artificial: todas leen datos que ya están en el sistema. El detalle completo, con
+las reglas de cada una y sus límites, está en `docs/ASISTENTES.md`.
+
+- [x] **Panel del estudio contable.** Todas las empresas del usuario con un
+  semáforo por cada una. Antes había que entrar a cada empresa, elegir el
+  ejercicio y revisar módulo por módulo; con veinte clientes eso no se hace, y los
+  problemas aparecían al declarar. Las consultas son por concepto y no por
+  empresa: ocho consultas para veinte empresas, no ciento sesenta.
+- [x] **Cierre mensual asistido.** Las nueve comprobaciones previas a declarar,
+  juntas, con una respuesta clara: se puede declarar o no. Antes cada una vivía en
+  otro lugar y nadie las juntaba, así que un error se descubría después de
+  presentar el F29.
+- [x] **Calce automático del banco.** Propone a qué documento corresponde cada
+  movimiento pendiente de la cartola, por monto, fecha y RUT leído de la
+  descripción. Cuando hay varios candidatos igual de buenos no propone ninguno.
+  Nada se concilia sin confirmación.
+- [x] **Clasificación por historial.** La cuenta que esta empresa ya usaba para el
+  mismo RUT, aplicada durante la importación del SII y ofrecida hacia atrás para
+  los documentos sin clasificar. Antes cien facturas importadas eran cien
+  ediciones a mano.
+- [x] **Calendario tributario.** F29, cotizaciones y libro de remuneraciones con
+  sus plazos, corriendo los que caen en día no hábil. **REQUIERE VALIDACIÓN
+  TRIBUTARIA:** los feriados móviles y las prórrogas del SII no están incluidos y
+  toda fecha viaja marcada para confirmar.
+- [x] **Flujo de caja proyectado.** Antigüedad de la cartera, que es un hecho, más
+  una proyección semana a semana declarada como estimación. El sistema **no guarda
+  fecha de vencimiento**, así que el plazo lo define quien consulta.
+- [x] **Hueco de aislamiento cerrado de paso:** `PUT /api/conciliacion-bancaria/:id/estado`
+  filtraba por el `empresa_id` del cuerpo sin comprobar la membresía. Cualquier
+  usuario autenticado podía marcar como conciliado un movimiento de otro cliente.
+- [x] **Falla encontrada probando:** el driver de PostgreSQL entrega las columnas
+  `DATE` como objetos `Date`, no como texto. Los cálculos que las trataban como
+  texto dejaban el calce sin candidatos y rompían la proyección de caja.
+  `helpers/fecha.helper.js` normaliza antes de cualquier resta.
+- [x] 33 pruebas nuevas (163 en total) y 9 endpoints agregados al chequeo de humo
+  (47 en total).
+- [ ] **Paso siguiente natural:** agregar fecha de vencimiento a compras y ventas,
+  para que el flujo de caja deje de estimar.
+
 ## Flujo de trabajo
 
 - Ramas `feat/*`, `fix/*`, `security/*`, `chore/*` → PR a `main` de `chavastian/servcontable-erp` → revisión → merge.
