@@ -27,8 +27,8 @@ El color significa siempre lo mismo:
 
 | Color | Qué contiene |
 |---|---|
-| Rojo | Asientos descuadrados, documentos duplicados o sin cuenta asignada. Cosas que hacen que lo declarado no cuadre. |
-| Amarillo | Documentos sin contabilizar, movimientos de banco sin conciliar, liquidaciones faltantes. |
+| Rojo | Asientos descuadrados, documentos duplicados, documentos sin cuenta asignada, IVA del libro que no cuadra con lo contabilizado. Cosas que hacen que lo declarado no cuadre. |
+| Amarillo | Documentos sin contabilizar, movimientos de banco sin conciliar, liquidaciones faltantes, folios de venta faltantes, compras fuera de lo habitual, cuentas de IVA sin configurar. |
 | Verde | Nada pendiente en el período. |
 
 Además muestra por empresa el IVA débito, crédito, determinado, a pagar y
