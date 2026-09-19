@@ -27,6 +27,11 @@ const {
   obtenerPeriodoDesdeFecha,
   mapearTipoDocumentoSII,
   codigoSiiDesdeTipoDocumento,
+  detectarColumnasSii,
+  valorSegunMapeo,
+  numeroSegunMapeo,
+  leerMapeoManual,
+  COLUMNAS_VENTA,
 } = require("../helpers/siiCsv.helper");
 const {
   normalizarRutDocumento,
@@ -337,6 +342,40 @@ async function importarVentasSII(req, res) {
       trim: true,
     });
 
+    // Las columnas esenciales se comprueban antes de tocar la base. Si falta
+    // alguna no se importa nada: un archivo cuyo encabezado no calza entraba
+    // completo en cero, y eso solo se descubria al cuadrar el F29. Los
+    // encabezados del archivo vuelven en la respuesta para poder asignarlos.
+    const encabezados = registros.length > 0 ? Object.keys(registros[0]) : [];
+    const columnas = detectarColumnasSii(
+      encabezados,
+      COLUMNAS_VENTA,
+      leerMapeoManual(req.body.mapeo)
+    );
+
+    if (registros.length > 0 && columnas.faltan_obligatorios.length > 0) {
+      return res.status(400).json({
+        error: `No se reconocieron estas columnas del archivo: ${columnas.faltan_obligatorios.join(", ")}. No se importo nada. Asignalas a mano y vuelve a intentarlo: importar sin ellas dejaria los documentos en cero.`,
+        encabezados_del_archivo: encabezados,
+        columnas,
+      });
+    }
+
+    const sinMontos = ["neto", "exento", "iva", "total"].every(
+      (campo) => columnas.mapeo[campo] === undefined
+    );
+
+    if (registros.length > 0 && sinMontos) {
+      return res.status(400).json({
+        error:
+          "El archivo no tiene ninguna columna de montos reconocible. No se importo nada.",
+        encabezados_del_archivo: encabezados,
+        columnas,
+      });
+    }
+
+    const mapeo = columnas.mapeo;
+
     const configResult = await client.query(
       `SELECT *
        FROM configuracion_contable
@@ -395,8 +434,8 @@ async function importarVentasSII(req, res) {
       client,
       empresa_id,
       registros.map((fila) => ({
-        rut: fila["RUT cliente"] || fila["RUT Cliente"],
-        razon_social: fila["Razon Social"] || fila["Razón Social"],
+        rut: valorSegunMapeo(fila, mapeo, "rut"),
+        razon_social: valorSegunMapeo(fila, mapeo, "razon_social"),
       })),
       "cliente"
     );
@@ -414,8 +453,8 @@ async function importarVentasSII(req, res) {
       client,
       registros,
       async (fila) => {
-        const siiTipoDoc = String(fila["Tipo Doc"] || "").trim();
-        const folio = String(fila["Folio"] || "").trim();
+        const siiTipoDoc = String(valorSegunMapeo(fila, mapeo, "tipo_doc") || "").trim();
+        const folio = String(valorSegunMapeo(fila, mapeo, "folio") || "").trim();
 
         if (!folio || !siiTipoDoc) {
           omitidas += 1;
@@ -423,11 +462,11 @@ async function importarVentasSII(req, res) {
         }
 
         const rutClienteNormalizado = normalizarRutDocumento(
-          fila["Rut cliente"],
+          valorSegunMapeo(fila, mapeo, "rut"),
           "RUT del cliente"
         );
-        const razonSocialCliente = normalizarNombreTercero(fila["Razon Social"]);
-        const fecha = convertirFechaSII(fila["Fecha Docto"]);
+        const razonSocialCliente = normalizarNombreTercero(valorSegunMapeo(fila, mapeo, "razon_social"));
+        const fecha = convertirFechaSII(valorSegunMapeo(fila, mapeo, "fecha"));
 
         if (!fecha) {
           const error = new Error("fecha invalida");
@@ -497,10 +536,10 @@ async function importarVentasSII(req, res) {
           return null;
         }
 
-        const neto = convertirNumeroSII(fila["Monto Neto"]);
-        const exento = convertirNumeroSII(fila["Monto Exento"]);
-        const iva = convertirNumeroSII(fila["Monto IVA"]);
-        const total = convertirNumeroSII(fila["Monto total"]);
+        const neto = numeroSegunMapeo(fila, mapeo, "neto") ?? 0;
+        const exento = numeroSegunMapeo(fila, mapeo, "exento") ?? 0;
+        const iva = numeroSegunMapeo(fila, mapeo, "iva") ?? 0;
+        const total = numeroSegunMapeo(fila, mapeo, "total") ?? 0;
 
         const terceroVenta = tercerosPorRut[claveRut(rutClienteNormalizado)] || null;
 
@@ -553,7 +592,7 @@ async function importarVentasSII(req, res) {
         return venta;
       },
       {
-        identificarFila: (fila) => `Folio ${fila["Folio"] || "sin folio"}`,
+        identificarFila: (fila) => `Folio ${valorSegunMapeo(fila, mapeo, "folio") || "sin folio"}`,
       }
     );
 

@@ -41,6 +41,11 @@ const {
   mapearTipoDocumentoSII,
   codigoSiiDesdeTipoDocumento,
   leerColumnasRcv,
+  detectarColumnasSii,
+  valorSegunMapeo,
+  numeroSegunMapeo,
+  leerMapeoManual,
+  COLUMNAS_COMPRA,
 } = require("../helpers/siiCsv.helper");
 
 function esVerdadero(valor) {
@@ -512,6 +517,44 @@ async function importarComprasSII(req, res) {
       trim: true,
     });
 
+    // Antes de tocar la base: que las columnas esenciales esten reconocidas.
+    // Esto existe por la factura 79386404, que entro con todos los montos en
+    // cero porque el encabezado del archivo no calzaba con el nombre que el
+    // codigo buscaba, y nadie se enteró hasta el F29. Si falta una esencial no
+    // se importa nada y se devuelven los encabezados del archivo, para poder
+    // asignarlos a mano.
+    const encabezados = registros.length > 0 ? Object.keys(registros[0]) : [];
+    const columnas = detectarColumnasSii(
+      encabezados,
+      COLUMNAS_COMPRA,
+      leerMapeoManual(req.body.mapeo)
+    );
+
+    if (registros.length > 0 && columnas.faltan_obligatorios.length > 0) {
+      return res.status(400).json({
+        error: `No se reconocieron estas columnas del archivo: ${columnas.faltan_obligatorios.join(", ")}. No se importo nada. Asignalas a mano y vuelve a intentarlo: importar sin ellas dejaria los documentos en cero.`,
+        encabezados_del_archivo: encabezados,
+        columnas,
+      });
+    }
+
+    // Si el archivo no trae las columnas de monto, todo entraria en cero. No es
+    // un archivo del registro de compras: es mejor decirlo que importarlo.
+    const sinMontos = ["neto", "exento", "iva", "total"].every(
+      (campo) => columnas.mapeo[campo] === undefined
+    );
+
+    if (registros.length > 0 && sinMontos) {
+      return res.status(400).json({
+        error:
+          "El archivo no tiene ninguna columna de montos reconocible. No se importo nada.",
+        encabezados_del_archivo: encabezados,
+        columnas,
+      });
+    }
+
+    const mapeo = columnas.mapeo;
+
 
     const configResult = await client.query(
       `SELECT *
@@ -579,7 +622,7 @@ async function importarComprasSII(req, res) {
     const cuentasPorProveedor = await historialCuentasProveedor(
       client,
       empresa_id,
-      registros.map((fila) => fila["RUT Proveedor"])
+      registros.map((fila) => valorSegunMapeo(fila, mapeo, "rut"))
     );
     let clasificadasPorHistorial = 0;
 
@@ -589,8 +632,8 @@ async function importarComprasSII(req, res) {
       client,
       empresa_id,
       registros.map((fila) => ({
-        rut: fila["RUT Proveedor"],
-        razon_social: fila["Razon Social"] || fila["Razón Social"],
+        rut: valorSegunMapeo(fila, mapeo, "rut"),
+        razon_social: valorSegunMapeo(fila, mapeo, "razon_social"),
       })),
       "proveedor"
     );
@@ -610,8 +653,8 @@ async function importarComprasSII(req, res) {
       client,
       registros,
       async (fila) => {
-        const siiTipoDoc = String(fila["Tipo Doc"] || "").trim();
-        const folio = String(fila["Folio"] || "").trim();
+        const siiTipoDoc = String(valorSegunMapeo(fila, mapeo, "tipo_doc") || "").trim();
+        const folio = String(valorSegunMapeo(fila, mapeo, "folio") || "").trim();
 
         if (!folio || !siiTipoDoc) {
           omitidas += 1;
@@ -619,11 +662,11 @@ async function importarComprasSII(req, res) {
         }
 
         const rutProveedorNormalizado = normalizarRutDocumento(
-          fila["RUT Proveedor"],
+          valorSegunMapeo(fila, mapeo, "rut"),
           "RUT del proveedor"
         );
-        const razonSocialProveedor = normalizarNombreTercero(fila["Razon Social"]);
-        const fecha = convertirFechaSII(fila["Fecha Docto"]);
+        const razonSocialProveedor = normalizarNombreTercero(valorSegunMapeo(fila, mapeo, "razon_social"));
+        const fecha = convertirFechaSII(valorSegunMapeo(fila, mapeo, "fecha"));
 
         if (!fecha) {
           const error = new Error("fecha invalida");
@@ -632,13 +675,11 @@ async function importarComprasSII(req, res) {
         }
 
         const periodoCompra = periodo || obtenerPeriodoDesdeFecha(fecha);
-        const neto = convertirNumeroSII(fila["Monto Neto"]);
-        const exento = convertirNumeroSII(fila["Monto Exento"]);
-        const ivaCredito = convertirNumeroSII(fila["Monto IVA Recuperable"]);
-        const ivaNoRecuperable = convertirNumeroSII(
-          fila["Monto Iva No Recuperable"]
-        );
-        const total = convertirNumeroSII(fila["Monto Total"]);
+        const neto = numeroSegunMapeo(fila, mapeo, "neto") ?? 0;
+        const exento = numeroSegunMapeo(fila, mapeo, "exento") ?? 0;
+        const ivaCredito = numeroSegunMapeo(fila, mapeo, "iva") ?? 0;
+        const ivaNoRecuperable = numeroSegunMapeo(fila, mapeo, "iva_no_recuperable") ?? 0;
+        const total = numeroSegunMapeo(fila, mapeo, "total") ?? 0;
         // Tipo de compra, codigo de IVA no recuperable, uso comun, activo fijo,
         // IVA no retenido, otros impuestos y fecha de recepcion. Sin esto no hay
         // proporcionalidad, 27 bis ni credito con recepcion tardia.
@@ -904,7 +945,7 @@ async function importarComprasSII(req, res) {
         return compra;
       },
       {
-        identificarFila: (fila) => `Folio ${fila["Folio"] || "sin folio"}`,
+        identificarFila: (fila) => `Folio ${valorSegunMapeo(fila, mapeo, "folio") || "sin folio"}`,
       }
     );
 

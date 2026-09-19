@@ -15,6 +15,7 @@
 const { parse } = require("csv-parse/sync");
 const pool = require("../database/db");
 const { detectarColumnas, leerFila, normalizarClave } = require("../helpers/bheSii.helper");
+const { leerMapeoManual } = require("../helpers/siiCsv.helper");
 const { resolverTercerosEnLote, claveRut } = require("../helpers/terceros.helper");
 const { conPuntoDeGuardado, describirErrorFila } = require("../helpers/importacion.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
@@ -30,18 +31,6 @@ function responderError(res, error, mensaje) {
 
 function periodoDe(fecha) {
   return String(fecha || "").slice(0, 7);
-}
-
-function leerMapeoManual(valor) {
-  if (!valor) return {};
-
-  try {
-    const mapeo = typeof valor === "string" ? JSON.parse(valor) : valor;
-
-    return mapeo && typeof mapeo === "object" ? mapeo : {};
-  } catch {
-    return {};
-  }
 }
 
 /**

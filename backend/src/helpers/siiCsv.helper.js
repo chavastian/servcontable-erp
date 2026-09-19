@@ -128,6 +128,142 @@ function leerColumnasRcv(fila) {
   };
 }
 
+/**
+ * Las columnas que los importadores del registro de compras y ventas necesitan,
+ * con los nombres que el SII ha usado.
+ *
+ * Esto existe por la factura 79386404 de enero de 2026: quedó registrada con
+ * todos los montos en cero mientras su asiento contable tenía los 177.248
+ * correctos. La causa es que los importadores leían `fila["Monto Neto"]` por
+ * nombre exacto, y `convertirNumeroSII(undefined)` devuelve 0. Un archivo con el
+ * encabezado apenas distinto entraba completo, en cero, sin una sola advertencia,
+ * y el error aparecía recién en el F29. Es el hallazgo C-10 del informe.
+ *
+ * Que el nombre exacto no sirve ya estaba a la vista: el importador de ventas
+ * tenía tres variantes de «RUT Cliente» encadenadas con `||` y un «Monto total»
+ * en minúscula. Cada una es una vez que alguien se topó con esto y lo parchó
+ * donde le dolía.
+ */
+const COLUMNAS_COMPRA = Object.freeze([
+  { campo: "tipo_doc", etiqueta: "Tipo de documento", obligatorio: true, alias: ["Tipo Doc", "Tipo Documento", "Tipo DTE"] },
+  { campo: "folio", etiqueta: "Folio", obligatorio: true, alias: ["Folio", "Nro Folio", "Numero Folio"] },
+  { campo: "rut", etiqueta: "RUT del proveedor", obligatorio: true, alias: ["RUT Proveedor", "Rut Proveedor", "RUT del Proveedor"] },
+  { campo: "razon_social", etiqueta: "Razón social", obligatorio: false, alias: ["Razon Social", "Razón Social", "Razon Social Proveedor"] },
+  { campo: "fecha", etiqueta: "Fecha del documento", obligatorio: true, alias: ["Fecha Docto", "Fecha Documento", "Fecha Emision", "Fecha Emisión"] },
+  { campo: "neto", etiqueta: "Monto neto", obligatorio: false, alias: ["Monto Neto", "Neto"] },
+  { campo: "exento", etiqueta: "Monto exento", obligatorio: false, alias: ["Monto Exento", "Exento"] },
+  { campo: "iva", etiqueta: "IVA recuperable", obligatorio: false, alias: ["Monto IVA Recuperable", "Monto IVA", "IVA Recuperable", "IVA"] },
+  { campo: "iva_no_recuperable", etiqueta: "IVA no recuperable", obligatorio: false, alias: ["Monto Iva No Recuperable", "Monto IVA No Recuperable", "IVA No Recuperable"] },
+  { campo: "total", etiqueta: "Monto total", obligatorio: true, alias: ["Monto Total", "Monto total", "Total"] },
+]);
+
+const COLUMNAS_VENTA = Object.freeze([
+  { campo: "tipo_doc", etiqueta: "Tipo de documento", obligatorio: true, alias: ["Tipo Doc", "Tipo Documento", "Tipo DTE"] },
+  { campo: "folio", etiqueta: "Folio", obligatorio: true, alias: ["Folio", "Nro Folio", "Numero Folio"] },
+  { campo: "rut", etiqueta: "RUT del cliente", obligatorio: true, alias: ["RUT Cliente", "Rut Cliente", "RUT del Cliente"] },
+  { campo: "razon_social", etiqueta: "Razón social", obligatorio: false, alias: ["Razon Social", "Razón Social", "Razon Social Cliente"] },
+  { campo: "fecha", etiqueta: "Fecha del documento", obligatorio: true, alias: ["Fecha Docto", "Fecha Documento", "Fecha Emision", "Fecha Emisión"] },
+  { campo: "neto", etiqueta: "Monto neto", obligatorio: false, alias: ["Monto Neto", "Neto"] },
+  { campo: "exento", etiqueta: "Monto exento", obligatorio: false, alias: ["Monto Exento", "Exento"] },
+  { campo: "iva", etiqueta: "IVA", obligatorio: false, alias: ["Monto IVA", "IVA", "Monto IVA Debito"] },
+  { campo: "total", etiqueta: "Monto total", obligatorio: true, alias: ["Monto Total", "Monto total", "Total"] },
+]);
+
+/** Compara nombres de columna ignorando tildes, mayúsculas y puntuación. */
+function normalizarEncabezado(texto) {
+  return String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Qué columna del archivo corresponde a cada dato. `mapeoManual` permite que una
+ * persona asigne a mano lo que el reconocimiento no encontró, y manda sobre la
+ * detección automática: si el SII vuelve a cambiar un encabezado, se resuelve en
+ * la pantalla y no hay que tocar el sistema.
+ */
+function detectarColumnasSii(encabezados, especificacion, mapeoManual = {}) {
+  const disponibles = (encabezados || []).filter((e) => String(e || "").trim() !== "");
+  const porNormal = new Map(disponibles.map((e) => [normalizarEncabezado(e), e]));
+
+  const mapeo = {};
+  const reconocidos = [];
+  const faltantes = [];
+
+  for (const columna of especificacion) {
+    const manual = mapeoManual[columna.campo];
+
+    if (manual && disponibles.includes(manual)) {
+      mapeo[columna.campo] = manual;
+      reconocidos.push({ ...columna, columna: manual, manual: true });
+      continue;
+    }
+
+    let encontrada;
+
+    for (const alias of columna.alias) {
+      const candidata = porNormal.get(normalizarEncabezado(alias));
+
+      if (candidata !== undefined) {
+        encontrada = candidata;
+        break;
+      }
+    }
+
+    if (encontrada !== undefined) {
+      mapeo[columna.campo] = encontrada;
+      reconocidos.push({ ...columna, columna: encontrada, manual: false });
+    } else {
+      faltantes.push({ campo: columna.campo, etiqueta: columna.etiqueta, obligatorio: columna.obligatorio, nombres_esperados: columna.alias });
+    }
+  }
+
+  return {
+    mapeo,
+    reconocidos,
+    faltantes,
+    faltan_obligatorios: faltantes.filter((f) => f.obligatorio).map((f) => f.etiqueta),
+  };
+}
+
+/**
+ * El valor de un dato en una fila, según el mapeo. Devuelve `undefined` cuando
+ * la columna no está mapeada, que no es lo mismo que cero: quien llama decide.
+ */
+function valorSegunMapeo(fila, mapeo, campo) {
+  const columna = mapeo[campo];
+
+  if (columna === undefined) return undefined;
+
+  return fila[columna];
+}
+
+/** Un número, o `null` si la columna no existe en el archivo. */
+function numeroSegunMapeo(fila, mapeo, campo) {
+  const valor = valorSegunMapeo(fila, mapeo, campo);
+
+  return valor === undefined ? null : convertirNumeroSII(valor);
+}
+
+/**
+ * El mapeo manual que viene en el formulario. Llega como texto porque va junto a
+ * un archivo; un mapeo ilegible se trata como si no viniera, para que un error de
+ * escritura no impida importar con la detección automática.
+ */
+function leerMapeoManual(valor) {
+  if (!valor) return {};
+
+  try {
+    const mapeo = typeof valor === "string" ? JSON.parse(valor) : valor;
+
+    return mapeo && typeof mapeo === "object" ? mapeo : {};
+  } catch {
+    return {};
+  }
+}
+
 module.exports = {
   leerColumnasRcv,
   buscarColumna,
@@ -136,5 +272,12 @@ module.exports = {
   obtenerPeriodoDesdeFecha,
   mapearTipoDocumentoSII,
   codigoSiiDesdeTipoDocumento,
+  detectarColumnasSii,
+  normalizarEncabezado,
+  valorSegunMapeo,
+  numeroSegunMapeo,
+  leerMapeoManual,
+  COLUMNAS_COMPRA,
+  COLUMNAS_VENTA,
   TIPOS_SII,
 };
