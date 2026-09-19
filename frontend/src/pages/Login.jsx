@@ -246,7 +246,7 @@ export default function Login({ irARegistro, loginCorrecto }) {
             )}
 
             {permiteRegistroPublico && (
-              <button style={botonSecundario} onClick={irARegistro}>
+              <button type="button" style={botonSecundario} onClick={irARegistro}>
                 Crear una cuenta nueva
               </button>
             )}

@@ -15,6 +15,7 @@ import {
   obtenerFechaTrabajoHoyISO,
 } from "../services/periodoTrabajoService";
 import { imprimirComprobantePDF } from "../utils/comprobantePdf";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 function detalleVacio() {
   return {
@@ -412,6 +413,8 @@ export default function NuevoComprobante() {
 
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <form style={formularioBox} onSubmit={guardarComprobante}>
         <h2 style={tituloSeccion}>Cabecera</h2>

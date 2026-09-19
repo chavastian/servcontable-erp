@@ -347,7 +347,7 @@ export default function TrabajadoresRemuneraciones() {
                   <td style={tdNumero}>{formato(item.sueldo_base)}</td>
                   <td style={td}>{item.estado}</td>
                   <td style={tdAccion}>
-                    <button
+                    <button type="button"
                       style={botonEditar}
                       onClick={() => editar(item)}
                       title="Editar trabajador"
@@ -355,7 +355,7 @@ export default function TrabajadoresRemuneraciones() {
                     >
                       {"\u270E"}
                     </button>
-                    <button
+                    <button type="button"
                       style={botonEliminar}
                       onClick={() => eliminar(item.id)}
                       title="Eliminar trabajador"

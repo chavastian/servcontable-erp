@@ -584,11 +584,11 @@ export default function PreviredRemuneraciones() {
             />
           </div>
 
-          <button style={botonBuscar} onClick={cargarDatos}>
+          <button type="button" style={botonBuscar} onClick={cargarDatos}>
             Buscar
           </button>
 
-          <button style={botonCsv} onClick={exportarCSVPrevired}>
+          <button type="button" style={botonCsv} onClick={exportarCSVPrevired}>
             Exportar CSV Previred
           </button>
         </div>

@@ -12,6 +12,7 @@ import {
   contabilizarLiquidaciones,
 } from "../../services/liquidacionesService";
 import { obtenerResumenHaberesLiquidacion } from "../../services/haberesDescuentosService";
+import { EstadoCargando } from "../../components/EstadoPantalla";
 
 const FORMULARIO_INICIAL = {
   periodo: obtenerPeriodoTrabajo(),
@@ -414,6 +415,8 @@ export default function LiquidacionesRemuneraciones() {
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
 
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
+
       <form style={card} onSubmit={calcular}>
         <h2 style={tituloSeccion}>Calcular liquidacion parametrizada</h2>
 
@@ -806,7 +809,7 @@ export default function LiquidacionesRemuneraciones() {
 
           <p style={advertencia}>{calculo.advertencia}</p>
 
-          <button style={botonGuardar} onClick={guardar}>
+          <button type="button" style={botonGuardar} onClick={guardar}>
             {editandoLiquidacionId
               ? "Actualizar liquidacion"
               : "Guardar liquidacion"}

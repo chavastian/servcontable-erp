@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import {
   actualizarEstadoConciliacion,
@@ -6,6 +6,7 @@ import {
   listarMovimientosConciliacion,
 } from "../services/conciliacionBancariaService";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 function moneda(valor) {
   return Number(valor || 0).toLocaleString("es-CL", {
@@ -94,6 +95,7 @@ export default function ConciliacionBancaria() {
   return (
     <div style={page}>
       {mensaje && <p style={ok}>{mensaje}</p>}
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
       {error && <p style={bad}>{error}</p>}
 
       <section style={card}>

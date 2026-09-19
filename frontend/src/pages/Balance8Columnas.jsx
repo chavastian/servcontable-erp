@@ -3,6 +3,7 @@ import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerBalance8Columnas } from "../services/balance8Service";
 import * as XLSX from "xlsx";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   DOCUMENT_THEME,
   crearPDFClasico,
@@ -36,6 +37,9 @@ export default function Balance8Columnas() {
   const [totalPasivoFinal, setTotalPasivoFinal] = useState(0);
   const [cuadratura, setCuadratura] = useState(0);
   const [error, setError] = useState("");
+  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
+  // significa las dos cosas a la vez.
+  const [cargando, setCargando] = useState(false);
 
   function formatoMonto(valor) {
     return Number(valor || 0).toLocaleString("es-CL");
@@ -83,6 +87,7 @@ export default function Balance8Columnas() {
 
   async function cargarBalance() {
     try {
+      setCargando(true);
       setError("");
 
       const data = await obtenerBalance8Columnas(
@@ -100,6 +105,8 @@ export default function Balance8Columnas() {
       setCuadratura(Number(data.cuadratura || 0));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -479,20 +486,23 @@ export default function Balance8Columnas() {
           </select>
         </div>
 
-        <button style={botonExcel} onClick={exportarBalanceExcel}>
+        <button type="button" style={botonExcel} onClick={exportarBalanceExcel}>
           Exportar Excel
         </button>
 
-        <button style={botonPDF} onClick={exportarBalancePDF}>
+        <button type="button" style={botonPDF} onClick={exportarBalancePDF}>
           Exportar PDF
         </button>
 
-        <button style={botonBuscar} onClick={cargarBalance}>
+        <button type="button" style={botonBuscar} onClick={cargarBalance}>
           Buscar
         </button>
       </div>
 
       {error && <p style={err}>{error}</p>}
+
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <div style={resumenBox}>
         <div style={cardResumen}>

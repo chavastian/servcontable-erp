@@ -638,7 +638,7 @@ export default function LiquidacionPDF() {
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
-          <button style={botonBuscar} onClick={cargarLiquidaciones}>
+          <button type="button" style={botonBuscar} onClick={cargarLiquidaciones}>
             Buscar liquidaciones
           </button>
         </div>
@@ -668,7 +668,7 @@ export default function LiquidacionPDF() {
 
           <div>
             <label style={label}>Acción</label>
-            <button style={botonPDF} onClick={exportarPDF}>
+            <button type="button" style={botonPDF} onClick={exportarPDF}>
               Exportar PDF
             </button>
           </div>

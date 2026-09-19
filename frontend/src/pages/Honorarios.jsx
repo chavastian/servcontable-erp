@@ -509,15 +509,15 @@ export default function Honorarios() {
           />
         </div>
 
-        <button style={botonBuscar} onClick={cargarDatos}>
+        <button type="button" style={botonBuscar} onClick={cargarDatos}>
           Buscar
         </button>
 
-        <button style={botonExcel} onClick={exportarExcel}>
+        <button type="button" style={botonExcel} onClick={exportarExcel}>
           Exportar Excel
         </button>
 
-        <button style={botonPDF} onClick={exportarPDF}>
+        <button type="button" style={botonPDF} onClick={exportarPDF}>
           Exportar PDF
         </button>
       </div>

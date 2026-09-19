@@ -1082,3 +1082,93 @@ tbody tr:hover td {
     font-size: 13px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Estados de una pantalla con datos: cargando, vacia y con error.
+   Antes la mayoria de las pantallas dejaba la tabla en blanco, que es
+   indistinguible de "no hay datos" y de "se cayo la conexion".
+--------------------------------------------------------------------------- */
+.sc-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 20px;
+  text-align: center;
+  border: 1px dashed var(--sc-border, #d7e3ee);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.sc-estado__titulo {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: bold;
+  color: var(--sc-primary);
+}
+
+.sc-estado__texto {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sc-muted, #5b6b7d);
+  max-width: 46ch;
+  line-height: 1.5;
+}
+
+.sc-estado--error {
+  border-style: solid;
+  border-color: #e3b7ab;
+  background: #fdf4f1;
+}
+
+.sc-estado--error .sc-estado__titulo {
+  color: #b23c17;
+}
+
+/* Barras que laten mientras se espera: dan la escala de lo que viene sin
+   fingir datos concretos. */
+.sc-estado__barras {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.sc-estado__barra {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef4fa 25%, #dfeaf5 50%, #eef4fa 75%);
+  background-size: 200% 100%;
+  animation: sc-latido 1.2s ease-in-out infinite;
+}
+
+.sc-estado__barra:nth-child(2) {
+  width: 85%;
+}
+
+.sc-estado__barra:nth-child(3) {
+  width: 65%;
+}
+
+@keyframes sc-latido {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Quien pide menos movimiento no ve la animacion. */
+@media (prefers-reduced-motion: reduce) {
+  .sc-estado__barra {
+    animation: none;
+  }
+}
+
+/* Las tablas anchas se desplazan dentro de su caja, no arrastran la pagina. */
+.sc-tabla-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

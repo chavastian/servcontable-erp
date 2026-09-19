@@ -75,7 +75,7 @@ export default function Registro({ irALogin }) {
         {mensaje && <p style={mensajeOk}>{mensaje}</p>}
         {error && <p style={mensajeError}>{error}</p>}
 
-        <button style={botonSecundario} onClick={irALogin}>
+        <button type="button" style={botonSecundario} onClick={irALogin}>
           Ya tengo cuenta, iniciar sesión
         </button>
       </div>

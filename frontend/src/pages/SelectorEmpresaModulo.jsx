@@ -137,10 +137,10 @@ export default function SelectorEmpresaModulo({
         </strong>
 
         <div style={accionesTop}>
-          <button style={botonVolverTop} onClick={volverASeleccionModulo}>
+          <button type="button" style={botonVolverTop} onClick={volverASeleccionModulo}>
             Cambiar módulo
           </button>
-          <button style={botonSalir} onClick={alCerrarSesion}>
+          <button type="button" style={botonSalir} onClick={alCerrarSesion}>
             Cerrar sesión
           </button>
         </div>
@@ -211,7 +211,7 @@ export default function SelectorEmpresaModulo({
               </div>
             )}
 
-            <button
+            <button type="button"
               style={{ ...botonPrimario, opacity: empresaSeleccionada ? 1 : 0.55 }}
               onClick={continuar}
               disabled={!empresaSeleccionada}
@@ -287,7 +287,7 @@ export default function SelectorEmpresaModulo({
               </div>
             )}
 
-            <button style={botonSecundario} onClick={volverASeleccionModulo}>
+            <button type="button" style={botonSecundario} onClick={volverASeleccionModulo}>
               Volver a seleccionar módulo
             </button>
           </div>

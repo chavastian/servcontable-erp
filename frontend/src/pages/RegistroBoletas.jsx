@@ -1,6 +1,7 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarBoletas, importarBoletas } from "../services/boletaService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   obtenerAnioActivo,
   obtenerPeriodoTrabajo,
@@ -128,6 +129,7 @@ export default function RegistroBoletas() {
   return (
     <div style={page}>
       {mensaje && <p style={ok}>{mensaje}</p>}
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
       {error && <p style={bad}>{error}</p>}
 
       <div style={summaryGrid}>

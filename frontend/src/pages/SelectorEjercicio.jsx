@@ -177,15 +177,15 @@ export default function SelectorEjercicio({
         </strong>
 
         <div style={accionesTop}>
-          <button style={botonTop} onClick={volverASeleccionEmpresa}>
+          <button type="button" style={botonTop} onClick={volverASeleccionEmpresa}>
             Cambiar empresa
           </button>
 
-          <button style={botonTop} onClick={volverASeleccionModulo}>
+          <button type="button" style={botonTop} onClick={volverASeleccionModulo}>
             Cambiar módulo
           </button>
 
-          <button style={botonSalir} onClick={alCerrarSesion}>
+          <button type="button" style={botonSalir} onClick={alCerrarSesion}>
             Cerrar sesión
           </button>
         </div>
@@ -242,7 +242,7 @@ export default function SelectorEjercicio({
               </div>
             )}
 
-            <button style={botonPrimario} onClick={continuar}>
+            <button type="button" style={botonPrimario} onClick={continuar}>
               Continuar con año seleccionado
             </button>
 

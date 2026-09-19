@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   buscarTercerosCartola,
   obtenerCartolaRut,
@@ -473,6 +474,8 @@ export default function CartolaRut({ irVista }) {
 
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <div style={filtrosBox}>
         <div style={campoBusqueda}>

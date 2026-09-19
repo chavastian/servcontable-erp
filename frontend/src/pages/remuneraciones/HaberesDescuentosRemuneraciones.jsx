@@ -254,7 +254,7 @@ export default function HaberesDescuentosRemuneraciones() {
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
-          <button style={botonBuscar} onClick={cargarDatos}>
+          <button type="button" style={botonBuscar} onClick={cargarDatos}>
             Buscar
           </button>
         </div>

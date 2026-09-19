@@ -1,4 +1,5 @@
-﻿import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   listarSolicitudesWeb,
   marcarSolicitudContactada,
@@ -227,6 +228,7 @@ export default function SolicitudesWeb() {
       </div>
 
       {mensaje && <p style={ok}>{mensaje}</p>}
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
       {error && <p style={errorTexto}>{error}</p>}
       {advertencias.map((advertencia) => (
         <p key={advertencia} style={alertaTexto}>

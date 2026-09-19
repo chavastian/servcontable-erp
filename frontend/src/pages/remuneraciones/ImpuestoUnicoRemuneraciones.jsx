@@ -299,11 +299,11 @@ export default function ImpuestoUnicoRemuneraciones() {
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
-          <button style={botonBuscar} onClick={cargarTramos}>
+          <button type="button" style={botonBuscar} onClick={cargarTramos}>
             Buscar tramos
           </button>
 
-          <button style={botonEliminarPeriodo} onClick={eliminarPeriodo}>
+          <button type="button" style={botonEliminarPeriodo} onClick={eliminarPeriodo}>
             Eliminar tramos periodo
           </button>
         </div>
@@ -455,7 +455,7 @@ export default function ImpuestoUnicoRemuneraciones() {
                   <td style={td}>{porcentaje(item.factor)}</td>
                   <td style={td}>{formato(item.rebaja)}</td>
                   <td style={tdAccion}>
-                    <button
+                    <button type="button"
                       style={botonEliminar}
                       onClick={() => eliminar(item.id)}
                       title="Eliminar tramo"

@@ -79,7 +79,7 @@ export default function AuditoriaSistema() {
           />
         </div>
 
-        <button style={botonBuscar} onClick={cargarDatos}>
+        <button type="button" style={botonBuscar} onClick={cargarDatos}>
           Buscar
         </button>
       </div>

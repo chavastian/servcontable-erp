@@ -105,8 +105,16 @@ Sobre lo existente (`subscriptions`, `subscription_settings`, middleware 402), q
 - [x] **Otro error encontrado al probar**: un dato de días ausente se leía como cero y el aviso anunciaba falsamente que la suscripción vencía hoy.
 - [x] 27 pruebas nuevas: 15 de cobranza y activación contra base real, 12 de la lógica del aviso.
 
-### Fase 6 — Frontend
-- `VITE_API_URL` por entorno, estados de carga, vacío y error, validaciones, responsive, accesibilidad básica. Sin rediseño.
+### Fase 6 — Frontend  ✅ 2026-09-19
+Sin rediseño: se usan los mismos tokens `--sc-*` y componentes `sc-*`.
+
+- [x] `VITE_API_URL` por entorno, ya en uso para la versión paralela.
+- [x] Estados de carga, vacío y error en `components/EstadoPantalla.jsx`, con barras que laten y respeto por `prefers-reduced-motion`. De las 39 pantallas solo diez mostraban algo mientras esperaban; el resto dejaba la tabla en blanco, que es indistinguible de «no hay datos» y de «se cayó la conexión».
+- [x] Aviso de carga conectado en 19 pantallas.
+- [x] **87 botones sin `type`**: dentro de un formulario un botón sin tipo vale como envío, así que pulsar «cancelar» o «ver detalle» guardaba datos sin que nadie lo pidiera.
+- [x] **El selector de módulo no se podía usar con teclado**: el clic estaba en el contenedor y el botón no tenía manejador, de modo que enfocarlo y pulsar Enter no hacía nada. El manejador pasó al botón, que el navegador ya sabe activar.
+- [x] Las dos tablas que arrastraban la página en un teléfono quedaron con desplazamiento propio. Las otras 39 ya lo tenían.
+- [x] Interceptor global de respuestas, de la fase anterior, que resuelve el `402` a mitad de sesión.
 
 ### Fase 7 — Multiempresa comercial
 - Roles OWNER/ADMIN/ACCOUNTANT/EDITOR/VIEWER por empresa, invitaciones por correo, proveedores y clientes como entidades, adjuntos (Cloudflare R2 u otro con capa gratuita).

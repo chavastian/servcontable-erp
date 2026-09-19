@@ -7,6 +7,7 @@ import {
   cambiarEstadoCuenta,
 } from "../services/cuentaService";
 import { cargarPlanCuentasBase } from "../services/planCuentasBaseService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 function normalizarBusqueda(valor = "") {
   return String(valor || "")
@@ -23,6 +24,9 @@ export default function PlanCuentas() {
   const [busquedaCuenta, setBusquedaCuenta] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
+  // significa las dos cosas a la vez.
+  const [cargando, setCargando] = useState(false);
   const [cuentaEditandoId, setCuentaEditandoId] = useState(null);
 
   const [formulario, setFormulario] = useState({
@@ -42,6 +46,7 @@ export default function PlanCuentas() {
 
   async function cargarCuentas() {
     try {
+      setCargando(true);
       setError("");
       const data = await listarCuentas(empresaActiva.id, true);
       const lista = Array.isArray(data?.cuentas)
@@ -52,6 +57,8 @@ export default function PlanCuentas() {
       setCuentas(lista);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -240,6 +247,8 @@ export default function PlanCuentas() {
 
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <div style={layout}>
         <form style={formularioEstilo} onSubmit={manejarSubmit}>

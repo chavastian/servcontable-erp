@@ -3,6 +3,7 @@ import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerLibroDiario } from "../services/libroDiarioService";
 import { exportarExcel } from "../utils/exportUtils";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   crearPDFClasico,
   encabezadoPDFClasico,
@@ -26,6 +27,9 @@ export default function LibroDiario() {
     diferencia: 0,
   });
   const [error, setError] = useState("");
+  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
+  // significa las dos cosas a la vez.
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     if (empresaActiva) {
@@ -35,6 +39,7 @@ export default function LibroDiario() {
 
   async function cargarDatos() {
     try {
+      setCargando(true);
       setError("");
 
       const data = await obtenerLibroDiario(
@@ -55,6 +60,8 @@ export default function LibroDiario() {
       });
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -244,21 +251,25 @@ export default function LibroDiario() {
           />
         </div>
 
-        <button style={botonExcel} onClick={exportarLibroDiarioExcel}>
+        <button type="button" style={botonExcel} onClick={exportarLibroDiarioExcel}>
           Exportar Excel
         </button>
 
-        <button style={botonPDF} onClick={exportarLibroDiarioPDF}>
+        <button type="button" style={botonPDF} onClick={exportarLibroDiarioPDF}>
           Exportar PDF
         </button>
 
-        <button style={botonBuscar} onClick={cargarDatos}>
+        <button type="button" style={botonBuscar} onClick={cargarDatos}>
           Buscar
         </button>
       </div>
 
 
       {error && <p style={err}>{error}</p>}
+
+
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <div style={resumenBox}>
         <div style={cardResumen}>

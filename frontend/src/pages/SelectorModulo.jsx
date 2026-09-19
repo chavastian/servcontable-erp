@@ -18,7 +18,7 @@ export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSes
           </strong>
         </div>
 
-        <button style={botonSalir} onClick={alCerrarSesion}>
+        <button type="button" style={botonSalir} onClick={alCerrarSesion}>
           Cerrar sesión
         </button>
       </div>
@@ -30,7 +30,7 @@ export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSes
         </p>
 
         <div style={grid}>
-          <div style={card} onClick={() => seleccionarModulo("contable")}>
+          <div style={card}>
             <div style={icono}>📊</div>
             <h2 style={cardTitulo}>Módulo Contable</h2>
             <p style={cardTexto}>
@@ -38,12 +38,16 @@ export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSes
               libros, balances, IVA y F29.
             </p>
 
-            <button style={botonPrimario}>
+            <button
+              type="button"
+              style={botonPrimario}
+              onClick={() => seleccionarModulo("contable")}
+            >
               Entrar a Contabilidad
             </button>
           </div>
 
-          <div style={card} onClick={() => seleccionarModulo("remuneraciones")}>
+          <div style={card}>
             <div style={icono}>👥</div>
             <h2 style={cardTitulo}>Módulo Remuneraciones</h2>
             <p style={cardTexto}>
@@ -51,12 +55,16 @@ export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSes
               libro de remuneraciones y pagos.
             </p>
 
-            <button style={botonPrimario}>
+            <button
+              type="button"
+              style={botonPrimario}
+              onClick={() => seleccionarModulo("remuneraciones")}
+            >
               Entrar a Remuneraciones
             </button>
           </div>
 
-          <div style={card} onClick={() => seleccionarModulo("simplificada")}>
+          <div style={card}>
             <div style={icono}>📋</div>
             <h2 style={cardTitulo}>Módulo Contabilidad Simplificada</h2>
             <p style={cardTexto}>
@@ -64,20 +72,28 @@ export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSes
               controlar la contabilidad simplificada.
             </p>
 
-            <button style={botonPrimario}>
+            <button
+              type="button"
+              style={botonPrimario}
+              onClick={() => seleccionarModulo("simplificada")}
+            >
               Entrar a Contabilidad Simplificada
             </button>
           </div>
 
           {usuarioEsAdminSistema && (
-            <div style={card} onClick={() => seleccionarModulo("administracion")}>
+            <div style={card}>
               <div style={icono}>🛡️</div>
               <h2 style={cardTitulo}>Administración</h2>
               <p style={cardTexto}>
                 Clientes, suscripciones, solicitudes web, configuración y auditoría del sistema.
               </p>
 
-              <button style={botonPrimario}>
+              <button
+              type="button"
+              style={botonPrimario}
+              onClick={() => seleccionarModulo("administracion")}
+            >
                 Entrar a Administración
               </button>
             </div>
@@ -164,7 +180,6 @@ const card = {
   borderRadius: "20px",
   padding: "24px",
   boxShadow: "0 26px 70px rgba(7, 17, 31, 0.24)",
-  cursor: "pointer",
   border: "1px solid rgba(255,255,255,0.55)",
   minHeight: "238px",
   display: "flex",

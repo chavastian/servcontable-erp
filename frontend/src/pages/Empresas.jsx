@@ -376,7 +376,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
                     </td>
                     <td style={tdAccion}>
                       <div style={accionesTabla}>
-                        <button
+                        <button type="button"
                           style={activa ? botonActivo : botonSeleccionar}
                           title={activa ? "Empresa activa" : "Seleccionar empresa"}
                           aria-label={activa ? "Empresa activa" : "Seleccionar empresa"}
@@ -385,7 +385,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
                           {activa ? "\u2713" : "\u279C"}
                         </button>
 
-                        <button
+                        <button type="button"
                           style={botonEditar}
                           title="Editar empresa"
                           aria-label="Editar empresa"
@@ -394,7 +394,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
                           {"\u270E"}
                         </button>
 
-                        <button
+                        <button type="button"
                           style={botonEliminar}
                           title="Eliminar empresa"
                           aria-label="Eliminar empresa"

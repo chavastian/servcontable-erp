@@ -4,6 +4,7 @@ import { listarCuentas } from "../services/cuentaService";
 import { obtenerLibroMayor } from "../services/libroMayorService";
 import * as XLSX from "xlsx";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   crearPDFClasico,
   encabezadoPDFClasico,
@@ -32,14 +33,20 @@ export default function LibroMayor() {
 
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
+  // significa las dos cosas a la vez.
+  const [cargando, setCargando] = useState(false);
 
   async function cargarCuentas() {
     try {
+      setCargando(true);
       setError("");
       const data = await listarCuentas(empresaActiva.id);
       setCuentas(Array.isArray(data.cuentas) ? data.cuentas : []);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -298,6 +305,8 @@ export default function LibroMayor() {
     <div>
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <h1 style={tituloPrincipal}>Libro mayor</h1>
       <p style={empresaTexto}>

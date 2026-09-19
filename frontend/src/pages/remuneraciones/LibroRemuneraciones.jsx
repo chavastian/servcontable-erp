@@ -377,15 +377,15 @@ export default function LibroRemuneraciones() {
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
-          <button style={botonBuscar} onClick={cargarLibro}>
+          <button type="button" style={botonBuscar} onClick={cargarLibro}>
             Buscar
           </button>
 
-          <button style={botonExcel} onClick={exportarExcel}>
+          <button type="button" style={botonExcel} onClick={exportarExcel}>
             Exportar Excel
           </button>
 
-          <button style={botonPDF} onClick={exportarPDF}>
+          <button type="button" style={botonPDF} onClick={exportarPDF}>
             Exportar PDF
           </button>
         </div>

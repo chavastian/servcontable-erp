@@ -1,8 +1,9 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import SessionHeader from "../components/SessionHeader";
 import { obtenerSesionActualizada } from "../services/authService";
 import { crearRenovacionFlow } from "../services/suscripcionService";
 import { CONFIG_COMERCIAL, calcularMontoComercial } from "../config/comercial";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 const MESES = Array.from({ length: 12 }, (_, index) => index + 1);
 
@@ -124,13 +125,13 @@ function RenovarSuscripcion({
               <strong>{formatearFecha(fechaVence)}</strong>.
             </p>
             <div className="sc-actions-row">
-              <button
+              <button type="button"
                 className="sc-btn sc-btn--primary"
                 onClick={() => setMostrarAviso(false)}
               >
                 Confirmar
               </button>
-              <button
+              <button type="button"
                 className="sc-btn sc-btn--outline"
                 onClick={alCerrarSesion}
               >
@@ -226,21 +227,21 @@ function RenovarSuscripcion({
           )}
 
           <div className="sc-actions-row">
-            <button
+            <button type="button"
               className="sc-btn sc-btn--primary"
               onClick={pagarFlow}
               disabled={cargando}
             >
               Pagar con Flow
             </button>
-            <button
+            <button type="button"
               className="sc-btn sc-btn--outline"
               onClick={mostrarTransferencia}
               disabled={cargando}
             >
               Pagar con transferencia
             </button>
-            <button
+            <button type="button"
               className="sc-btn sc-btn--ghost"
               onClick={actualizarEstado}
               disabled={cargando}
@@ -250,6 +251,7 @@ function RenovarSuscripcion({
           </div>
 
           {mensaje && <p className="sc-message sc-message--ok">{mensaje}</p>}
+          {cargando && <EstadoCargando mensaje="Cargando datos..." />}
           {error && <p className="sc-message sc-message--error">{error}</p>}
         </section>
       </main>

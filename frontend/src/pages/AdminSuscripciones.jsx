@@ -15,6 +15,7 @@ import {
 } from "../services/adminSuscripcionesService";
 import { obtenerUsuarioActual } from "../services/authService";
 import { CONFIG_COMERCIAL } from "../config/comercial";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 const ROLES_SUPER_ADMIN = ["superadmin", "super_admin", "admin", "administrador_sistema"];
 const ESTADOS = ["TRIAL", "ACTIVE", "PAST_DUE", "EXPIRED", "SUSPENDED", "CANCELLED"];
@@ -352,6 +353,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
       </p>
 
       {mensaje && <p style={ok}>{mensaje}</p>}
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
       {error && <p style={errorTexto}>{error}</p>}
 
       <div style={tabs}>

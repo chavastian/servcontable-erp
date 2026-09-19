@@ -483,7 +483,7 @@ export default function PanelPrincipal({
                 {abierto && (
                   <div style={grupoContenido}>
                     {grupo.items.map((item) => (
-                      <button
+                      <button type="button"
                         key={item.id}
                         style={menuItem(vistaActiva === item.id)}
                         onClick={() => irVista(item.id)}
@@ -500,21 +500,21 @@ export default function PanelPrincipal({
           <div style={accionesMenu}>
             {!esModuloAdministracion && (
               <>
-                <button style={botonCambiar} onClick={cambiarEmpresa}>Cambiar empresa</button>
+                <button type="button" style={botonCambiar} onClick={cambiarEmpresa}>Cambiar empresa</button>
                 {typeof cambiarEjercicio === "function" && (
-                  <button style={botonCambiar} onClick={cambiarEjercicio}>Cambiar año</button>
+                  <button type="button" style={botonCambiar} onClick={cambiarEjercicio}>Cambiar año</button>
                 )}
               </>
             )}
-            <button style={botonCambiar} onClick={volverASeleccionModulo}>Cambiar módulo</button>
-            <button style={botonSalir} onClick={salir}>Cerrar sesión</button>
+            <button type="button" style={botonCambiar} onClick={volverASeleccionModulo}>Cambiar módulo</button>
+            <button type="button" style={botonSalir} onClick={salir}>Cerrar sesión</button>
           </div>
         </aside>
       )}
 
       <main style={main(menuAbierto)}>
         <header style={topbar}>
-          <button style={botonToggle} onClick={() => setMenuAbierto(!menuAbierto)}>
+          <button type="button" style={botonToggle} onClick={() => setMenuAbierto(!menuAbierto)}>
             {menuAbierto ? "Ocultar menú" : "Mostrar menú"}
           </button>
 

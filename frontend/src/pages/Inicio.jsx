@@ -1,9 +1,10 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   crearPagoFlow,
   obtenerEstadoContratacion,
 } from "../services/contratacionService";
 import { CONFIG_COMERCIAL, calcularMontoComercial } from "../config/comercial";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 const LOGO_SRC = "/servcontable-logo.png";
 const APP_URL = import.meta.env.VITE_APP_URL || "https://app.servcontablepro.cl";
@@ -420,6 +421,7 @@ export default function Inicio() {
             </label>
 
             {mensaje && <p style={mensajeOk}>{mensaje}</p>}
+            {cargando && <EstadoCargando mensaje="Cargando datos..." />}
             {error && <p style={mensajeError}>{error}</p>}
 
             <button style={botonPago} type="submit" disabled={cargando}>

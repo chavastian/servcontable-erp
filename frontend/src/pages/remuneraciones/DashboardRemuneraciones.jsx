@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { obtenerDashboardRemuneraciones } from "../../services/dashboardRemuneracionesService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
@@ -77,7 +77,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
-          <button style={botonBuscar} onClick={cargarDashboard}>
+          <button type="button" style={botonBuscar} onClick={cargarDashboard}>
             Actualizar
           </button>
         </div>
@@ -149,7 +149,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
           <h2 style={tituloSeccion}>Accesos rapidos</h2>
 
           <div style={gridAccesos}>
-            <button style={acceso} onClick={() => irSubmodulo("trabajadores")}>
+            <button type="button" style={acceso} onClick={() => irSubmodulo("trabajadores")}>
               <span style={accesoIcono}>
                 <IconoSistema tipo="trabajador" />
               </span>
@@ -157,7 +157,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <small>Crear y administrar fichas.</small>
             </button>
 
-            <button
+            <button type="button"
               style={acceso}
               onClick={() => irSubmodulo("haberesDescuentos")}
             >
@@ -168,7 +168,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <small>Bonos, colacion, anticipos y variables.</small>
             </button>
 
-            <button style={acceso} onClick={() => irSubmodulo("liquidaciones")}>
+            <button type="button" style={acceso} onClick={() => irSubmodulo("liquidaciones")}>
               <span style={accesoIcono}>
                 <IconoSistema tipo="liquidacion" />
               </span>
@@ -176,7 +176,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <small>Calcular, guardar y contabilizar.</small>
             </button>
 
-            <button style={acceso} onClick={() => irSubmodulo("libro")}>
+            <button type="button" style={acceso} onClick={() => irSubmodulo("libro")}>
               <span style={accesoIcono}>
                 <IconoSistema tipo="comprobante" />
               </span>
@@ -184,7 +184,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <small>Exportar Excel y PDF.</small>
             </button>
 
-            <button style={acceso} onClick={() => irSubmodulo("pagos")}>
+            <button type="button" style={acceso} onClick={() => irSubmodulo("pagos")}>
               <span style={accesoIcono}>
                 <IconoSistema tipo="banco" />
               </span>
@@ -192,7 +192,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <small>Registrar pagos y comprobantes.</small>
             </button>
 
-            <button
+            <button type="button"
               style={acceso}
               onClick={() => irSubmodulo("configuracionPrevisional")}
             >
@@ -203,7 +203,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <small>Indicadores Previred, AFP, AFC y topes.</small>
             </button>
 
-            <button
+            <button type="button"
               style={acceso}
               onClick={() => irSubmodulo("configuracionContable")}
             >
@@ -242,7 +242,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
             />
           </div>
 
-          <button
+          <button type="button"
             style={botonSecundario}
             onClick={() => irSubmodulo("haberesDescuentos")}
           >

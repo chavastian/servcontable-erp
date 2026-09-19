@@ -633,7 +633,7 @@ export default function LibrosCompraVenta() {
           />
         </div>
 
-        <button style={botonBuscar} onClick={cargarDatos}>
+        <button type="button" style={botonBuscar} onClick={cargarDatos}>
           Buscar
         </button>
       </div>
@@ -675,11 +675,11 @@ export default function LibrosCompraVenta() {
           <h2 style={tituloSeccion}>Libro de Ventas</h2>
 
           <div style={acciones}>
-            <button style={botonExcel} onClick={exportarVentasExcel}>
+            <button type="button" style={botonExcel} onClick={exportarVentasExcel}>
               Exportar Ventas Excel
             </button>
 
-            <button style={botonPDF} onClick={exportarVentasPDF}>
+            <button type="button" style={botonPDF} onClick={exportarVentasPDF}>
               Exportar Ventas PDF
             </button>
           </div>
@@ -693,11 +693,11 @@ export default function LibrosCompraVenta() {
           <h2 style={tituloSeccion}>Libro de Compras</h2>
 
           <div style={acciones}>
-            <button style={botonExcel} onClick={exportarComprasExcel}>
+            <button type="button" style={botonExcel} onClick={exportarComprasExcel}>
               Exportar Compras Excel
             </button>
 
-            <button style={botonPDF} onClick={exportarComprasPDF}>
+            <button type="button" style={botonPDF} onClick={exportarComprasPDF}>
               Exportar Compras PDF
             </button>
           </div>

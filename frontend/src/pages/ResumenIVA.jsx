@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerResumenIVA } from "../services/resumenIVAService";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 export default function ResumenIVA() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -9,6 +10,9 @@ export default function ResumenIVA() {
   const [periodo, setPeriodo] = useState(obtenerPeriodoTrabajo());
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState("");
+  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
+  // significa las dos cosas a la vez.
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     if (empresaActiva) {
@@ -18,6 +22,7 @@ export default function ResumenIVA() {
 
   async function cargarResumen() {
     try {
+      setCargando(true);
       setError("");
 
       const data = await obtenerResumenIVA(empresaActiva.id, periodo);
@@ -25,6 +30,8 @@ export default function ResumenIVA() {
       setDatos(data);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -86,12 +93,15 @@ export default function ResumenIVA() {
           />
         </div>
 
-        <button style={botonBuscar} onClick={cargarResumen}>
+        <button type="button" style={botonBuscar} onClick={cargarResumen}>
           Buscar
         </button>
       </div>
 
       {error && <p style={err}>{error}</p>}
+
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <div style={resumenBox}>
         <div style={cardResumen}>
@@ -124,7 +134,9 @@ export default function ResumenIVA() {
         <div style={seccionBox}>
           <h2 style={tituloSeccion}>Ventas del período</h2>
 
-          <table style={tabla}>
+          <div className="sc-tabla-scroll">
+
+            <table style={tabla}>
             <tbody>
               <tr>
                 <td style={td}>Ventas netas afectas</td>
@@ -143,13 +155,16 @@ export default function ResumenIVA() {
                 <td style={tdTotalNumero}>{formato(ventas.total)}</td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
         <div style={seccionBox}>
           <h2 style={tituloSeccion}>Compras del período</h2>
 
-          <table style={tabla}>
+          <div className="sc-tabla-scroll">
+
+            <table style={tabla}>
             <tbody>
               <tr>
                 <td style={td}>Compras netas afectas</td>
@@ -172,7 +187,8 @@ export default function ResumenIVA() {
                 <td style={tdTotalNumero}>{formato(compras.total)}</td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
 

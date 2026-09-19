@@ -8,6 +8,7 @@ import {
   obtenerUsuarioActual,
 } from "../services/authService";
 import { listarEmpresas } from "../services/empresaService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 function rolNormalizado(rol = "") {
@@ -329,6 +330,7 @@ export default function UsuariosSistema() {
       </p>
 
       {mensaje && <p style={ok}>{mensaje}</p>}
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
       {error && <p style={errorTexto}>{error}</p>}
 
       <div style={gridPrincipal}>

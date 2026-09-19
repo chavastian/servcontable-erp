@@ -136,7 +136,7 @@ export default function PagosRemuneraciones() {
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
-          <button style={botonBuscar} onClick={cargarDatos}>
+          <button type="button" style={botonBuscar} onClick={cargarDatos}>
             Buscar obligaciones
           </button>
         </div>
@@ -261,7 +261,7 @@ export default function PagosRemuneraciones() {
                       : "-"}
                   </td>
                   <td style={tdAccion}>
-                    <button
+                    <button type="button"
                       style={botonEliminar}
                       onClick={() => anularPago(item.id)}
                       title="Anular pago"

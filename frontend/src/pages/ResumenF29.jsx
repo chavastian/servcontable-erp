@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerResumenF29 } from "../services/resumenF29Service";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
+import { EstadoCargando } from "../components/EstadoPantalla";
 
 export default function ResumenF29() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -10,6 +11,9 @@ export default function ResumenF29() {
   const [tasaPPM, setTasaPPM] = useState("0.25");
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState("");
+  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
+  // significa las dos cosas a la vez.
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     if (empresaActiva) {
@@ -19,6 +23,7 @@ export default function ResumenF29() {
 
   async function cargarResumen() {
     try {
+      setCargando(true);
       setError("");
 
       const data = await obtenerResumenF29(
@@ -30,6 +35,8 @@ export default function ResumenF29() {
       setDatos(data);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -116,12 +123,15 @@ export default function ResumenF29() {
           />
         </div>
 
-        <button style={botonBuscar} onClick={cargarResumen}>
+        <button type="button" style={botonBuscar} onClick={cargarResumen}>
           Calcular
         </button>
       </div>
 
       {error && <p style={err}>{error}</p>}
+
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <div style={resumenBox}>
         <div style={cardResumen}>
@@ -164,7 +174,9 @@ export default function ResumenF29() {
         <div style={seccionBox}>
           <h2 style={tituloSeccion}>Base de ventas</h2>
 
-          <table style={tabla}>
+          <div className="sc-tabla-scroll">
+
+            <table style={tabla}>
             <tbody>
               <tr>
                 <td style={td}>Ventas netas afectas</td>
@@ -183,13 +195,16 @@ export default function ResumenF29() {
                 <td style={tdTotalNumero}>{formato(ventas.total)}</td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
         <div style={seccionBox}>
           <h2 style={tituloSeccion}>Base de compras</h2>
 
-          <table style={tabla}>
+          <div className="sc-tabla-scroll">
+
+            <table style={tabla}>
             <tbody>
               <tr>
                 <td style={td}>Compras netas afectas</td>
@@ -214,14 +229,17 @@ export default function ResumenF29() {
                 <td style={tdTotalNumero}>{formato(compras.total)}</td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
 
       <div style={seccionBox}>
         <h2 style={tituloSeccion}>Determinación estimada F29</h2>
 
-        <table style={tabla}>
+        <div className="sc-tabla-scroll">
+
+          <table style={tabla}>
           <tbody>
             <tr>
               <td style={td}>IVA Débito Fiscal</td>
@@ -273,7 +291,8 @@ export default function ResumenF29() {
               <td style={tdFinalNumero}>{formato(totalF29Estimado)}</td>
             </tr>
           </tbody>
-        </table>
+          </table>
+        </div>
 
         <p style={nota}>
           Este resumen es una estimación interna del sistema. No reemplaza la

@@ -648,7 +648,7 @@ export default function PagosCobros() {
           />
         </div>
 
-        <button style={botonBuscar} onClick={cargarMovimientos}>
+        <button type="button" style={botonBuscar} onClick={cargarMovimientos}>
           Buscar
         </button>
       </div>

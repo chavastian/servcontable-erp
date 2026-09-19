@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
 import AccountSelector from "../components/AccountSelector";
+import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   crearVenta,
   listarVentas,
@@ -33,6 +34,9 @@ export default function Ventas() {
   const [cuentasIngreso, setCuentasIngreso] = useState([]);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
+  // significa las dos cosas a la vez.
+  const [cargando, setCargando] = useState(false);
 
   const [totales, setTotales] = useState({
     neto: 0,
@@ -67,6 +71,7 @@ export default function Ventas() {
 
   async function cargarDatos() {
     try {
+      setCargando(true);
       setError("");
 
       const cuentasData = await listarCuentas(empresaActiva.id);
@@ -83,6 +88,8 @@ export default function Ventas() {
       setTotales(ventasData.totales);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -204,6 +211,8 @@ export default function Ventas() {
       await cargarDatos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -236,6 +245,8 @@ export default function Ventas() {
       await cargarDatos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -259,6 +270,8 @@ export default function Ventas() {
 
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
+
+      {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <div style={resumenBox}>
         <div style={cardResumen}>
@@ -491,7 +504,7 @@ export default function Ventas() {
               />
             </div>
 
-            <button style={botonBuscar} onClick={buscarVentas}>
+            <button type="button" style={botonBuscar} onClick={buscarVentas}>
               Buscar
             </button>
           </div>

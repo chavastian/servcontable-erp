@@ -103,7 +103,7 @@ export default function DashboardFinanciero({ irVista }) {
           />
           </div>
 
-          <button style={botonBuscar} onClick={cargarDashboard}>
+          <button type="button" style={botonBuscar} onClick={cargarDashboard}>
             Actualizar
           </button>
         </div>
@@ -181,7 +181,7 @@ export default function DashboardFinanciero({ irVista }) {
         <div style={panel}>
           <div style={panelHeader}>
             <h2 style={tituloPanel}>Resumen IVA</h2>
-            <button
+            <button type="button"
               style={botonMini}
               onClick={() => irVista && irVista("resumenIVA")}
             >
@@ -211,7 +211,7 @@ export default function DashboardFinanciero({ irVista }) {
         <div style={panel}>
           <div style={panelHeader}>
             <h2 style={tituloPanel}>Resultado</h2>
-            <button
+            <button type="button"
               style={botonMini}
               onClick={() => irVista && irVista("estadoResultados")}
             >
@@ -236,7 +236,7 @@ export default function DashboardFinanciero({ irVista }) {
         <div style={panel}>
           <div style={panelHeader}>
             <h2 style={tituloPanel}>Flujo caja/banco</h2>
-            <button
+            <button type="button"
               style={botonMini}
               onClick={() => irVista && irVista("pagosCobros")}
             >
@@ -257,7 +257,7 @@ export default function DashboardFinanciero({ irVista }) {
         <div style={panel}>
           <div style={panelHeader}>
             <h2 style={tituloPanel}>Control contable</h2>
-            <button
+            <button type="button"
               style={botonMini}
               onClick={() => irVista && irVista("comprobantes")}
             >
@@ -291,7 +291,7 @@ export default function DashboardFinanciero({ irVista }) {
         <div style={panelGrande}>
           <div style={panelHeader}>
             <h2 style={tituloPanel}>Composición de pendientes</h2>
-            <button
+            <button type="button"
               style={botonMini}
               onClick={() => irVista && irVista("cuentasPendientes")}
             >
@@ -327,7 +327,7 @@ export default function DashboardFinanciero({ irVista }) {
         <div style={panelGrande}>
           <div style={panelHeader}>
             <h2 style={tituloPanel}>Últimos pagos y cobros</h2>
-            <button
+            <button type="button"
               style={botonMini}
               onClick={() => irVista && irVista("pagosCobros")}
             >
@@ -387,7 +387,7 @@ export default function DashboardFinanciero({ irVista }) {
 
 function CardKPI({ titulo, valor, detalle, icono, color, onClick }) {
   return (
-    <button style={cardKpi(color)} onClick={onClick}>
+    <button type="button" style={cardKpi(color)} onClick={onClick}>
       <div style={cardKpiTop}>
         <span style={cardIcono}>{icono}</span>
         <span style={{ ...cardLinea, background: color }} />
@@ -441,7 +441,7 @@ function BarraIndicador({ label, valor, total, color, formato }) {
 
 function BotonAcceso({ texto, icono, onClick }) {
   return (
-    <button style={botonAcceso} onClick={onClick}>
+    <button type="button" style={botonAcceso} onClick={onClick}>
       <span style={botonAccesoIcono}>{icono}</span>
       <strong>{texto}</strong>
     </button>
