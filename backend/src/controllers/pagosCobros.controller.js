@@ -1151,6 +1151,7 @@ async function anularPagoCobro(req, res) {
         `
         UPDATE pagos_cobros
         SET estado = 'anulado',
+            anulado_en = NOW(), anulado_por = NULLIF(current_setting('app.usuario_id', true), '')::integer,
             contabilizado = false
         WHERE empresa_id = $1
           AND comprobante_id = $2
@@ -1189,7 +1190,8 @@ async function anularPagoCobro(req, res) {
     const resultado = await client.query(
       `
       UPDATE pagos_cobros
-      SET estado = 'anulado'
+      SET estado = 'anulado',
+          anulado_en = NOW(), anulado_por = NULLIF(current_setting('app.usuario_id', true), '')::integer
       WHERE id = $1
         AND empresa_id = $2
       RETURNING *

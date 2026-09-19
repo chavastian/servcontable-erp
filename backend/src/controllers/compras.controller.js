@@ -132,6 +132,10 @@ async function crearCompra(req, res) {
       cuenta_gasto_id,
       cuenta_otros_impuestos_id,
       generar_comprobante = true,
+      fecha_vencimiento,
+      ref_sii_tipo_doc,
+      ref_folio,
+      ref_fecha,
     } = req.body;
 
     if (!empresa_id || !fecha || !tipo_documento) {
@@ -197,8 +201,9 @@ async function crearCompra(req, res) {
        (empresa_id, periodo, fecha, tipo_documento, folio, rut_proveedor,
          razon_social_proveedor, neto, exento, iva_credito, iva_no_recuperable,
          otros_impuestos, total, cuenta_gasto_id, cuenta_otros_impuestos_id,
-         sii_tipo_doc)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+         sii_tipo_doc, fecha_vencimiento, ref_sii_tipo_doc, ref_folio, ref_fecha)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+               $17, $18, $19, $20)
        RETURNING *`,
       [
         empresa_id,
@@ -217,6 +222,10 @@ async function crearCompra(req, res) {
         cuentaGastoId,
         cuentaOtrosImpuestosId,
         siiTipoDocManual,
+        fecha_vencimiento || null,
+        ref_sii_tipo_doc || null,
+        ref_folio || null,
+        ref_fecha || null,
       ]
     );
 

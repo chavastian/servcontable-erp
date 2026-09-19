@@ -553,7 +553,9 @@ async function anularComprobante(req, res) {
     await client.query(
       `
       UPDATE comprobantes
-      SET estado = 'anulado'
+      SET estado = 'anulado',
+          anulado_en = NOW(), anulado_por = NULLIF(current_setting('app.usuario_id', true), '')::integer,
+          motivo_anulacion = COALESCE(motivo_anulacion, 'Anulado desde comprobantes')
       WHERE id = $1
       `,
       [id]

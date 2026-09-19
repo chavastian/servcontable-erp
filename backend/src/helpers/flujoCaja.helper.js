@@ -71,7 +71,7 @@ function tramoDe(diasVencido) {
 async function porCobrarPendiente(cliente, empresaId, hasta) {
   const { rows } = await cliente.query(
     `
-    SELECT v.id, v.fecha, v.folio, v.tipo_documento,
+    SELECT v.id, v.fecha, v.fecha_vencimiento, v.folio, v.tipo_documento,
            v.rut_cliente AS rut, v.razon_social_cliente AS tercero,
            v.total,
            COALESCE(SUM(pc.monto), 0) AS pagado,
@@ -86,7 +86,7 @@ async function porCobrarPendiente(cliente, empresaId, hasta) {
       AND v.estado = 'vigente'
       AND (${expresionSigno("v")}) > 0
       AND v.fecha <= $2
-    GROUP BY v.id, v.fecha, v.folio, v.tipo_documento, v.rut_cliente,
+    GROUP BY v.id, v.fecha, v.fecha_vencimiento, v.folio, v.tipo_documento, v.rut_cliente,
              v.razon_social_cliente, v.total
     HAVING v.total - COALESCE(SUM(pc.monto), 0) > 0
     ORDER BY v.fecha
@@ -103,7 +103,7 @@ async function porCobrarPendiente(cliente, empresaId, hasta) {
 async function porPagarPendiente(cliente, empresaId, hasta) {
   const { rows } = await cliente.query(
     `
-    SELECT c.id, 'compra' AS origen, c.fecha, c.folio, c.tipo_documento,
+    SELECT c.id, 'compra' AS origen, c.fecha, c.fecha_vencimiento, c.folio, c.tipo_documento,
            c.rut_proveedor AS rut, c.razon_social_proveedor AS tercero,
            c.total,
            COALESCE(SUM(pc.monto), 0) AS pagado,
@@ -118,13 +118,13 @@ async function porPagarPendiente(cliente, empresaId, hasta) {
       AND c.estado = 'vigente'
       AND (${expresionSigno("c")}) > 0
       AND c.fecha <= $2
-    GROUP BY c.id, c.fecha, c.folio, c.tipo_documento, c.rut_proveedor,
+    GROUP BY c.id, c.fecha, c.fecha_vencimiento, c.folio, c.tipo_documento, c.rut_proveedor,
              c.razon_social_proveedor, c.total
     HAVING c.total - COALESCE(SUM(pc.monto), 0) > 0
 
     UNION ALL
 
-    SELECT h.id, 'honorario', h.fecha_emision, h.folio, h.tipo_documento,
+    SELECT h.id, 'honorario', h.fecha_emision, h.fecha_pago, h.folio, h.tipo_documento,
            h.rut_prestador, h.nombre_prestador,
            h.liquido,
            COALESCE(SUM(pc.monto), 0),
@@ -138,7 +138,7 @@ async function porPagarPendiente(cliente, empresaId, hasta) {
     WHERE h.empresa_id = $1
       AND h.estado = 'vigente'
       AND h.fecha_emision <= $2
-    GROUP BY h.id, h.fecha_emision, h.folio, h.tipo_documento, h.rut_prestador,
+    GROUP BY h.id, h.fecha_emision, h.fecha_pago, h.folio, h.tipo_documento, h.rut_prestador,
              h.nombre_prestador, h.liquido
     HAVING h.liquido - COALESCE(SUM(pc.monto), 0) > 0
 
@@ -157,6 +157,17 @@ async function porPagarPendiente(cliente, empresaId, hasta) {
  * existe. Lo único convencional es el plazo con que se decide desde cuándo un
  * documento está vencido.
  */
+/**
+ * Vencimiento de un documento: el real cuando el documento lo trae, y si no,
+ * la fecha mas el plazo convencional. Desde el bloque 2 compras y ventas
+ * tienen fecha_vencimiento; los honorarios usan su fecha de pago.
+ */
+function vencimientoDe(documento, plazoDias) {
+  const real = documento.fecha_vencimiento || documento.fecha_pago;
+
+  return real ? aFecha(real) : sumarDias(documento.fecha, plazoDias);
+}
+
 function agruparPorAntiguedad(documentos, { hoy, plazoDias }) {
   const tramos = TRAMOS.reduce((mapa, tramo) => {
     mapa[tramo.codigo] = { ...tramo, monto: 0, documentos: 0 };
@@ -167,7 +178,7 @@ function agruparPorAntiguedad(documentos, { hoy, plazoDias }) {
 
   const detalle = documentos.map((documento) => {
     const saldo = Math.round(Number(documento.saldo || 0));
-    const vencimiento = sumarDias(documento.fecha, plazoDias);
+    const vencimiento = vencimientoDe(documento, plazoDias);
     const diasVencido = diasEntre(vencimiento, hoy);
     const tramo = tramoDe(diasVencido);
 
@@ -187,6 +198,7 @@ function agruparPorAntiguedad(documentos, { hoy, plazoDias }) {
       pagado: Math.round(Number(documento.pagado || 0)),
       saldo,
       vencimiento_estimado: vencimiento,
+      vencimiento_real: Boolean(documento.fecha_vencimiento || documento.fecha_pago),
       dias_vencido: diasVencido,
       tramo: tramo.codigo,
     };
@@ -231,7 +243,7 @@ function proyectar(porCobrar, porPagar, { hoy, plazoDias, semanas = 8 }) {
   function repartir(documentos, campo, acumuladoVencido) {
     for (const documento of documentos) {
       const saldo = Math.round(Number(documento.saldo || 0));
-      const vencimiento = sumarDias(documento.fecha, plazoDias);
+      const vencimiento = vencimientoDe(documento, plazoDias);
 
       if (vencimiento < hoy) {
         acumuladoVencido[campo] += saldo;
@@ -276,8 +288,7 @@ function proyectar(porCobrar, porPagar, { hoy, plazoDias, semanas = 8 }) {
     },
     es_estimacion: true,
     supuestos: [
-      `Cada documento se cobra o se paga ${plazoDias} días después de su fecha.`,
-      "El sistema no guarda fecha de vencimiento, así que el plazo es el que se indicó en la consulta.",
+      `Los documentos con fecha de vencimiento se cobran o pagan ese día; los que no la tienen, ${plazoDias} días después de su fecha.`,
       "Lo ya vencido se informa aparte y no se reparte en las semanas.",
       "No incluye sueldos, cotizaciones, impuestos ni gastos que aún no estén registrados como documento.",
     ],

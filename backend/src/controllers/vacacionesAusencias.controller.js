@@ -303,6 +303,7 @@ async function eliminarRegistro(req, res) {
       `
       UPDATE vacaciones_ausencias
       SET estado = 'anulado',
+          anulado_en = NOW(), anulado_por = NULLIF(current_setting('app.usuario_id', true), '')::integer,
           actualizado_en = NOW()
       WHERE id = $1
         AND empresa_id = $2

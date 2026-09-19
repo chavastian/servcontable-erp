@@ -396,7 +396,8 @@ async function anularHonorario(req, res) {
     const resultado = await pool.query(
       `
       UPDATE honorarios
-      SET estado = 'anulado'
+      SET estado = 'anulado',
+          anulado_en = NOW(), anulado_por = NULLIF(current_setting('app.usuario_id', true), '')::integer
       WHERE id = $1
         AND empresa_id = $2
       RETURNING *

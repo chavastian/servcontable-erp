@@ -5,6 +5,8 @@ import AccountSelector from "../components/AccountSelector";
 import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   crearVenta,
+  actualizarVenta,
+  anularVenta,
   listarVentas,
   importarVentasSII,
 } from "../services/ventaService";
@@ -37,6 +39,8 @@ export default function Ventas() {
   // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
   // significa las dos cosas a la vez.
   const [cargando, setCargando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
 
   const [totales, setTotales] = useState({
     neto: 0,
@@ -56,6 +60,7 @@ export default function Ventas() {
     iva: "",
     total: "",
     cuenta_ingreso_id: "",
+    fecha_vencimiento: "",
   });
 
   const [archivoSII, setArchivoSII] = useState(null);
@@ -163,8 +168,70 @@ export default function Ventas() {
 
   const puedeGuardarVenta = formularioVentaHabilitado();
 
+  function limpiarFormulario() {
+    setEditandoId(null);
+    setFormulario({
+      fecha: rangoInicial.fechaFormulario,
+      tipo_documento: "Factura afecta",
+      folio: "",
+      rut_cliente: "",
+      razon_social_cliente: "",
+      neto: "",
+      exento: "",
+      iva: "",
+      total: "",
+      cuenta_ingreso_id: "",
+      fecha_vencimiento: "",
+    });
+  }
+
+  function editarVenta(venta) {
+    setEditandoId(venta.id);
+    setMensaje("");
+    setError("");
+    setFormulario({
+      fecha: String(venta.fecha || "").slice(0, 10),
+      tipo_documento: venta.tipo_documento || "Factura afecta",
+      folio: venta.folio || "",
+      rut_cliente: venta.rut_cliente || "",
+      razon_social_cliente: venta.razon_social_cliente || "",
+      neto: venta.neto ?? "",
+      exento: venta.exento ?? "",
+      iva: venta.iva ?? "",
+      total: venta.total ?? "",
+      cuenta_ingreso_id: venta.cuenta_ingreso_id || "",
+      fecha_vencimiento: String(venta.fecha_vencimiento || "").slice(0, 10),
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function anularVentaFila(venta) {
+    const motivo = window.prompt(
+      `Anular la ${venta.tipo_documento} folio ${venta.folio}. Indica el motivo:`
+    );
+
+    if (motivo === null) return;
+
+    if (String(motivo).trim().length < 3) {
+      setError("El motivo de la anulación es obligatorio.");
+      return;
+    }
+
+    try {
+      setMensaje("");
+      setError("");
+      const data = await anularVenta(venta.id, empresaActiva.id, motivo.trim());
+      setMensaje(data.mensaje);
+      await cargarDatos();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function guardarVenta(e) {
     e.preventDefault();
+
+    if (guardando) return;
 
     if (!empresaActiva) {
       setError("Debes seleccionar una empresa activa.");
@@ -177,10 +244,11 @@ export default function Ventas() {
     }
 
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
-      const data = await crearVenta({
+      const cuerpo = {
         empresa_id: empresaActiva.id,
         ...formulario,
         generar_comprobante: true,
@@ -191,27 +259,22 @@ export default function Ventas() {
         cuenta_ingreso_id: formulario.cuenta_ingreso_id
           ? Number(formulario.cuenta_ingreso_id)
           : null,
-      });
+        fecha_vencimiento: formulario.fecha_vencimiento || null,
+      };
+
+      const data = editandoId
+        ? await actualizarVenta(editandoId, cuerpo)
+        : await crearVenta(cuerpo);
 
       setMensaje(data.mensaje);
 
-      setFormulario({
-        fecha: rangoInicial.fechaFormulario,
-        tipo_documento: "Factura afecta",
-        folio: "",
-        rut_cliente: "",
-        razon_social_cliente: "",
-        neto: "",
-        exento: "",
-        iva: "",
-        total: "",
-        cuenta_ingreso_id: "",
-      });
+      limpiarFormulario();
 
       await cargarDatos();
     } catch (err) {
       setError(err.message);
     } finally {
+      setGuardando(false);
       setCargando(false);
     }
   }
@@ -380,6 +443,15 @@ export default function Ventas() {
             onChange={manejarCambio}
           />
 
+          <label style={label}>Fecha de vencimiento (opcional)</label>
+          <input
+            style={input}
+            type="date"
+            name="fecha_vencimiento"
+            value={formulario.fecha_vencimiento || ""}
+            onChange={manejarCambio}
+          />
+
           <label style={label}>Tipo documento</label>
           <select
             style={input}
@@ -469,12 +541,25 @@ export default function Ventas() {
             onChange={manejarCambio}
           />
 
+          {editandoId && (
+            <div className="sc-message" style={{ marginBottom: 8 }}>
+              Editando la venta seleccionada. Al guardar se regenera su asiento.
+              <button
+                type="button"
+                className="sc-btn sc-btn--ghost"
+                style={{ marginLeft: 8 }}
+                onClick={limpiarFormulario}
+              >
+                Cancelar edición
+              </button>
+            </div>
+          )}
           <button
             style={puedeGuardarVenta ? botonGuardar : botonGuardarDeshabilitado}
             type="submit"
-            disabled={!puedeGuardarVenta}
+            disabled={guardando || !puedeGuardarVenta}
           >
-            Guardar venta
+            {guardando ? "Guardando..." : editandoId ? "Guardar cambios" : "Registrar venta"}
           </button>
         </form>
 
@@ -522,6 +607,7 @@ export default function Ventas() {
                 <th style={th}>IVA</th>
                 <th style={th}>Total</th>
                 <th style={th}>Comprobante</th>
+                <th style={th} aria-label="Acciones" />
               </tr>
             </thead>
 
@@ -540,12 +626,30 @@ export default function Ventas() {
                       ? `✅ Comp. #${venta.comprobante_numero || venta.comprobante_id}`
                       : "❌ Sin comprobante"}
                   </td>
+                  <td style={td}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        type="button"
+                        className="sc-btn sc-btn--ghost"
+                        onClick={() => editarVenta(venta)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="sc-btn sc-btn--danger"
+                        onClick={() => anularVentaFila(venta)}
+                      >
+                        Anular
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
 
               {ventas.length === 0 && (
                 <tr>
-                  <td style={td} colSpan="8">
+                  <td style={td} colSpan="9">
                     No hay ventas registradas.
                   </td>
                 </tr>

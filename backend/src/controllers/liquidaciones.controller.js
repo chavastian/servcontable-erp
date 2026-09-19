@@ -1258,7 +1258,8 @@ async function eliminarLiquidacion(req, res) {
     const resultado = await client.query(
       `
       UPDATE liquidaciones
-      SET estado = 'eliminada'
+      SET estado = 'eliminada',
+          anulado_en = NOW(), anulado_por = NULLIF(current_setting('app.usuario_id', true), '')::integer
       WHERE id = $1
         AND empresa_id = $2
       RETURNING *

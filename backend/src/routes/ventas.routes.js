@@ -6,6 +6,10 @@ const {
   listarVentas,
   importarVentasSII,
 } = require("../controllers/ventas.controller");
+const {
+  anularVenta,
+  actualizarVenta,
+} = require("../controllers/documentosTributarios.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirPermiso } = require("../middleware/tenant.middleware");
@@ -51,5 +55,8 @@ router.post(
   validar(esquemas.importacion),
   importarVentasSII
 );
+
+router.put("/:id", verificarToken, exigirPermiso("REGISTRAR"), actualizarVenta);
+router.put("/:id/anular", verificarToken, exigirPermiso("ANULAR"), anularVenta);
 
 module.exports = router;

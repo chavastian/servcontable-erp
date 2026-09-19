@@ -6,6 +6,10 @@ const {
   listarCompras,
   importarComprasSII,
 } = require("../controllers/compras.controller");
+const {
+  anularCompra,
+  actualizarCompra,
+} = require("../controllers/documentosTributarios.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirPermiso } = require("../middleware/tenant.middleware");
@@ -52,5 +56,9 @@ router.post(
   validar(esquemas.importacion),
   importarComprasSII
 );
+
+// Editar regenera el asiento; anular es logico, con motivo, y anula el asiento.
+router.put("/:id", verificarToken, exigirPermiso("REGISTRAR"), actualizarCompra);
+router.put("/:id/anular", verificarToken, exigirPermiso("ANULAR"), anularCompra);
 
 module.exports = router;

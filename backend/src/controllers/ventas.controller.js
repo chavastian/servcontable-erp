@@ -13,6 +13,7 @@ const {
   convertirNumeroSII,
   obtenerPeriodoDesdeFecha,
   mapearTipoDocumentoSII,
+  codigoSiiDesdeTipoDocumento,
 } = require("../helpers/siiCsv.helper");
 const {
   normalizarRutDocumento,
@@ -65,6 +66,10 @@ async function crearVenta(req, res) {
       total,
       cuenta_ingreso_id,
       generar_comprobante = true,
+      fecha_vencimiento,
+      ref_sii_tipo_doc,
+      ref_folio,
+      ref_fecha,
     } = req.body;
 
     if (!empresa_id || !fecha || !tipo_documento) {
@@ -110,8 +115,9 @@ async function crearVenta(req, res) {
     const ventaResult = await client.query(
       `INSERT INTO ventas
        (empresa_id, periodo, fecha, tipo_documento, folio, rut_cliente,
-        razon_social_cliente, neto, exento, iva, total, cuenta_ingreso_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        razon_social_cliente, neto, exento, iva, total, cuenta_ingreso_id,
+        sii_tipo_doc, fecha_vencimiento, ref_sii_tipo_doc, ref_folio, ref_fecha)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING *`,
       [
         empresa_id,
@@ -126,6 +132,13 @@ async function crearVenta(req, res) {
         ivaNum,
         totalNum,
         cuentaIngresoId,
+        // Igual que en compras: el codigo SII sale del texto del tipo para que
+        // el signo tributario y la unicidad no dependan de como se escribio.
+        codigoSiiDesdeTipoDocumento(tipo_documento),
+        fecha_vencimiento || null,
+        ref_sii_tipo_doc || null,
+        ref_folio || null,
+        ref_fecha || null,
       ]
     );
 

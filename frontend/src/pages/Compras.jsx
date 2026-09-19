@@ -5,6 +5,8 @@ import AccountSelector from "../components/AccountSelector";
 import { EstadoCargando } from "../components/EstadoPantalla";
 import {
   crearCompra,
+  actualizarCompra,
+  anularCompra,
   listarCompras,
   importarComprasSII,
 } from "../services/compraService";
@@ -38,6 +40,9 @@ export default function Compras() {
   // Distingue "esperando" de "no hay datos": sin esto la tabla en blanco
   // significa las dos cosas a la vez.
   const [cargando, setCargando] = useState(false);
+  // Doble clic con conexion lenta registraba dos facturas con el mismo folio.
+  const [guardando, setGuardando] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
 
   const [totales, setTotales] = useState({
     neto: 0,
@@ -60,6 +65,7 @@ export default function Compras() {
     iva_no_recuperable: "",
     total: "",
     cuenta_gasto_id: "",
+    fecha_vencimiento: "",
   });
 
   const [archivoSII, setArchivoSII] = useState(null);
@@ -192,8 +198,72 @@ export default function Compras() {
 
   const puedeGuardarCompra = formularioCompraHabilitado();
 
+  function limpiarFormulario() {
+    setEditandoId(null);
+    setFormulario({
+      fecha: rangoInicial.fechaFormulario,
+      tipo_documento: "Factura afecta",
+      folio: "",
+      rut_proveedor: "",
+      razon_social_proveedor: "",
+      neto: "",
+      exento: "",
+      iva_credito: "",
+      iva_no_recuperable: "",
+      total: "",
+      cuenta_gasto_id: "",
+      fecha_vencimiento: "",
+    });
+  }
+
+  function editarCompra(compra) {
+    setEditandoId(compra.id);
+    setMensaje("");
+    setError("");
+    setFormulario({
+      fecha: String(compra.fecha || "").slice(0, 10),
+      tipo_documento: compra.tipo_documento || "Factura afecta",
+      folio: compra.folio || "",
+      rut_proveedor: compra.rut_proveedor || "",
+      razon_social_proveedor: compra.razon_social_proveedor || "",
+      neto: compra.neto ?? "",
+      exento: compra.exento ?? "",
+      iva_credito: compra.iva_credito ?? "",
+      iva_no_recuperable: compra.iva_no_recuperable ?? "",
+      total: compra.total ?? "",
+      cuenta_gasto_id: compra.cuenta_gasto_id || "",
+      fecha_vencimiento: String(compra.fecha_vencimiento || "").slice(0, 10),
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function anularCompraFila(compra) {
+    const motivo = window.prompt(
+      `Anular la ${compra.tipo_documento} folio ${compra.folio}. Indica el motivo:`
+    );
+
+    if (motivo === null) return;
+
+    if (String(motivo).trim().length < 3) {
+      setError("El motivo de la anulación es obligatorio.");
+      return;
+    }
+
+    try {
+      setMensaje("");
+      setError("");
+      const data = await anularCompra(compra.id, empresaActiva.id, motivo.trim());
+      setMensaje(data.mensaje);
+      await cargarDatos();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function guardarCompra(e) {
     e.preventDefault();
+
+    if (guardando) return;
 
     if (!empresaActiva) {
       setError("Debes seleccionar una empresa activa.");
@@ -206,10 +276,11 @@ export default function Compras() {
     }
 
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
-      const data = await crearCompra({
+      const cuerpo = {
         empresa_id: empresaActiva.id,
         ...formulario,
         generar_comprobante: true,
@@ -221,28 +292,22 @@ export default function Compras() {
         cuenta_gasto_id: formulario.cuenta_gasto_id
           ? Number(formulario.cuenta_gasto_id)
           : null,
-      });
+        fecha_vencimiento: formulario.fecha_vencimiento || null,
+      };
+
+      const data = editandoId
+        ? await actualizarCompra(editandoId, cuerpo)
+        : await crearCompra(cuerpo);
 
       setMensaje(data.mensaje);
 
-      setFormulario({
-        fecha: rangoInicial.fechaFormulario,
-        tipo_documento: "Factura afecta",
-        folio: "",
-        rut_proveedor: "",
-        razon_social_proveedor: "",
-        neto: "",
-        exento: "",
-        iva_credito: "",
-        iva_no_recuperable: "",
-        total: "",
-        cuenta_gasto_id: "",
-      });
+      limpiarFormulario();
 
       await cargarDatos();
     } catch (err) {
       setError(err.message);
     } finally {
+      setGuardando(false);
       setCargando(false);
     }
   }
@@ -422,6 +487,15 @@ export default function Compras() {
             onChange={manejarCambio}
           />
 
+          <label style={label}>Fecha de vencimiento (opcional)</label>
+          <input
+            style={input}
+            type="date"
+            name="fecha_vencimiento"
+            value={formulario.fecha_vencimiento || ""}
+            onChange={manejarCambio}
+          />
+
           <label style={label}>Tipo documento</label>
           <select
             style={input}
@@ -521,12 +595,25 @@ export default function Compras() {
             onChange={manejarCambio}
           />
 
+          {editandoId && (
+            <div className="sc-message" style={{ marginBottom: 8 }}>
+              Editando la compra seleccionada. Al guardar se regenera su asiento.
+              <button
+                type="button"
+                className="sc-btn sc-btn--ghost"
+                style={{ marginLeft: 8 }}
+                onClick={limpiarFormulario}
+              >
+                Cancelar edición
+              </button>
+            </div>
+          )}
           <button
             style={puedeGuardarCompra ? botonGuardar : botonGuardarDeshabilitado}
             type="submit"
-            disabled={!puedeGuardarCompra}
+            disabled={guardando || !puedeGuardarCompra}
           >
-            Guardar compra
+            {guardando ? "Guardando..." : editandoId ? "Guardar cambios" : "Registrar compra"}
           </button>
         </form>
 
@@ -576,6 +663,7 @@ export default function Compras() {
                 <th style={th}>Otros imp.</th>
                 <th style={th}>Total</th>
                 <th style={th}>Comprobante</th>
+                <th style={th} aria-label="Acciones" />
               </tr>
             </thead>
 
@@ -603,12 +691,30 @@ export default function Compras() {
                       </span>
                     )}
                   </td>
+                  <td style={td}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        type="button"
+                        className="sc-btn sc-btn--ghost"
+                        onClick={() => editarCompra(compra)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="sc-btn sc-btn--danger"
+                        onClick={() => anularCompraFila(compra)}
+                      >
+                        Anular
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
 
               {compras.length === 0 && (
                 <tr>
-                  <td style={td} colSpan="10">
+                  <td style={td} colSpan="11">
                     No hay compras registradas.
                   </td>
                 </tr>

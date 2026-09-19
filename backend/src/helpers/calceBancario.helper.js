@@ -275,6 +275,7 @@ async function proponerCalces(cliente, empresaId, periodo, { limite = 200 } = {}
           fecha: aFechaISO(c.fecha),
           tercero: c.tercero,
           monto: Number(c.monto),
+          comprobante_id: c.comprobante_id || null,
         })),
       });
       continue;

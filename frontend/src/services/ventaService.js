@@ -86,3 +86,51 @@ export async function importarVentasSII(
 
   return data;
 }
+
+
+/**
+ * Editar regenera el asiento en el servidor; anular es logico y pide motivo.
+ * Ninguna de las dos existia: una factura mal digitada solo se "arreglaba"
+ * anulando su asiento, y el documento seguia sumando en el F29.
+ */
+export async function actualizarVenta(id, datos) {
+  const token = obtenerToken();
+
+  const respuesta = await fetch(`${API_URL}/ventas/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(datos),
+  });
+
+  const data = await respuesta.json().catch(() => ({}));
+
+  if (!respuesta.ok) {
+    throw new Error(data.error || "Error al actualizar venta");
+  }
+
+  return data;
+}
+
+export async function anularVenta(id, empresaId, motivo) {
+  const token = obtenerToken();
+
+  const respuesta = await fetch(`${API_URL}/ventas/${id}/anular`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ empresa_id: empresaId, motivo }),
+  });
+
+  const data = await respuesta.json().catch(() => ({}));
+
+  if (!respuesta.ok) {
+    throw new Error(data.error || "Error al anular venta");
+  }
+
+  return data;
+}

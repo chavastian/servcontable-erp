@@ -108,7 +108,7 @@ test.before(async () => {
   await asiento({ numero: 95003, fecha: `${ANIO}-07-20`, monto: 700000 });
 
   // Eliminado, dentro del rango.
-  await asiento({ numero: 95004, fecha: `${ANIO}-04-20`, estado: "eliminado", monto: 900000 });
+  await asiento({ numero: 95004, fecha: `${ANIO}-04-20`, estado: "anulado", monto: 900000 });
 
   const hash = await bcrypt.hash(CLAVE, 10);
   const usuarioId = (
