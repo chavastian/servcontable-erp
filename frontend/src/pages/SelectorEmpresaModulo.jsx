@@ -39,10 +39,6 @@ export default function SelectorEmpresaModulo({
 
   const [nuevaEmpresa, setNuevaEmpresa] = useState(EMPRESA_INICIAL);
 
-  useEffect(() => {
-    cargarEmpresas();
-  }, []);
-
   async function cargarEmpresas() {
     try {
       setError("");
@@ -64,6 +60,10 @@ export default function SelectorEmpresaModulo({
       setError(err.message);
     }
   }
+
+  useEffect(() => {
+    cargarEmpresas();
+  }, []);
 
   function cambiarEmpresa(e) {
     const id = e.target.value;
@@ -256,17 +256,17 @@ export default function SelectorEmpresaModulo({
                       <option value="14D8 Pro Pyme Transparente">14D8 Pro Pyme Transparente</option>
                       <option value="Regimen General">Régimen General</option>
                       <option value="Renta Presunta">Renta Presunta</option>
-                      <option value="Sin regimen informado">Sin regimen informado</option>
+                      <option value="Sin regimen informado">Sin régimen informado</option>
                     </select>
                   </div>
 
                   <CampoEmpresa label="Dirección" campo="direccion" valor={nuevaEmpresa.direccion} setNuevaEmpresa={setNuevaEmpresa} />
                   <CampoEmpresa label="Comuna" campo="comuna" valor={nuevaEmpresa.comuna} setNuevaEmpresa={setNuevaEmpresa} />
                   <CampoEmpresa label="Ciudad" campo="ciudad" valor={nuevaEmpresa.ciudad} setNuevaEmpresa={setNuevaEmpresa} />
-                  <CampoEmpresa label="Telefono empresa" campo="telefono" valor={nuevaEmpresa.telefono} setNuevaEmpresa={setNuevaEmpresa} />
+                  <CampoEmpresa label="Teléfono empresa" campo="telefono" valor={nuevaEmpresa.telefono} setNuevaEmpresa={setNuevaEmpresa} />
                   <CampoEmpresa label="Correo empresa" campo="correo" valor={nuevaEmpresa.correo} setNuevaEmpresa={setNuevaEmpresa} />
                   <CampoEmpresa
-                    label="Descripcion de la actividad"
+                    label="Descripción de la actividad"
                     campo="descripcion_actividad"
                     valor={nuevaEmpresa.descripcion_actividad}
                     setNuevaEmpresa={setNuevaEmpresa}
@@ -278,7 +278,7 @@ export default function SelectorEmpresaModulo({
                   <CampoEmpresa label="RUT representante" campo="rut_representante" valor={nuevaEmpresa.rut_representante} setNuevaEmpresa={setNuevaEmpresa} />
                   <CampoEmpresa label="Nombre representante" campo="representante_legal" valor={nuevaEmpresa.representante_legal} setNuevaEmpresa={setNuevaEmpresa} />
                   <CampoEmpresa label="Correo representante" campo="correo_representante" valor={nuevaEmpresa.correo_representante} setNuevaEmpresa={setNuevaEmpresa} />
-                  <CampoEmpresa label="Telefono representante" campo="telefono_representante" valor={nuevaEmpresa.telefono_representante} setNuevaEmpresa={setNuevaEmpresa} />
+                  <CampoEmpresa label="Teléfono representante" campo="telefono_representante" valor={nuevaEmpresa.telefono_representante} setNuevaEmpresa={setNuevaEmpresa} />
                 </div>
 
                 <button type="button" style={botonGuardarEmpresa} onClick={guardarNuevaEmpresa}>

@@ -142,7 +142,7 @@ export default function RegistroBoletas() {
       <section style={card}>
         <h2 style={sectionTitle}>Importar boletas desde SII</h2>
         <p style={hint}>
-          Carga el registro de boletas electronicas del SII en formato CSV o CSV comprimido .gz.
+          Carga el registro de boletas electrónicas del SII en formato CSV o CSV comprimido .gz.
         </p>
 
         <form style={formGrid} onSubmit={importarArchivo}>

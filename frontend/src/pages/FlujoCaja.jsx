@@ -7,7 +7,7 @@
  * quien consulta.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EstadoPantalla from "../components/EstadoPantalla";
 import { obtenerFlujoCaja } from "../services/asistentesService";
 import { obtenerEmpresaActiva } from "../services/empresaService";
@@ -56,10 +56,18 @@ export default function FlujoCaja() {
 
   const [plazoDias, setPlazoDias] = useState(30);
   const [semanas, setSemanas] = useState(8);
+  // Lo que se escribe en las cajas. Se aplica al salir del campo o con el
+  // botón: consultar en cada tecla lanzaba una petición por dígito.
+  const [plazoTexto, setPlazoTexto] = useState("30");
+  const [semanasTexto, setSemanasTexto] = useState("8");
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [verDetalle, setVerDetalle] = useState(false);
+
+  // Número de la última petición: si se recalcula dos veces seguidas, la
+  // respuesta lenta de la primera no debe pisar a la segunda.
+  const ultimaPeticion = useRef(0);
 
   const cargar = useCallback(
     async (plazo, cantidadSemanas) => {
@@ -69,21 +77,25 @@ export default function FlujoCaja() {
         return;
       }
 
+      const marca = ++ultimaPeticion.current;
+
       setCargando(true);
       setError("");
 
       try {
-        setDatos(
-          await obtenerFlujoCaja(empresa.id, {
-            plazoDias: plazo,
-            semanas: cantidadSemanas,
-          })
-        );
+        const respuesta = await obtenerFlujoCaja(empresa.id, {
+          plazoDias: plazo,
+          semanas: cantidadSemanas,
+        });
+
+        if (marca !== ultimaPeticion.current) return;
+        setDatos(respuesta);
       } catch (problema) {
+        if (marca !== ultimaPeticion.current) return;
         setError(problema.message || "No se pudo calcular el flujo de caja");
         setDatos(null);
       } finally {
-        setCargando(false);
+        if (marca === ultimaPeticion.current) setCargando(false);
       }
     },
     [empresa?.id]
@@ -92,6 +104,35 @@ export default function FlujoCaja() {
   useEffect(() => {
     cargar(plazoDias, semanas);
   }, [cargar, plazoDias, semanas]);
+
+  function acotar(valor, minimo, maximo, porDefecto) {
+    const n = Number(valor);
+
+    if (valor === "" || !Number.isFinite(n)) return porDefecto;
+
+    return Math.min(maximo, Math.max(minimo, Math.round(n)));
+  }
+
+  // Pasa lo escrito a los parámetros vigentes. El efecto vuelve a consultar
+  // solo si alguno cambió; devuelve si hubo cambio para que el botón sepa si
+  // tiene que consultar por su cuenta.
+  function aplicarParametros() {
+    const plazo = acotar(plazoTexto, 0, 365, plazoDias);
+    const cantidad = acotar(semanasTexto, 1, 26, semanas);
+
+    setPlazoTexto(String(plazo));
+    setSemanasTexto(String(cantidad));
+    setPlazoDias(plazo);
+    setSemanas(cantidad);
+
+    return { plazo, cantidad, cambio: plazo !== plazoDias || cantidad !== semanas };
+  }
+
+  function recalcular() {
+    const { plazo, cantidad, cambio } = aplicarParametros();
+
+    if (!cambio) cargar(plazo, cantidad);
+  }
 
   // El JSX de los hijos se evalua aunque EstadoPantalla decida no mostrarlos,
   // asi que ninguna lectura puede asumir que ya llegaron los datos.
@@ -114,8 +155,9 @@ export default function FlujoCaja() {
             min="0"
             max="365"
             style={{ ...estilos.input, width: 90 }}
-            value={plazoDias}
-            onChange={(evento) => setPlazoDias(Number(evento.target.value))}
+            value={plazoTexto}
+            onChange={(evento) => setPlazoTexto(evento.target.value)}
+            onBlur={aplicarParametros}
           />
         </div>
 
@@ -129,15 +171,16 @@ export default function FlujoCaja() {
             min="1"
             max="26"
             style={{ ...estilos.input, width: 90 }}
-            value={semanas}
-            onChange={(evento) => setSemanas(Number(evento.target.value))}
+            value={semanasTexto}
+            onChange={(evento) => setSemanasTexto(evento.target.value)}
+            onBlur={aplicarParametros}
           />
         </div>
 
         <button
           type="button"
           className="sc-btn sc-btn--primary"
-          onClick={() => cargar(plazoDias, semanas)}
+          onClick={recalcular}
           disabled={cargando}
         >
           {cargando ? "Calculando..." : "Recalcular"}

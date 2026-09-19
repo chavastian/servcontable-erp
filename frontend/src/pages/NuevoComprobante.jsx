@@ -252,8 +252,14 @@ export default function NuevoComprobante() {
     return lineasValidas;
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarComprobante(e) {
     e.preventDefault();
+
+    if (guardando) return;
 
     if (!empresaActiva) {
       setError("Debes seleccionar una empresa activa.");
@@ -266,6 +272,7 @@ export default function NuevoComprobante() {
     }
 
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -310,6 +317,8 @@ export default function NuevoComprobante() {
       await cargarSiguienteNumero("Traspaso");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -327,7 +336,7 @@ export default function NuevoComprobante() {
 
   async function eliminarAsiento(id) {
     const confirmar = window.confirm(
-      "Se eliminara el asiento. Si estaba asociado a pagos/cobros, esos documentos volveran a pendiente. Deseas continuar?"
+      "Se anulará el asiento. Los pagos y cobros asociados volverán a pendiente. ¿Deseas continuar?"
     );
 
     if (!confirmar) return;
@@ -507,7 +516,7 @@ export default function NuevoComprobante() {
                 <th style={thCompacto}>Glosa</th>
                 <th style={thNumeroCompacto}>Debe</th>
                 <th style={thNumeroCompacto}>Haber</th>
-                <th style={thAccionCompacto}>Accion</th>
+                <th style={thAccionCompacto}>Acción</th>
               </tr>
             </thead>
 
@@ -523,7 +532,7 @@ export default function NuevoComprobante() {
                       onChange={(e) =>
                         actualizarLinea(index, "cuenta_id", e.target.value)
                       }
-                      placeholder="Codigo o nombre"
+                      placeholder="Código o nombre"
                     />
                   </td>
 
@@ -631,9 +640,11 @@ export default function NuevoComprobante() {
             diferencia === 0 && totalDebe > 0 ? botonGuardar : botonBloqueado
           }
           type="submit"
-          disabled={diferencia !== 0 || totalDebe <= 0}
+          disabled={guardando || diferencia !== 0 || totalDebe <= 0}
         >
-          {comprobanteEditandoId
+          {guardando
+            ? "Guardando..."
+            : comprobanteEditandoId
             ? "Actualizar comprobante"
             : "Guardar comprobante"}
         </button>

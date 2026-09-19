@@ -645,7 +645,7 @@ export default function LibrosCompraVenta() {
         </div>
 
         <div style={card}>
-          <strong>IVA debito</strong>
+          <strong>IVA débito</strong>
           <span>{formato(totalesVentas.iva)}</span>
         </div>
 
@@ -660,7 +660,7 @@ export default function LibrosCompraVenta() {
         </div>
 
         <div style={card}>
-          <strong>IVA credito</strong>
+          <strong>IVA crédito</strong>
           <span>{formato(totalesCompras.iva_credito)}</span>
         </div>
 
@@ -719,7 +719,7 @@ function TablaVentas({ ventas, formato, fechaCL }) {
             <th style={th}>Tipo Doc</th>
             <th style={th}>Fecha</th>
             <th style={th}>RUT Cliente</th>
-            <th style={th}>Razon Social</th>
+            <th style={th}>Razón Social</th>
             <th style={th}>Folio</th>
             <th style={thNumero}>Exento</th>
             <th style={thNumero}>Neto</th>
@@ -767,11 +767,11 @@ function TablaCompras({ compras, formato, fechaCL }) {
             <th style={th}>Tipo Doc</th>
             <th style={th}>Fecha</th>
             <th style={th}>RUT Proveedor</th>
-            <th style={th}>Razon Social</th>
+            <th style={th}>Razón Social</th>
             <th style={th}>Folio</th>
             <th style={thNumero}>Exento</th>
             <th style={thNumero}>Neto</th>
-            <th style={thNumero}>IVA Credito</th>
+            <th style={thNumero}>IVA Crédito</th>
             <th style={thNumero}>IVA No Rec.</th>
             <th style={thNumero}>Total</th>
           </tr>

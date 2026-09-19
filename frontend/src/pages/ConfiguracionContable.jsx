@@ -30,12 +30,6 @@ export default function ConfiguracionContable() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (empresaActiva) {
-      cargarDatos();
-    }
-  }, []);
-
   async function cargarDatos() {
     try {
       setError("");
@@ -79,6 +73,12 @@ export default function ConfiguracionContable() {
     }
   }
 
+  useEffect(() => {
+    if (empresaActiva) {
+      cargarDatos();
+    }
+  }, []);
+
   function cambiarConfiguracion(e) {
     const { name, value } = e.target;
 
@@ -88,10 +88,17 @@ export default function ConfiguracionContable() {
     }));
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardar(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setError("");
       setMensaje("");
 
@@ -122,6 +129,8 @@ export default function ConfiguracionContable() {
       setMensaje(data.mensaje || "Configuracion guardada correctamente");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -159,7 +168,7 @@ export default function ConfiguracionContable() {
   if (!empresaActiva) {
     return (
       <div>
-        <h1 style={titulo}>Configuracion Contable</h1>
+        <h1 style={titulo}>Configuración Contable</h1>
         <div style={alerta}>
           Debes seleccionar una empresa activa antes de configurar cuentas.
         </div>
@@ -169,7 +178,7 @@ export default function ConfiguracionContable() {
 
   return (
     <div>
-      <h1 style={titulo}>Configuracion Contable</h1>
+      <h1 style={titulo}>Configuración Contable</h1>
 
       <p style={subtitulo}>
         Empresa activa: <strong>{empresaActiva.razon_social}</strong>
@@ -207,7 +216,7 @@ export default function ConfiguracionContable() {
           />
 
           <CampoCuenta
-            label="Cuenta IVA Debito Fiscal"
+            label="Cuenta IVA Débito Fiscal"
             name="cuenta_iva_debito_id"
             value={configuracion.cuenta_iva_debito_id}
             onChange={cambiarConfiguracion}
@@ -215,7 +224,7 @@ export default function ConfiguracionContable() {
           />
 
           <CampoCuenta
-            label="Cuenta IVA Credito Fiscal"
+            label="Cuenta IVA Crédito Fiscal"
             name="cuenta_iva_credito_id"
             value={configuracion.cuenta_iva_credito_id}
             onChange={cambiarConfiguracion}
@@ -274,7 +283,7 @@ export default function ConfiguracionContable() {
           />
 
           <CampoCuenta
-            label="Cuenta Retencion Honorarios por Pagar"
+            label="Cuenta Retención Honorarios por Pagar"
             name="cuenta_retencion_honorarios_id"
             value={configuracion.cuenta_retencion_honorarios_id}
             onChange={cambiarConfiguracion}
@@ -294,13 +303,13 @@ export default function ConfiguracionContable() {
           />
         </div>
 
-        <button type="submit" style={botonGuardar}>
-          Guardar configuracion
+        <button type="submit" style={botonGuardar} disabled={guardando}>
+          {guardando ? "Guardando..." : "Guardar configuracion"}
         </button>
       </form>
 
       <div style={infoBox}>
-        <h3 style={subtituloInfo}>Uso de esta configuracion:</h3>
+        <h3 style={subtituloInfo}>Uso de esta configuración:</h3>
 
         <p style={textoInfo}>
           Estas cuentas se usaran para generar automaticamente comprobantes
@@ -310,13 +319,13 @@ export default function ConfiguracionContable() {
 
         <ul style={listaInfo}>
           <li>
-            <strong>Ventas:</strong> clientes, ingresos e IVA debito fiscal.
+            <strong>Ventas:</strong> clientes, ingresos e IVA débito fiscal.
           </li>
           <li>
-            <strong>Compras:</strong> proveedores, gastos e IVA credito fiscal.
+            <strong>Compras:</strong> proveedores, gastos e IVA crédito fiscal.
           </li>
           <li>
-            <strong>Honorarios:</strong> gasto honorarios, retencion por pagar y
+            <strong>Honorarios:</strong> gasto honorarios, retención por pagar y
             pago honorarios.
           </li>
         </ul>

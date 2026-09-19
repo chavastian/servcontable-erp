@@ -62,6 +62,9 @@ export default function ConciliacionBancaria() {
   async function importarArchivo(event) {
     event.preventDefault();
 
+    // El botón ya queda deshabilitado, pero Enter en el formulario no lo respeta.
+    if (cargando) return;
+
     if (!archivo) {
       setError("Selecciona un archivo de cartola bancaria.");
       return;
@@ -99,7 +102,7 @@ export default function ConciliacionBancaria() {
       {error && <p style={bad}>{error}</p>}
 
       <section style={card}>
-        <h2 style={title}>Conciliacion bancaria</h2>
+        <h2 style={title}>Conciliación bancaria</h2>
         <p style={hint}>
           Importa una cartola bancaria CSV/TXT y marca movimientos conciliados contra tus registros.
         </p>
@@ -139,13 +142,13 @@ export default function ConciliacionBancaria() {
             <thead>
               <tr>
                 <th style={th}>Fecha</th>
-                <th style={th}>Descripcion</th>
+                <th style={th}>Descripción</th>
                 <th style={th}>Documento</th>
                 <th style={thRight}>Cargo</th>
                 <th style={thRight}>Abono</th>
                 <th style={thRight}>Saldo</th>
                 <th style={th}>Estado</th>
-                <th style={th}>Accion</th>
+                <th style={th}>Acción</th>
               </tr>
             </thead>
             <tbody>

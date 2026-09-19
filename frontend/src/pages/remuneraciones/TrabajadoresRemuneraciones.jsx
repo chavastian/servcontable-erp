@@ -138,10 +138,17 @@ export default function TrabajadoresRemuneraciones() {
     setFormulario(crearEstadoInicial());
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardar(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -161,6 +168,8 @@ export default function TrabajadoresRemuneraciones() {
       await cargarTrabajadores();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -390,15 +399,15 @@ export default function TrabajadoresRemuneraciones() {
             onChange={cambiarFormulario}
           />
           <Campo
-            label="Telefono"
+            label="Teléfono"
             name="telefono"
             value={formulario.telefono}
             onChange={cambiarFormulario}
           />
         </div>
 
-        <button style={botonGuardar} type="submit">
-          {editandoId ? "Actualizar trabajador" : "Guardar trabajador"}
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : editandoId ? "Actualizar trabajador" : "Guardar trabajador"}
         </button>
 
         {editandoId && (
@@ -427,7 +436,7 @@ export default function TrabajadoresRemuneraciones() {
                 <th style={th}>Salud</th>
                 <th style={thNumero}>Sueldo base</th>
                 <th style={th}>Estado</th>
-                <th style={thAccion}>Accion</th>
+                <th style={thAccion}>Acción</th>
               </tr>
             </thead>
 

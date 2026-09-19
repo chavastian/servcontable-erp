@@ -446,7 +446,7 @@ export default function LiquidacionPDF() {
           monto(item.total_haberes),
           "TOTAL DESCUENTOS",
           monto(item.total_descuentos),
-          "LIQUIDO A PAGAR",
+          "LÍQUIDO A PAGAR",
           monto(item.liquido_pagar),
         ],
       ],

@@ -98,7 +98,7 @@ export default function AnalisisCuentas() {
         }
       );
 
-      setMensaje("Analisis de cuentas cargado correctamente.");
+      setMensaje("Análisis de cuentas cargado correctamente.");
     } catch (err) {
       setError(err.message);
     }
@@ -332,7 +332,7 @@ export default function AnalisisCuentas() {
       {mensaje && <p style={ok}>{mensaje}</p>}
       {error && <p style={err}>{error}</p>}
 
-      <h1 style={tituloPrincipal}>Analisis de cuentas</h1>
+      <h1 style={tituloPrincipal}>Análisis de cuentas</h1>
 
       <p style={empresaTexto}>
         Empresa activa: <strong>{empresaActiva?.razon_social || ""}</strong>
@@ -402,13 +402,13 @@ export default function AnalisisCuentas() {
       </div>
 
       <div style={cardTabla}>
-        <h2 style={tituloSeccion}>Resultado del analisis</h2>
+        <h2 style={tituloSeccion}>Resultado del análisis</h2>
 
         <div style={tablaBox}>
           <table style={tabla}>
             <thead>
               <tr>
-                <th style={th}>Codigo</th>
+                <th style={th}>Código</th>
                 <th style={th}>Cuenta</th>
                 <th style={th}>Tipo</th>
                 <th style={th}>Naturaleza</th>

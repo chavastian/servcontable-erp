@@ -251,10 +251,17 @@ export default function PagosCobros() {
     }));
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarMovimiento(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setError("");
       setMensaje("");
 
@@ -345,6 +352,8 @@ export default function PagosCobros() {
       await cargarMovimientos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -536,7 +545,7 @@ export default function PagosCobros() {
               name="cuenta_contraparte_id"
               value={formulario.cuenta_contraparte_id}
               onChange={cambiarFormulario}
-              placeholder="Buscar por codigo o nombre de cuenta..."
+              placeholder="Buscar por código o nombre de cuenta..."
             />
           </div>
 
@@ -618,8 +627,8 @@ export default function PagosCobros() {
           </div>
         )}
 
-        <button style={botonGuardar} type="submit">
-          {esSeleccionMasiva ? "Guardar movimientos masivos" : "Guardar movimiento"}
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : esSeleccionMasiva ? "Guardar movimientos masivos" : "Guardar movimiento"}
         </button>
       </form>
 

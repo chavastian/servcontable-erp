@@ -571,7 +571,7 @@ function TablaPendientes({
             <th style={thNumero}>{tipo === "Cobro" ? "Cobrado" : "Pagado"}</th>
             <th style={thNumero}>Saldo</th>
             <th style={thNumero}>%</th>
-            <th style={thAccion}>Accion</th>
+            <th style={thAccion}>Acción</th>
           </tr>
         </thead>
 
@@ -629,7 +629,7 @@ function TablaMovimientos({ movimientos, fechaCL, formato, onDeshacer }) {
             <th style={thNumero}>Monto</th>
             <th style={th}>Estado</th>
             <th style={th}>Comprobante</th>
-            <th style={thAccion}>Accion</th>
+            <th style={thAccion}>Acción</th>
           </tr>
         </thead>
 
@@ -666,7 +666,7 @@ function TablaMovimientos({ movimientos, fechaCL, formato, onDeshacer }) {
                     {"\u21BA"}
                   </button>
                 ) : (
-                  <span style={textoSuave}>Sin accion</span>
+                  <span style={textoSuave}>Sin acción</span>
                 )}
               </td>
             </tr>

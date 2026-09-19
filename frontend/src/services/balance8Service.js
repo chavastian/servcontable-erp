@@ -33,9 +33,12 @@ export async function obtenerBalance8Columnas(
   let data;
   try {
     data = JSON.parse(texto);
-  } catch (error) {
+  } catch (causa) {
     console.error("Respuesta no JSON del backend:", texto);
-    throw new Error("El backend no devolvi? JSON. Revisa la ruta del balance o si el backend está activo.");
+    throw new Error(
+      "El backend no devolvió JSON. Revisa la ruta del balance o si el backend está activo.",
+      { cause: causa }
+    );
   }
 
   if (!respuesta.ok) {

@@ -106,8 +106,14 @@ export default function Honorarios() {
     }
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarHonorario(e) {
     e.preventDefault();
+
+    if (guardando) return;
 
     if (!empresaActiva) {
       setError("Debes seleccionar una empresa activa.");
@@ -115,6 +121,7 @@ export default function Honorarios() {
     }
 
     try {
+      setGuardando(true);
       setError("");
       setMensaje("");
 
@@ -142,6 +149,8 @@ export default function Honorarios() {
       await cargarDatos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -378,7 +387,7 @@ export default function Honorarios() {
 
         <div style={gridFormulario}>
           <div>
-            <label style={label}>Fecha emision</label>
+            <label style={label}>Fecha emisión</label>
             <input
               style={input}
               type="date"
@@ -432,7 +441,7 @@ export default function Honorarios() {
               name="nombre_prestador"
               value={formulario.nombre_prestador}
               onChange={cambiarFormulario}
-              placeholder="Nombre o razon social"
+              placeholder="Nombre o razón social"
             />
           </div>
 
@@ -449,7 +458,7 @@ export default function Honorarios() {
           </div>
 
           <div>
-            <label style={label}>Tasa retencion %</label>
+            <label style={label}>Tasa retención %</label>
             <input
               style={input}
               type="number"
@@ -461,12 +470,12 @@ export default function Honorarios() {
           </div>
 
           <div>
-            <label style={label}>Retencion calculada</label>
+            <label style={label}>Retención calculada</label>
             <input style={input} value={formato(retencionCalculada)} readOnly />
           </div>
 
           <div>
-            <label style={label}>Liquido a pagar</label>
+            <label style={label}>Líquido a pagar</label>
             <input style={input} value={formato(liquidoCalculado)} readOnly />
           </div>
         </div>
@@ -480,8 +489,8 @@ export default function Honorarios() {
           placeholder="Detalle del servicio"
         />
 
-        <button style={botonGuardar} type="submit">
-          Guardar honorario
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : "Guardar honorario"}
         </button>
       </form>
 
@@ -530,12 +539,12 @@ export default function Honorarios() {
         </div>
 
         <div style={card}>
-          <strong>Total retencion</strong>
+          <strong>Total retención</strong>
           <span>{formato(totales.retencion)}</span>
         </div>
 
         <div style={card}>
-          <strong>Total liquido</strong>
+          <strong>Total líquido</strong>
           <span>{formato(totales.liquido)}</span>
         </div>
       </div>
@@ -554,10 +563,10 @@ export default function Honorarios() {
                 <th style={th}>Glosa</th>
                 <th style={thNumero}>Bruto</th>
                 <th style={thNumero}>Tasa</th>
-                <th style={thNumero}>Retencion</th>
-                <th style={thNumero}>Liquido</th>
+                <th style={thNumero}>Retención</th>
+                <th style={thNumero}>Líquido</th>
                 <th style={th}>Estado</th>
-                <th style={thAccion}>Accion</th>
+                <th style={thAccion}>Acción</th>
               </tr>
             </thead>
 

@@ -256,14 +256,14 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
       payload = { ...payload, billing_cycle: "monthly" };
     }
 
-    const confirma = window.confirm("Confirma aplicar esta accion?");
+    const confirma = window.confirm("Confirma aplicar esta acción?");
     if (!confirma) return;
 
     try {
       setError("");
       setMensaje("");
       await ejecutarAccionSolicitudWebSuscripcion(solicitud.tipo, solicitud.id, payload);
-      setMensaje("Accion de solicitud web aplicada correctamente.");
+      setMensaje("Acción de solicitud web aplicada correctamente.");
       await buscarSolicitudesWeb();
       setDetalleSolicitudWeb(null);
     } catch (err) {
@@ -285,14 +285,14 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
   async function aplicarAccion() {
     if (!clienteActivo?.cliente?.id) return;
-    const confirma = window.confirm("Confirma aplicar esta accion administrativa?");
+    const confirma = window.confirm("Confirma aplicar esta acción administrativa?");
     if (!confirma) return;
 
     try {
       setError("");
       setMensaje("");
       await ejecutarAccionSuscripcion(clienteActivo.cliente.id, accion);
-      setMensaje("Accion aplicada correctamente.");
+      setMensaje("Acción aplicada correctamente.");
       await abrirCliente(clienteActivo.cliente);
       await cargarTodo();
     } catch (err) {
@@ -318,14 +318,14 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
   }
 
   async function guardarConfig() {
-    const confirma = window.confirm("Confirma guardar la configuracion comercial?");
+    const confirma = window.confirm("Confirma guardar la configuración comercial?");
     if (!confirma) return;
 
     try {
       setError("");
       setMensaje("");
       await guardarConfiguracionSuscripciones(configuracion);
-      setMensaje("Configuracion guardada correctamente.");
+      setMensaje("Configuración guardada correctamente.");
     } catch (err) {
       setError(err.message);
     }
@@ -374,7 +374,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
         ))}
       </div>
 
-      {cargando && <p style={subtitulo}>Cargando informacion...</p>}
+      {cargando && <p style={subtitulo}>Cargando información...</p>}
 
       {tab === "dashboard" && (
         <>
@@ -482,7 +482,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
           <div style={metricGrid}>
             <Metric label="Pruebas activas" value={resumenSolicitudesWeb.pruebas_activas} />
             <Metric label="Vencen esta semana" value={resumenSolicitudesWeb.vencen_semana} />
-            <Metric label="Vencen en 3 dias" value={resumenSolicitudesWeb.vencen_3_dias} />
+            <Metric label="Vencen en 3 días" value={resumenSolicitudesWeb.vencen_3_dias} />
             <Metric label="Nunca han ingresado" value={resumenSolicitudesWeb.nunca_ingresaron} />
             <Metric label="Sin actividad reciente" value={resumenSolicitudesWeb.sin_actividad_reciente} />
             <Metric label="Pruebas vencidas" value={resumenSolicitudesWeb.pruebas_vencidas} />
@@ -521,7 +521,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
             >
               <option value="">Todos los tipos</option>
               <option value="PRUEBA_GRATIS">Prueba gratis</option>
-              <option value="SUSCRIPCION_MENSUAL">Suscripcion mensual</option>
+              <option value="SUSCRIPCION_MENSUAL">Suscripción mensual</option>
             </select>
             <select
               style={input}
@@ -531,7 +531,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
               <option value="">Todos los estados</option>
               <option value="prueba_activa">Prueba activa</option>
               <option value="vence_semana">Vence esta semana</option>
-              <option value="vence_3_dias">Vence en 3 dias</option>
+              <option value="vence_3_dias">Vence en 3 días</option>
               <option value="nunca_ingreso">Nunca ingreso</option>
               <option value="prueba_vencida">Prueba vencida</option>
               <option value="pendiente_pago">Pendiente pago</option>
@@ -587,7 +587,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
               <option value="nombre">Nombre</option>
               <option value="vencimiento">Vencimiento</option>
               <option value="estado">Estado</option>
-              <option value="ultimo_acceso">Ultimo acceso</option>
+              <option value="ultimo_acceso">Último acceso</option>
             </select>
             <button type="button" style={botonPrimario} onClick={buscarClientes}>Buscar</button>
           </div>
@@ -673,7 +673,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
 
       {tab === "notificaciones" && (
         <section style={card}>
-          <h2 style={tituloSeccion}>Notificaciones de suscripcion</h2>
+          <h2 style={tituloSeccion}>Notificaciones de suscripción</h2>
           <TablaSimple
             columnas={["Evento", "Titulo", "Estado", "Programada", "Canal"]}
             filas={notificaciones.map((item) => [
@@ -726,7 +726,7 @@ export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
               </div>
             ))}
           </div>
-          <button type="button" style={botonGuardar} onClick={guardarConfig}>Guardar configuracion</button>
+          <button type="button" style={botonGuardar} onClick={guardarConfig}>Guardar configuración</button>
         </section>
       )}
     </div>
@@ -864,7 +864,7 @@ function DetalleSolicitudWeb({ data, cerrar, abrirCliente }) {
             <Dato label="Empresa" value={solicitud.empresa || solicitud.empresa_creada} />
             <Dato label="RUT" value={solicitud.rut} />
             <Dato label="Correo" value={solicitud.correo || solicitud.usuario_email} />
-            <Dato label="Telefono" value={solicitud.telefono} />
+            <Dato label="Teléfono" value={solicitud.telefono} />
             <Dato label="Fecha solicitud" value={formatoFecha(solicitud.creado_en)} />
           </div>
         </section>
@@ -874,7 +874,7 @@ function DetalleSolicitudWeb({ data, cerrar, abrirCliente }) {
           <div style={datosGrid}>
             <Dato label="Inicio" value={formatoFecha(solicitud.trial_inicio || solicitud.trial_starts_at || solicitud.demo_inicio)} />
             <Dato label="Vencimiento" value={formatoFecha(solicitud.trial_vence || solicitud.trial_ends_at || solicitud.demo_vence || solicitud.expires_at)} />
-            <Dato label="Dias restantes" value={solicitud.dias_restantes ?? "-"} />
+            <Dato label="Días restantes" value={solicitud.dias_restantes ?? "-"} />
             <Dato label="Estado" value={textoEstadoSolicitud(solicitud.estado_comercial)} />
           </div>
         </section>
@@ -884,7 +884,7 @@ function DetalleSolicitudWeb({ data, cerrar, abrirCliente }) {
           <div style={datosGrid}>
             <Dato label="Usuario" value={solicitud.usuario_nombre || solicitud.usuario_email} />
             <Dato label="Estado usuario" value={solicitud.usuario_activo === false ? "Bloqueado/Inactivo" : "Activo"} />
-            <Dato label="Ultimo acceso" value={solicitud.ultimo_acceso_en ? formatoFecha(solicitud.ultimo_acceso_en) : "Nunca ha ingresado"} />
+            <Dato label="Último acceso" value={solicitud.ultimo_acceso_en ? formatoFecha(solicitud.ultimo_acceso_en) : "Nunca ha ingresado"} />
             <Dato label="Empresa creada" value={solicitud.empresa_creada || "-"} />
           </div>
           {usuarioId && (
@@ -1011,16 +1011,16 @@ function FichaCliente({ data, accion, setAccion, pago, setPago, aplicarAccion, g
         <h2 style={tituloSeccion}>Ficha del cliente</h2>
         <div style={datosGrid}>
           <Dato label="Nombre" value={cliente.cliente_nombre} />
-          <Dato label="Razon social" value={cliente.razon_social} />
+          <Dato label="Razón social" value={cliente.razon_social} />
           <Dato label="RUT" value={cliente.rut} />
           <Dato label="Correo" value={cliente.correo} />
-          <Dato label="Telefono" value={cliente.telefono} />
-          <Dato label="Direccion" value={cliente.direccion} />
+          <Dato label="Teléfono" value={cliente.telefono} />
+          <Dato label="Dirección" value={cliente.direccion} />
           <Dato label="Registro" value={formatoFecha(cliente.fecha_registro)} />
-          <Dato label="Ultimo acceso" value={formatoFecha(cliente.ultimo_acceso)} />
+          <Dato label="Último acceso" value={formatoFecha(cliente.ultimo_acceso)} />
         </div>
 
-        <h2 style={tituloSeccion}>Suscripcion</h2>
+        <h2 style={tituloSeccion}>Suscripción</h2>
         <div style={datosGrid}>
           <Dato label="Servicio" value={cliente.plan_contratado || CONFIG_COMERCIAL.servicio} />
           <Dato label="Precio base mensual" value={formatoMoneda(cliente.precio_base_mensual || CONFIG_COMERCIAL.precioBaseMensual)} />
@@ -1038,7 +1038,7 @@ function FichaCliente({ data, accion, setAccion, pago, setPago, aplicarAccion, g
           <Dato label="Usuarios activos" value={cliente.usuarios_activos || 0} />
           <Dato label="Usuario incluido" value={resumen.usuarios_incluidos || CONFIG_COMERCIAL.usuariosIncluidos} />
           <Dato label="Usuarios adicionales" value={resumen.usuarios_adicionales || 0} />
-          <Dato label="Dias restantes" value={cliente.dias_restantes ?? "-"} />
+          <Dato label="Días restantes" value={cliente.dias_restantes ?? "-"} />
           <Dato label="Gracia restante" value={cliente.gracia_restante ?? "-"} />
         </div>
 
@@ -1064,10 +1064,10 @@ function FichaCliente({ data, accion, setAccion, pago, setPago, aplicarAccion, g
             <option value="RENOVAR">Renovar</option>
             <option value="NOTA_INTERNA">Agregar nota interna</option>
           </select>
-          <input style={input} value={accion.dias} onChange={(e) => setAccion((actual) => ({ ...actual, dias: e.target.value }))} placeholder="Dias gratuitos o extension" />
+          <input style={input} value={accion.dias} onChange={(e) => setAccion((actual) => ({ ...actual, dias: e.target.value }))} placeholder="Días gratuitos o extension" />
           <input style={input} value={accion.meses} onChange={(e) => setAccion((actual) => ({ ...actual, meses: e.target.value }))} placeholder="Meses renovacion" />
           <textarea style={textarea} value={accion.observacion} onChange={(e) => setAccion((actual) => ({ ...actual, observacion: e.target.value }))} placeholder="Observacion interna" />
-          <button type="button" style={botonGuardar} onClick={aplicarAccion}>Aplicar accion</button>
+          <button type="button" style={botonGuardar} onClick={aplicarAccion}>Aplicar acción</button>
         </div>
 
         <h2 style={tituloSeccion}>Registrar pago manual</h2>
@@ -1077,7 +1077,7 @@ function FichaCliente({ data, accion, setAccion, pago, setPago, aplicarAccion, g
         <div style={gridFormularioUna}>
           <input style={input} type="date" value={pago.payment_date} onChange={(e) => setPago((actual) => ({ ...actual, payment_date: e.target.value }))} />
           <input style={input} value={pago.amount} onChange={(e) => setPago((actual) => ({ ...actual, amount: e.target.value }))} placeholder="Monto opcional" />
-          <input style={input} value={pago.period_label} onChange={(e) => setPago((actual) => ({ ...actual, period_label: e.target.value }))} placeholder="Periodo" />
+          <input style={input} value={pago.period_label} onChange={(e) => setPago((actual) => ({ ...actual, period_label: e.target.value }))} placeholder="Período" />
           <input style={input} value={pago.payment_method} onChange={(e) => setPago((actual) => ({ ...actual, payment_method: e.target.value }))} placeholder="Medio de pago" />
           <select style={input} value={pago.status} onChange={(e) => setPago((actual) => ({ ...actual, status: e.target.value }))}>
             {ESTADOS_PAGO.map((estado) => <option key={estado} value={estado}>{estado}</option>)}
@@ -1095,7 +1095,7 @@ function FichaCliente({ data, accion, setAccion, pago, setPago, aplicarAccion, g
       </section>
 
       <section style={card}>
-        <h2 style={tituloSeccion}>Historial de suscripcion</h2>
+        <h2 style={tituloSeccion}>Historial de suscripción</h2>
         <TablaSimple columnas={["Fecha", "Accion", "Anterior", "Nuevo", "Observacion"]} filas={(data.historial || []).map((item) => [formatoFecha(item.created_at), item.action, item.previous_status || "-", item.new_status || "-", item.observation || "-"])} />
       </section>
     </div>

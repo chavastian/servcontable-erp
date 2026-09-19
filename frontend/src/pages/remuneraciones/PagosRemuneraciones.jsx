@@ -72,10 +72,17 @@ export default function PagosRemuneraciones() {
     setMonto(saldo > 0 ? saldo : 0);
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarPago(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -100,6 +107,8 @@ export default function PagosRemuneraciones() {
       await cargarDatos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -219,8 +228,8 @@ export default function PagosRemuneraciones() {
           />
         </div>
 
-        <button style={botonGuardar} type="submit">
-          Registrar y contabilizar pago
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : "Registrar y contabilizar pago"}
         </button>
       </form>
 

@@ -17,6 +17,10 @@ export default function Login({ irARegistro, loginCorrecto }) {
   const [urlResetDesarrollo, setUrlResetDesarrollo] = useState("");
   const [error, setError] = useState("");
   const [solicitarPrueba, setSolicitarPrueba] = useState(false);
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   const [trialForm, setTrialForm] = useState({
     correo: "",
     password: "",
@@ -37,19 +41,27 @@ export default function Login({ irARegistro, loginCorrecto }) {
   async function manejarLogin(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       limpiarMensajes();
       const data = await loginUsuario(email, password);
       loginCorrecto(data.usuario);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
   async function manejarSolicitudPrueba(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       limpiarMensajes();
 
       const data = await crearPruebaGratis({
@@ -69,13 +81,18 @@ export default function Login({ irARegistro, loginCorrecto }) {
       loginCorrecto(data.usuario);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
   async function manejarSolicitudRecuperacion(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       limpiarMensajes();
       const data = await solicitarRecuperacionPassword(email);
       setMensaje(data.mensaje);
@@ -85,13 +102,18 @@ export default function Login({ irARegistro, loginCorrecto }) {
       }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
   async function manejarResetPassword(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       limpiarMensajes();
       const data = await resetearPasswordConToken(resetToken, nuevaPassword);
 
@@ -102,6 +124,8 @@ export default function Login({ irARegistro, loginCorrecto }) {
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -149,8 +173,8 @@ export default function Login({ irARegistro, loginCorrecto }) {
               autoComplete="new-password"
             />
 
-            <button style={botonPrimario} type="submit">
-              Actualizar contraseña
+            <button style={botonPrimario} type="submit" disabled={guardando}>
+              {guardando ? "Actualizando..." : "Actualizar contraseña"}
             </button>
           </form>
         ) : modoRecuperacion ? (
@@ -162,8 +186,8 @@ export default function Login({ irARegistro, loginCorrecto }) {
 
             <CampoIdentificador value={email} onChange={setEmail} />
 
-            <button style={botonPrimario} type="submit">
-              Enviar instrucciones
+            <button style={botonPrimario} type="submit" disabled={guardando}>
+              {guardando ? "Enviando..." : "Enviar instrucciones"}
             </button>
           </form>
         ) : solicitarPrueba ? (
@@ -186,7 +210,7 @@ export default function Login({ irARegistro, loginCorrecto }) {
               label="Contraseña"
               value={trialForm.password}
               onChange={(valor) => cambiarTrial("password", valor)}
-              placeholder="Minimo 8 caracteres"
+              placeholder="Mínimo 8 caracteres"
               autoComplete="new-password"
             />
             <CampoPassword
@@ -197,8 +221,8 @@ export default function Login({ irARegistro, loginCorrecto }) {
               autoComplete="new-password"
             />
 
-            <button style={botonPrimario} type="submit">
-              Comenzar prueba gratis
+            <button style={botonPrimario} type="submit" disabled={guardando}>
+              {guardando ? "Creando la prueba..." : "Comenzar prueba gratis"}
             </button>
           </form>
         ) : (
@@ -213,8 +237,8 @@ export default function Login({ irARegistro, loginCorrecto }) {
                 autoComplete="current-password"
               />
 
-              <button style={botonPrimario} type="submit">
-                Ingresar
+              <button style={botonPrimario} type="submit" disabled={guardando}>
+                {guardando ? "Ingresando..." : "Ingresar"}
               </button>
             </form>
 
@@ -275,19 +299,6 @@ export default function Login({ irARegistro, loginCorrecto }) {
         )}
       </div>
     </div>
-  );
-}
-
-function CampoEmail({ value, onChange }) {
-  return (
-    <CampoTexto
-      label="Correo electrónico"
-      type="email"
-      value={value}
-      onChange={onChange}
-      placeholder="correo@empresa.cl"
-      autoComplete="username"
-    />
   );
 }
 

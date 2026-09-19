@@ -290,14 +290,14 @@ export default function SaldoVacacionesRemuneraciones() {
         <div>
           <h1 style={titulo}>Saldo de Vacaciones</h1>
           <p style={subtitulo}>
-            Control de dias devengados, usados y pendientes por trabajador.
+            Control de días devengados, usados y pendientes por trabajador.
           </p>
         </div>
       </div>
 
       <div style={cardFiltros}>
         <div>
-          <label style={label}>Periodo</label>
+          <label style={label}>Período</label>
           <PeriodoMesSelector
             style={input}
             value={periodo}
@@ -376,10 +376,10 @@ export default function SaldoVacacionesRemuneraciones() {
                 <th style={th}>Ingreso</th>
                 <th style={thNumero}>Devengados</th>
                 <th style={thNumero}>Usados historico</th>
-                <th style={thNumero}>Usados periodo</th>
+                <th style={thNumero}>Usados período</th>
                 <th style={thNumero}>Pendientes</th>
                 <th style={th}>Estado</th>
-                <th style={th}>Accion</th>
+                <th style={th}>Acción</th>
               </tr>
             </thead>
 
@@ -476,12 +476,12 @@ export default function SaldoVacacionesRemuneraciones() {
             <table style={tabla}>
               <thead>
                 <tr>
-                  <th style={th}>Periodo</th>
+                  <th style={th}>Período</th>
                   <th style={th}>Tipo</th>
                   <th style={th}>Subtipo</th>
                   <th style={th}>Inicio</th>
                   <th style={th}>Termino</th>
-                  <th style={thNumero}>Dias</th>
+                  <th style={thNumero}>Días</th>
                   <th style={th}>Observacion</th>
                 </tr>
               </thead>

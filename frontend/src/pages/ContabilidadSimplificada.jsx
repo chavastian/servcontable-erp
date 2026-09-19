@@ -57,7 +57,7 @@ export default function ContabilidadSimplificada({ vista = "registro" }) {
       setVentas(ventasData.ventas || ventasData.libro || []);
       setCompras(comprasData.compras || comprasData.libro || []);
       setMovimientosCaja(cajaData.movimientos || []);
-      setMensaje("Informacion simplificada actualizada correctamente.");
+      setMensaje("Información simplificada actualizada correctamente.");
     } catch (err) {
       setError(err.message);
     }

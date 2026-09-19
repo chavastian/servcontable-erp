@@ -49,10 +49,17 @@ export default function ControlRemanenteIVA() {
     }
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarControl(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -69,6 +76,8 @@ export default function ControlRemanenteIVA() {
       await cargarHistorial();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -153,8 +162,8 @@ export default function ControlRemanenteIVA() {
           Calcular
         </button>
 
-        <button style={botonGuardar} type="submit">
-          Guardar
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : "Guardar"}
         </button>
       </form>
 

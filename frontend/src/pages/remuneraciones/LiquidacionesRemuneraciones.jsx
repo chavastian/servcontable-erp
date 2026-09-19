@@ -250,10 +250,17 @@ export default function LiquidacionesRemuneraciones() {
       .join(" | ");
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function calcular(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -284,15 +291,17 @@ export default function LiquidacionesRemuneraciones() {
       });
 
       setCalculo(data);
-      setMensaje("Liquidacion calculada correctamente.");
+      setMensaje("Liquidación calculada correctamente.");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
   async function guardar() {
     if (!calculo) {
-      setError("Primero debes calcular la liquidacion.");
+      setError("Primero debes calcular la liquidación.");
       return;
     }
 
@@ -320,10 +329,10 @@ export default function LiquidacionesRemuneraciones() {
   }
 
   function editarLiquidacion(item) {
-    if (Boolean(item.contabilizada)) {
+    if (item.contabilizada) {
       setMensaje("");
       setError(
-        "No puedes editar una liquidacion ya contabilizada. Si necesitas recalcularla, elimínala para anular su comprobante."
+        "No puedes editar una liquidación ya contabilizada. Si necesitas recalcularla, elimínala para anular su comprobante."
       );
       return;
     }
@@ -391,7 +400,7 @@ export default function LiquidacionesRemuneraciones() {
 
   async function contabilizarPeriodo() {
     const confirmar = window.confirm(
-      `Deseas contabilizar todas las liquidaciones emitidas del periodo ${formulario.periodo}?`
+      `Deseas contabilizar todas las liquidaciones emitidas del período ${formulario.periodo}?`
     );
 
     if (!confirmar) return;
@@ -423,11 +432,11 @@ export default function LiquidacionesRemuneraciones() {
       {cargando && <EstadoCargando mensaje="Cargando datos..." />}
 
       <form style={card} onSubmit={calcular}>
-        <h2 style={tituloSeccion}>Calcular liquidacion parametrizada</h2>
+        <h2 style={tituloSeccion}>Calcular liquidación parametrizada</h2>
 
         <div style={grid}>
           <div>
-            <label style={label}>Periodo</label>
+            <label style={label}>Período</label>
             <PeriodoMesSelector
               style={input}
               value={formulario.periodo}
@@ -459,7 +468,7 @@ export default function LiquidacionesRemuneraciones() {
           </div>
 
           <Campo
-            label="Dias trabajados"
+            label="Días trabajados"
             type="number"
             name="dias_trabajados"
             value={formulario.dias_trabajados}
@@ -503,7 +512,7 @@ export default function LiquidacionesRemuneraciones() {
 
           <div style={gridHorasExtras}>
             <div>
-              <label style={label}>Tipo calculo</label>
+              <label style={label}>Tipo cálculo</label>
               <select
                 style={input}
                 name="tipo_calculo_horas_extras"
@@ -519,7 +528,7 @@ export default function LiquidacionesRemuneraciones() {
             </div>
 
             <Campo
-              label="Horas del periodo"
+              label="Horas del período"
               type="number"
               name="horas_extras"
               value={formulario.horas_extras}
@@ -577,7 +586,7 @@ export default function LiquidacionesRemuneraciones() {
           </div>
 
           <small style={notaCompacta}>
-            Si la base queda en 0, el sistema usa el sueldo base del trabajador. Para remuneracion variable usa el ingreso minimo configurado cuando corresponda.
+            Si la base queda en 0, el sistema usa el sueldo base del trabajador. Para remuneracion variable usa el ingreso mínimo configurado cuando corresponda.
           </small>
         </div>
 
@@ -591,8 +600,8 @@ export default function LiquidacionesRemuneraciones() {
           </p>
         )}
 
-        <button style={botonGuardar} type="submit">
-          Calcular liquidacion
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Calculando..." : "Calcular liquidacion"}
         </button>
 
         <button type="button" style={botonBuscar} onClick={cargarDatos}>
@@ -604,7 +613,7 @@ export default function LiquidacionesRemuneraciones() {
           style={botonContabilizar}
           onClick={contabilizarPeriodo}
         >
-          Contabilizar periodo
+          Contabilizar período
         </button>
 
         {editandoLiquidacionId && (
@@ -616,7 +625,7 @@ export default function LiquidacionesRemuneraciones() {
 
       {calculo && (
         <div style={cardResultado}>
-          <h2 style={tituloSeccion}>Resultado calculo</h2>
+          <h2 style={tituloSeccion}>Resultado cálculo</h2>
 
           <h3 style={subtituloSeccion}>Datos trabajador</h3>
 
@@ -634,7 +643,7 @@ export default function LiquidacionesRemuneraciones() {
             />
           </div>
 
-          <h3 style={subtituloSeccion}>Parametros aplicados</h3>
+          <h3 style={subtituloSeccion}>Parámetros aplicados</h3>
 
           <div style={gridResumen}>
             <Resumen
@@ -742,7 +751,7 @@ export default function LiquidacionesRemuneraciones() {
             />
 
             <Resumen
-              label="Tramo impuesto unico"
+              label="Tramo impuesto único"
               valor={
                 calculo.calculo.tramo_impuesto_unico_id
                   ? `${formato(calculo.calculo.tramo_impuesto_unico_desde)} a ${
@@ -755,7 +764,7 @@ export default function LiquidacionesRemuneraciones() {
             />
 
             <Resumen
-              label="Factor impuesto unico"
+              label="Factor impuesto único"
               valor={Number(calculo.calculo.factor_impuesto_unico || 0).toLocaleString(
                 "es-CL",
                 {
@@ -766,11 +775,11 @@ export default function LiquidacionesRemuneraciones() {
             />
 
             <Resumen
-              label="Rebaja impuesto unico"
+              label="Rebaja impuesto único"
               valor={formato(calculo.calculo.rebaja_impuesto_unico)}
             />
             <Resumen
-              label="Impuesto unico"
+              label="Impuesto único"
               valor={formato(calculo.calculo.impuesto_unico)}
               destacado={Number(calculo.calculo.impuesto_unico || 0) > 0}
             />
@@ -806,7 +815,7 @@ export default function LiquidacionesRemuneraciones() {
               destacado
             />
             <Resumen
-              label="Liquido a pagar"
+              label="Líquido a pagar"
               valor={formato(calculo.calculo.liquido_pagar)}
               destacadoVerde
             />
@@ -836,7 +845,7 @@ export default function LiquidacionesRemuneraciones() {
             <strong>Total descuentos:</strong> {formato(totales.total_descuentos)}
           </div>
           <div>
-            <strong>Liquido a pagar:</strong> {formato(totales.liquido_pagar)}
+            <strong>Líquido a pagar:</strong> {formato(totales.liquido_pagar)}
           </div>
           <div>
             <strong>Costo empresa:</strong> {formato(totales.costo_empresa)}
@@ -847,21 +856,21 @@ export default function LiquidacionesRemuneraciones() {
           <table style={tabla}>
             <thead>
               <tr>
-                <th style={th}>Periodo</th>
+                <th style={th}>Período</th>
                 <th style={th}>Trabajador</th>
                 <th style={th}>Cargo</th>
                 <th style={th}>AFP</th>
                 <th style={thNumero}>Haberes</th>
                 <th style={thNumero}>Hrs extra</th>
                 <th style={thNumero}>Descuentos</th>
-                <th style={thNumero}>Dias ausencia</th>
+                <th style={thNumero}>Días ausencia</th>
                 <th style={thNumero}>Desc. ausencias</th>
-                <th style={thNumero}>Liquido</th>
+                <th style={thNumero}>Líquido</th>
                 <th style={thNumero}>Costo empresa</th>
                 <th style={th}>Estado</th>
                 <th style={th}>Contab.</th>
                 <th style={th}>Comp.</th>
-                <th style={th}>Accion</th>
+                <th style={th}>Acción</th>
               </tr>
             </thead>
 
@@ -903,7 +912,7 @@ export default function LiquidacionesRemuneraciones() {
                       <button
                         type="button"
                         style={botonEditarIcono}
-                        title="Editar liquidacion"
+                        title="Editar liquidación"
                         aria-label="Editar liquidacion"
                         onClick={() => editarLiquidacion(item)}
                       >
@@ -912,7 +921,7 @@ export default function LiquidacionesRemuneraciones() {
                       <button
                         type="button"
                         style={botonEliminarIcono}
-                        title="Eliminar liquidacion"
+                        title="Eliminar liquidación"
                         aria-label="Eliminar liquidacion"
                         onClick={() => eliminarLiquidacionFila(item)}
                       >

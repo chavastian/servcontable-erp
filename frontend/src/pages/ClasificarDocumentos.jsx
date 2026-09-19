@@ -9,12 +9,14 @@
  * cambiar la contabilidad de alguien a ciegas.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AccountSelector from "../components/AccountSelector";
 import EstadoPantalla from "../components/EstadoPantalla";
 import {
   obtenerSugerenciasDeCuenta,
   aplicarSugerenciasDeCuenta,
 } from "../services/asistentesService";
+import { listarCuentas } from "../services/cuentaService";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
 import { estilos, pesos, numero, fechaCorta } from "../utils/estilosAsistentes";
@@ -26,21 +28,34 @@ export default function ClasificarDocumentos() {
   const [todoElHistorial, setTodoElHistorial] = useState(false);
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState("");
+  // El error de la consulta reemplaza la tabla; el de aplicar se muestra encima
+  // sin borrarla, porque lo marcado sigue ahí y se puede reintentar.
+  const [errorCarga, setErrorCarga] = useState("");
+  const [errorAccion, setErrorAccion] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [marcados, setMarcados] = useState({});
+  // Cuenta elegida a mano para los documentos sin historial, por clave libro-id.
+  const [manuales, setManuales] = useState({});
+  const [cuentas, setCuentas] = useState([]);
   const [aplicando, setAplicando] = useState(false);
+
+  // Número de la última petición: cambiar el período o el filtro dos veces
+  // seguidas no debe dejar en pantalla la respuesta de la primera.
+  const ultimaPeticion = useRef(0);
 
   const cargar = useCallback(
     async (periodoPedido, sinFiltroDePeriodo) => {
       if (!empresa?.id) {
-        setError("Selecciona una empresa para revisar los documentos.");
+        setErrorCarga("Selecciona una empresa para revisar los documentos.");
         setCargando(false);
         return;
       }
 
+      const marca = ++ultimaPeticion.current;
+
       setCargando(true);
-      setError("");
+      setErrorCarga("");
+      setErrorAccion("");
       setMensaje("");
 
       try {
@@ -48,6 +63,8 @@ export default function ClasificarDocumentos() {
           empresa.id,
           sinFiltroDePeriodo ? "" : periodoPedido
         );
+
+        if (marca !== ultimaPeticion.current) return;
 
         setDatos(respuesta);
 
@@ -63,11 +80,13 @@ export default function ClasificarDocumentos() {
         });
 
         setMarcados(inicial);
+        setManuales({});
       } catch (problema) {
-        setError(problema.message || "No se pudieron obtener las sugerencias");
+        if (marca !== ultimaPeticion.current) return;
+        setErrorCarga(problema.message || "No se pudieron obtener las sugerencias");
         setDatos(null);
       } finally {
-        setCargando(false);
+        if (marca === ultimaPeticion.current) setCargando(false);
       }
     },
     [empresa?.id]
@@ -77,15 +96,47 @@ export default function ClasificarDocumentos() {
     cargar(periodo, todoElHistorial);
   }, [cargar, periodo, todoElHistorial]);
 
+  // El plan de cuentas alimenta el selector de las filas sin historial. Si no
+  // se puede cargar, la pantalla sigue sirviendo para las que sí tienen
+  // sugerencia; por eso el fallo no va a errorCarga.
+  useEffect(() => {
+    if (!empresa?.id) return undefined;
+
+    let vigente = true;
+
+    listarCuentas(empresa.id)
+      .then((respuesta) => {
+        if (vigente) setCuentas(respuesta?.cuentas || []);
+      })
+      .catch(() => {
+        if (vigente) setCuentas([]);
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [empresa?.id]);
+
   const documentos = datos?.documentos || [];
   const resumen = datos?.resumen || {};
 
-  const seleccionados = useMemo(
+  // Lo que se va a enviar: las sugerencias marcadas más las cuentas elegidas a
+  // mano, en el mismo formato que espera el backend.
+  const porAplicar = useMemo(
     () =>
-      documentos.filter(
-        (documento) => documento.sugerencia && marcados[`${documento.libro}-${documento.id}`]
-      ),
-    [documentos, marcados]
+      documentos
+        .map((documento) => {
+          const clave = `${documento.libro}-${documento.id}`;
+          const cuentaId = documento.sugerencia
+            ? marcados[clave] && documento.sugerencia.cuenta_id
+            : manuales[clave];
+
+          if (!cuentaId) return null;
+
+          return { libro: documento.libro, id: documento.id, cuenta_id: Number(cuentaId) };
+        })
+        .filter(Boolean),
+    [documentos, marcados, manuales]
   );
 
   function alternar(documento) {
@@ -94,22 +145,29 @@ export default function ClasificarDocumentos() {
     setMarcados((previos) => ({ ...previos, [clave]: !previos[clave] }));
   }
 
+  function elegirCuentaManual(documento, cuentaId) {
+    const clave = `${documento.libro}-${documento.id}`;
+
+    setManuales((previos) => ({ ...previos, [clave]: cuentaId || "" }));
+  }
+
+  // Compras van a una cuenta de gasto, costo, pérdida o activo; ventas a una
+  // de ingreso o ganancia. Ofrecer el plan completo invitaba a equivocarse.
+  function tiposParaLibro(libro) {
+    return String(libro || "").toLowerCase() === "ventas"
+      ? ["Ganancia", "Ingreso"]
+      : ["Perdida", "Gasto", "Costo", "Activo"];
+  }
+
   async function aplicar() {
-    if (seleccionados.length === 0) return;
+    if (porAplicar.length === 0 || aplicando) return;
 
     setAplicando(true);
-    setError("");
+    setErrorAccion("");
     setMensaje("");
 
     try {
-      const respuesta = await aplicarSugerenciasDeCuenta(
-        empresa.id,
-        seleccionados.map((documento) => ({
-          libro: documento.libro,
-          id: documento.id,
-          cuenta_id: documento.sugerencia.cuenta_id,
-        }))
-      );
+      const respuesta = await aplicarSugerenciasDeCuenta(empresa.id, porAplicar);
 
       setMensaje(
         `${numero(respuesta.aplicados)} documento(s) clasificados. ${
@@ -119,7 +177,7 @@ export default function ClasificarDocumentos() {
 
       await cargar(periodo, todoElHistorial);
     } catch (problema) {
-      setError(problema.message || "No se pudieron aplicar las sugerencias");
+      setErrorAccion(problema.message || "No se pudieron aplicar las sugerencias");
     } finally {
       setAplicando(false);
     }
@@ -164,20 +222,21 @@ export default function ClasificarDocumentos() {
           type="button"
           className="sc-btn sc-btn--success"
           onClick={aplicar}
-          disabled={aplicando || seleccionados.length === 0}
+          disabled={aplicando || porAplicar.length === 0}
         >
           {aplicando
             ? "Aplicando..."
-            : `Aplicar ${numero(seleccionados.length)} seleccionado(s)`}
+            : `Aplicar ${numero(porAplicar.length)} seleccionado(s)`}
         </button>
       </div>
 
       {mensaje ? <div className="sc-message sc-message--ok">{mensaje}</div> : null}
+      {errorAccion ? <div className="sc-message sc-message--error">{errorAccion}</div> : null}
 
       <EstadoPantalla
         cargando={cargando}
-        error={error}
-        vacio={!cargando && !error && documentos.length === 0}
+        error={errorCarga}
+        vacio={!cargando && !errorCarga && documentos.length === 0}
         alReintentar={() => cargar(periodo, todoElHistorial)}
         mensajeCargando="Buscando documentos sin cuenta asignada..."
         tituloVacio="No hay documentos sin clasificar"
@@ -207,7 +266,8 @@ export default function ClasificarDocumentos() {
             <h3 style={estilos.titulo}>Documentos sin cuenta asignada</h3>
             <p style={estilos.subtitulo}>
               La cuenta sugerida es la que esta empresa usó antes para el mismo
-              RUT. Desmarca lo que no corresponda antes de aplicar.
+              RUT. Desmarca lo que no corresponda antes de aplicar. Para las que no
+              tienen historial, elige la cuenta a mano: se aplican en el mismo envío.
             </p>
 
             <div style={{ ...estilos.contenedorTabla, marginTop: 12 }}>
@@ -244,7 +304,7 @@ export default function ClasificarDocumentos() {
                             />
                           ) : (
                             <span style={{ color: "var(--sc-muted)", fontSize: 11.5 }}>
-                              sin sugerencia
+                              {manuales[clave] ? "con cuenta elegida" : "a mano"}
                             </span>
                           )}
                         </td>
@@ -279,9 +339,21 @@ export default function ClasificarDocumentos() {
                               </span>
                             </>
                           ) : (
-                            <span style={{ color: "var(--sc-muted)" }}>
-                              Sin documentos anteriores de este RUT con cuenta asignada
-                            </span>
+                            <div style={{ minWidth: 260 }}>
+                              <AccountSelector
+                                cuentas={cuentas}
+                                value={manuales[clave] || ""}
+                                tiposPermitidos={tiposParaLibro(documento.libro)}
+                                placeholder="Elegir cuenta a mano..."
+                                style={estilos.input}
+                                onChange={(evento) =>
+                                  elegirCuentaManual(documento, evento.target.value)
+                                }
+                              />
+                              <span style={{ fontSize: 11.5, color: "var(--sc-muted)" }}>
+                                Sin documentos anteriores de este RUT con cuenta asignada
+                              </span>
+                            </div>
                           )}
                         </td>
                       </tr>

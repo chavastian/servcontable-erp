@@ -77,10 +77,17 @@ export default function Empresas({ alSeleccionarEmpresa }) {
     });
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function manejarSubmit(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -105,6 +112,8 @@ export default function Empresas({ alSeleccionarEmpresa }) {
       await cargarEmpresas();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -124,7 +133,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
 
   async function manejarEliminarEmpresa(empresa) {
     const confirma = window.confirm(
-      `Eliminar empresa ${empresa.razon_social}?\n\nLa empresa dejara de aparecer en el sistema. Esta accion no elimina los registros contables historicos.`
+      `Eliminar empresa ${empresa.razon_social}?\n\nLa empresa dejara de aparecer en el sistema. Esta acción no elimina los registros contables historicos.`
     );
 
     if (!confirma) {
@@ -201,7 +210,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
               placeholder="76.123.456-7"
             />
 
-            <label style={label}>Razon social</label>
+            <label style={label}>Razón social</label>
             <input
               style={input}
               name="razon_social"
@@ -219,13 +228,13 @@ export default function Empresas({ alSeleccionarEmpresa }) {
               placeholder="Servicios contables"
             />
 
-            <label style={label}>Direccion</label>
+            <label style={label}>Dirección</label>
             <input
               style={input}
               name="direccion"
               value={formulario.direccion}
               onChange={manejarCambio}
-              placeholder="Direccion comercial"
+              placeholder="Dirección comercial"
             />
 
             <label style={label}>Comuna</label>
@@ -246,7 +255,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
               placeholder="Ciudad"
             />
 
-            <label style={label}>Regimen tributario</label>
+            <label style={label}>Régimen tributario</label>
             <select
               style={input}
               name="regimen_tributario"
@@ -255,13 +264,13 @@ export default function Empresas({ alSeleccionarEmpresa }) {
             >
               <option>14D3 Pro Pyme General</option>
               <option>14D8 Pro Pyme Transparente</option>
-              <option>Regimen General Semi Integrado</option>
-              <option>Sin regimen definido</option>
+              <option>Régimen General Semi Integrado</option>
+              <option>Sin régimen definido</option>
             </select>
 
             <div style={separadorFormulario}>Datos de contacto</div>
 
-            <label style={label}>Telefono empresa</label>
+            <label style={label}>Teléfono empresa</label>
             <input
               style={input}
               name="telefono"
@@ -279,7 +288,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
               placeholder="contacto@empresa.cl"
             />
 
-            <label style={label}>Descripcion de la actividad</label>
+            <label style={label}>Descripción de la actividad</label>
             <textarea
               style={textarea}
               name="descripcion_actividad"
@@ -317,7 +326,7 @@ export default function Empresas({ alSeleccionarEmpresa }) {
               placeholder="representante@empresa.cl"
             />
 
-            <label style={label}>Telefono representante</label>
+            <label style={label}>Teléfono representante</label>
             <input
               style={input}
               name="telefono_representante"
@@ -327,8 +336,8 @@ export default function Empresas({ alSeleccionarEmpresa }) {
             />
 
             <div style={accionesFormulario}>
-              <button style={boton} type="submit">
-                {empresaEditandoId ? "Actualizar empresa" : "Guardar empresa"}
+              <button style={boton} type="submit" disabled={guardando}>
+                {guardando ? "Guardando..." : empresaEditandoId ? "Actualizar empresa" : "Guardar empresa"}
               </button>
 
               {empresaEditandoId && (
@@ -347,12 +356,12 @@ export default function Empresas({ alSeleccionarEmpresa }) {
             <thead>
               <tr>
                 <th style={th}>RUT</th>
-                <th style={th}>Razon social</th>
-                <th style={th}>Regimen</th>
+                <th style={th}>Razón social</th>
+                <th style={th}>Régimen</th>
                 <th style={th}>Ciudad</th>
                 <th style={th}>Contacto</th>
                 <th style={th}>Representante</th>
-                <th style={th}>Accion</th>
+                <th style={th}>Acción</th>
               </tr>
             </thead>
 

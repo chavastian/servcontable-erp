@@ -40,6 +40,14 @@ import FlujoCaja from "./FlujoCaja";
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 const LOGO_SRC = "/servcontable-logo.png";
 
+// Bajo este ancho el menú lateral tapa el contenido en vez de empujarlo. El
+// mismo umbral que usa index.css para el resto de la aplicación.
+const CONSULTA_PANTALLA_ANGOSTA = "(max-width: 780px)";
+
+function pantallaAngosta() {
+  return typeof window !== "undefined" && window.matchMedia(CONSULTA_PANTALLA_ANGOSTA).matches;
+}
+
 const HEROES_CONTABLE = {
   panelEstudio: {
     titulo: "Panel del estudio",
@@ -81,10 +89,14 @@ const HEROES_CONTABLE = {
   },
   boletas: {
     titulo: "Registro de Boletas",
-    descripcion: "Importa boletas electronicas SII y genera comprobantes de ingreso.",
+    descripcion: "Importa boletas electrónicas SII y genera comprobantes de ingreso.",
+  },
+  inicio: {
+    titulo: "Dashboard financiero",
+    descripcion: "Resumen de ventas, compras, IVA y saldos de la empresa activa.",
   },
   conciliacionBancaria: {
-    titulo: "Conciliacion Bancaria",
+    titulo: "Conciliación bancaria",
     descripcion: "Importa cartolas bancarias y controla movimientos conciliados.",
   },
   compras: {
@@ -181,7 +193,7 @@ const HEROES_CONTABLE = {
   },
   adminSuscripcionesSolicitudes: {
     titulo: "Solicitudes web",
-    descripcion: "Revisa pruebas gratis y suscripciones solicitadas desde la pagina publica.",
+    descripcion: "Revisa pruebas gratis y suscripciones solicitadas desde la página pública.",
   },
   adminSuscripcionesClientes: {
     titulo: "Clientes",
@@ -197,11 +209,11 @@ const HEROES_CONTABLE = {
   },
   adminSuscripcionesPagos: {
     titulo: "Pagos",
-    descripcion: "Revisa pagos y registra pagos manuales de suscripcion.",
+    descripcion: "Revisa pagos y registra pagos manuales de suscripción.",
   },
   adminSuscripcionesNotificaciones: {
     titulo: "Notificaciones",
-    descripcion: "Prepara avisos de vencimiento y eventos de suscripcion.",
+    descripcion: "Prepara avisos de vencimiento y eventos de suscripción.",
   },
   adminSuscripcionesAuditoria: {
     titulo: "Auditoría",
@@ -291,7 +303,9 @@ export default function PanelPrincipal({
   alSeleccionarEmpresa,
 }) {
   const [vistaActiva, setVistaActiva] = useState(() => vistaInicialPorModulo(moduloActivo));
-  const [menuAbierto, setMenuAbierto] = useState(true);
+  // En un teléfono el menú de 260 px dejaba 140 px de contenido: arranca
+  // cerrado y se abre con el botón de la barra superior.
+  const [menuAbierto, setMenuAbierto] = useState(() => !pantallaAngosta());
   const [gruposAbiertos, setGruposAbiertos] = useState({});
   const usuarioEsAdminSistema = ROLES_ADMIN_SISTEMA.includes(rolNormalizado(usuario?.rol));
   const esModuloAdministracion = moduloActivo === "administracion";
@@ -310,6 +324,12 @@ export default function PanelPrincipal({
 
   function irVista(vista) {
     setVistaActiva(vista);
+
+    // En pantalla angosta el menú es una capa sobre el contenido: si quedara
+    // abierto tras elegir, taparía la pantalla que se acaba de pedir.
+    if (pantallaAngosta()) {
+      setMenuAbierto(false);
+    }
   }
 
   function alternarGrupo(nombreGrupo) {
@@ -354,7 +374,7 @@ export default function PanelPrincipal({
         { id: "pagosCobros", label: "Pagar / Cobrar Documento" },
         { id: "cuentasPendientes", label: "Cuentas por Cobrar/Pagar" },
         { id: "cartolaRut", label: "Cartola por RUT" },
-        { id: "conciliacionBancaria", label: "Conciliacion Bancaria" },
+        { id: "conciliacionBancaria", label: "Conciliación bancaria" },
         { id: "calceBancario", label: "Calce automático del banco" },
         { id: "clasificarDocumentos", label: "Clasificar documentos" },
       ],
@@ -435,7 +455,7 @@ export default function PanelPrincipal({
       { id: "adminSuscripcionesGestion", label: "Suscripciones" },
       { id: "adminSuscripcionesPagos", label: "Pagos" },
       { id: "adminSuscripcionesSolicitudes", label: "Solicitudes Web" },
-      { id: "adminSuscripcionesAuditoria", label: "Auditoría / Actividad" },
+      { id: "adminSuscripcionesAuditoria", label: "Auditoría" },
       { id: "adminSuscripcionesConfiguracion", label: "Configuración Comercial" },
     ],
   };
@@ -479,7 +499,7 @@ export default function PanelPrincipal({
   return (
     <div style={layout}>
       {menuAbierto && (
-        <aside style={sidebar}>
+        <aside className="sc-sidebar" style={sidebar}>
           <div style={brandBox}>
             <img style={brandIcon} src={LOGO_SRC} alt="ServContable" />
             <div>
@@ -555,7 +575,7 @@ export default function PanelPrincipal({
         </aside>
       )}
 
-      <main style={main(menuAbierto)}>
+      <main className="sc-main-panel" style={main(menuAbierto)}>
         <header style={topbar}>
           <button type="button" style={botonToggle} onClick={() => setMenuAbierto(!menuAbierto)}>
             {menuAbierto ? "Ocultar menú" : "Mostrar menú"}
@@ -590,7 +610,7 @@ export default function PanelPrincipal({
             }`}
           >
             {vistaActiva === "panelEstudio" && (
-              <PanelEstudio irVista={irVista} alAbrirEmpresa={alSeleccionarEmpresa} />
+              <PanelEstudio alAbrirEmpresa={alSeleccionarEmpresa} />
             )}
             {vistaActiva === "cierreMensual" && <CierreMensual />}
             {vistaActiva === "calceBancario" && <CalceBancario />}

@@ -532,11 +532,11 @@ export default function Balance8Columnas() {
         <table style={tabla}>
           <thead>
             <tr>
-              <th style={th}>Codigo</th>
+              <th style={th}>Código</th>
               <th style={th}>Cuenta</th>
               <th style={th}>Tipo</th>
-              <th style={th}>Debitos</th>
-              <th style={th}>Creditos</th>
+              <th style={th}>Débitos</th>
+              <th style={th}>Créditos</th>
               <th style={th}>Saldo Deudor</th>
               <th style={th}>Saldo Acreedor</th>
               <th style={th}>Activo</th>
@@ -566,7 +566,7 @@ export default function Balance8Columnas() {
             {filas.length === 0 && (
               <tr>
                 <td style={td} colSpan="11">
-                  No hay movimientos para este periodo.
+                  No hay movimientos para este período.
                 </td>
               </tr>
             )}

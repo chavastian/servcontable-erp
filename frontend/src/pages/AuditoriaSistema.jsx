@@ -93,7 +93,7 @@ export default function AuditoriaSistema() {
               <th style={th}>Fecha y hora</th>
               <th style={th}>Usuario</th>
               <th style={th}>Modulo</th>
-              <th style={th}>Accion</th>
+              <th style={th}>Acción</th>
               <th style={th}>Detalle</th>
             </tr>
           </thead>

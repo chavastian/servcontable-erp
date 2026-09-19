@@ -161,7 +161,7 @@ export default function ImpuestoUnicoRemuneraciones() {
       const data = await listarTramosImpuestoUnico(empresaActiva.id, periodo);
 
       setTramos(data.tramos || []);
-      setMensaje("Tramos de impuesto unico cargados correctamente.");
+      setMensaje("Tramos de impuesto único cargados correctamente.");
     } catch (err) {
       setError(err.message);
     }
@@ -187,7 +187,7 @@ export default function ImpuestoUnicoRemuneraciones() {
 
     const utm = Number(valorUtm || 0);
     if (utm <= 0) {
-      setError("Debes indicar el valor UTM del periodo para autocompletar.");
+      setError("Debes indicar el valor UTM del período para autocompletar.");
       return;
     }
 
@@ -212,10 +212,17 @@ export default function ImpuestoUnicoRemuneraciones() {
     });
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardar(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -233,6 +240,8 @@ export default function ImpuestoUnicoRemuneraciones() {
       await cargarTramos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -254,7 +263,7 @@ export default function ImpuestoUnicoRemuneraciones() {
 
   async function eliminarPeriodo() {
     const confirmar = window.confirm(
-      `Seguro deseas eliminar todos los tramos del periodo ${periodo}?`
+      `Seguro deseas eliminar todos los tramos del período ${periodo}?`
     );
     if (!confirmar) return;
 
@@ -287,15 +296,15 @@ export default function ImpuestoUnicoRemuneraciones() {
       {error && <p style={err}>{error}</p>}
 
       <div style={card}>
-        <h2 style={tituloSeccion}>Impuesto Unico de Segunda Categoria</h2>
+        <h2 style={tituloSeccion}>Impuesto Único de Segunda Categoría</h2>
 
         <div style={alerta}>
-          Ingresa los tramos mensuales del impuesto unico para el periodo.
+          Ingresa los tramos mensuales del impuesto único para el período.
         </div>
 
         <div style={filtros}>
           <div>
-            <label style={label}>Periodo</label>
+            <label style={label}>Período</label>
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
@@ -304,7 +313,7 @@ export default function ImpuestoUnicoRemuneraciones() {
           </button>
 
           <button type="button" style={botonEliminarPeriodo} onClick={eliminarPeriodo}>
-            Eliminar tramos periodo
+            Eliminar tramos período
           </button>
         </div>
       </div>
@@ -314,7 +323,7 @@ export default function ImpuestoUnicoRemuneraciones() {
 
         <div style={grid}>
           <div>
-            <label style={label}>Valor UTM periodo</label>
+            <label style={label}>Valor UTM período</label>
             <input
               style={input}
               type="number"
@@ -388,8 +397,8 @@ export default function ImpuestoUnicoRemuneraciones() {
           </div>
         </div>
 
-        <button style={botonGuardar} type="submit">
-          Guardar tramo
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : "Guardar tramo"}
         </button>
       </form>
 
@@ -439,7 +448,7 @@ export default function ImpuestoUnicoRemuneraciones() {
                 <th style={th}>Hasta</th>
                 <th style={th}>Factor</th>
                 <th style={th}>Rebaja</th>
-                <th style={thAccion}>Accion</th>
+                <th style={thAccion}>Acción</th>
               </tr>
             </thead>
 
@@ -470,7 +479,7 @@ export default function ImpuestoUnicoRemuneraciones() {
               {tramos.length === 0 && (
                 <tr>
                   <td style={td} colSpan="5">
-                    No hay tramos configurados para este periodo.
+                    No hay tramos configurados para este período.
                   </td>
                 </tr>
               )}

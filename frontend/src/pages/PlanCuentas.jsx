@@ -82,8 +82,14 @@ export default function PlanCuentas() {
     setCuentaEditandoId(null);
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function manejarSubmit(e) {
     e.preventDefault();
+
+    if (guardando) return;
 
     if (!empresaActiva?.id) {
       setError("Debes seleccionar una empresa activa antes de crear cuentas.");
@@ -91,11 +97,12 @@ export default function PlanCuentas() {
     }
 
     if (!formulario.codigo || !formulario.nombre) {
-      setError("Debe ingresar codigo y nombre de la cuenta.");
+      setError("Debe ingresar código y nombre de la cuenta.");
       return;
     }
 
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -122,6 +129,8 @@ export default function PlanCuentas() {
       await cargarCuentas();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -149,7 +158,7 @@ export default function PlanCuentas() {
   }
 
   async function alternarEstadoCuenta(cuenta) {
-    const activar = !Boolean(cuenta.activo);
+    const activar = !cuenta.activo;
     const textoAccion = activar ? "habilitar" : "desactivar";
 
     const confirmar = window.confirm(
@@ -186,7 +195,7 @@ export default function PlanCuentas() {
       }
 
       const confirmar = window.confirm(
-        "Deseas cargar el plan de cuentas base ServContable? Se omitiran las cuentas que ya existan con el mismo codigo."
+        "Deseas cargar el plan de cuentas base ServContable? Se omitiran las cuentas que ya existan con el mismo código."
       );
       if (!confirmar) return;
 
@@ -263,7 +272,7 @@ export default function PlanCuentas() {
             </div>
           )}
 
-          <label style={label}>Codigo</label>
+          <label style={label}>Código</label>
           <input
             style={input}
             name="codigo"
@@ -298,7 +307,7 @@ export default function PlanCuentas() {
             <option value="Perdida">Perdida</option>
           </select>
 
-          <label style={label}>Clasificacion</label>
+          <label style={label}>Clasificación</label>
           <input
             style={input}
             name="clasificacion"
@@ -329,8 +338,8 @@ export default function PlanCuentas() {
             max="6"
           />
 
-          <button style={cuentaEditandoId ? botonActualizar : boton} type="submit">
-            {cuentaEditandoId ? "Actualizar cuenta" : "Guardar cuenta"}
+          <button style={cuentaEditandoId ? botonActualizar : boton} type="submit" disabled={guardando}>
+            {guardando ? "Guardando..." : cuentaEditandoId ? "Actualizar cuenta" : "Guardar cuenta"}
           </button>
 
           {cuentaEditandoId && (
@@ -348,7 +357,7 @@ export default function PlanCuentas() {
               style={inputBusqueda}
               value={busquedaCuenta}
               onChange={(e) => setBusquedaCuenta(e.target.value)}
-              placeholder="Buscar por codigo o nombre de cuenta..."
+              placeholder="Buscar por código o nombre de cuenta..."
             />
             <span style={contadorBusqueda}>
               {cuentasFiltradas.length} de {cuentas.length} cuentas
@@ -358,14 +367,14 @@ export default function PlanCuentas() {
           <table style={tabla}>
             <thead>
               <tr>
-                <th style={th}>Codigo</th>
+                <th style={th}>Código</th>
                 <th style={th}>Nombre</th>
                 <th style={th}>Tipo</th>
-                <th style={th}>Clasificacion</th>
+                <th style={th}>Clasificación</th>
                 <th style={th}>Naturaleza</th>
                 <th style={th}>Nivel</th>
                 <th style={th}>Estado</th>
-                <th style={thAccion}>Accion</th>
+                <th style={thAccion}>Acción</th>
               </tr>
             </thead>
 

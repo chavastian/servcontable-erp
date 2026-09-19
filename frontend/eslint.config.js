@@ -17,5 +17,14 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Las dos reglas de hooks marcaban decenas de efectos heredados como
+      // error y ahogaban al resto: con el linter siempre en rojo nadie miraba
+      // un `no-undef` nuevo. Quedan como advertencia; `no-undef` sigue como
+      // error para que un identificador inexistente rompa el lint.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/exhaustive-deps': 'warn',
+      'no-undef': 'error',
+    },
   },
 ])

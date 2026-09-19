@@ -73,7 +73,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
       >
         <div style={filtros}>
           <div>
-            <label style={label}>Periodo</label>
+            <label style={label}>Período</label>
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
@@ -199,7 +199,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <span style={accesoIcono}>
                 <IconoSistema tipo="configuracion" />
               </span>
-              <strong>Configuracion previsional</strong>
+              <strong>Configuración previsional</strong>
               <small>Indicadores Previred, AFP, AFC y topes.</small>
             </button>
 
@@ -210,14 +210,14 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               <span style={accesoIcono}>
                 <IconoSistema tipo="comprobante" />
               </span>
-              <strong>Configuracion contable</strong>
+              <strong>Configuración contable</strong>
               <small>Cuentas para centralizacion y pagos.</small>
             </button>
           </div>
         </div>
 
         <div style={card}>
-          <h2 style={tituloSeccion}>Variables del periodo</h2>
+          <h2 style={tituloSeccion}>Variables del período</h2>
 
           <div style={listaResumen}>
             <FilaResumen
@@ -252,7 +252,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
       </div>
 
       <div style={card}>
-        <h2 style={tituloSeccion}>Estado de pagos del periodo</h2>
+        <h2 style={tituloSeccion}>Estado de pagos del período</h2>
 
         <div style={tablaBox}>
           <table style={tabla}>
@@ -286,7 +286,7 @@ export default function DashboardRemuneraciones({ irSubmodulo }) {
               {(datos?.resumenPagos || []).length === 0 && (
                 <tr>
                   <td style={td} colSpan="4">
-                    No hay obligaciones de pago para este periodo. Primero
+                    No hay obligaciones de pago para este período. Primero
                     contabiliza liquidaciones.
                   </td>
                 </tr>

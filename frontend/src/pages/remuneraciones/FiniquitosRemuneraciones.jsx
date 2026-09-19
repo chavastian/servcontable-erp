@@ -293,13 +293,6 @@ export default function FiniquitosRemuneraciones() {
     return new Date(anio, mes - 1, dia, 12, 0, 0);
   }
 
-  function fechaISO(fecha) {
-    const anio = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-    const dia = String(fecha.getDate()).padStart(2, "0");
-    return `${anio}-${mes}-${dia}`;
-  }
-
   function sumarDias(fecha, dias) {
     const copia = new Date(fecha.getTime());
     copia.setDate(copia.getDate() + dias);
@@ -571,7 +564,7 @@ export default function FiniquitosRemuneraciones() {
     if (diasHabiles > 0 && diasCorridos > 0) {
       actualizado.observacion_vacaciones = `${regla.articulo}: ${diasHabiles.toLocaleString(
         "es-CL"
-      )} dias habiles proyectados a ${diasCorridos.toLocaleString(
+      )} días habiles proyectados a ${diasCorridos.toLocaleString(
         "es-CL"
       )} dias corridos desde el dia siguiente al termino. Considera fines de semana y feriados.`;
     }
@@ -613,7 +606,7 @@ export default function FiniquitosRemuneraciones() {
       );
       actualizado.observacion_aviso_previo =
         "No aplica aviso previo para Art. 159 Nro.5.";
-      actualizado.observacion_anios_servicio = `${regla.articulo}: ${mesesIndemnizables} meses indemnizables x 2,5 dias. Base ${formato(baseFinal)}.`;
+      actualizado.observacion_anios_servicio = `${regla.articulo}: ${mesesIndemnizables} meses indemnizables x 2,5 días. Base ${formato(baseFinal)}.`;
     } else {
       actualizado.observacion_aviso_previo =
         "No aplica aviso previo para esta causal.";
@@ -663,10 +656,17 @@ export default function FiniquitosRemuneraciones() {
     });
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarFiniquito(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -696,6 +696,8 @@ export default function FiniquitosRemuneraciones() {
       await cargarDatos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -807,13 +809,13 @@ export default function FiniquitosRemuneraciones() {
         <div>
           <h1 style={titulo}>Finiquitar contrato</h1>
           <p style={subtitulo}>
-            Calculo avanzado de finiquito con conceptos editables.
+            Cálculo avanzado de finiquito con conceptos editables.
           </p>
         </div>
 
         <div style={filtrosHero}>
           <div>
-            <label style={labelHero}>Periodo</label>
+            <label style={labelHero}>Período</label>
             <PeriodoMesSelector
               style={inputHero}
               value={periodo}
@@ -892,7 +894,7 @@ export default function FiniquitosRemuneraciones() {
               checked={form.incluir_liquidacion_pendiente}
               onChange={cambiarForm}
             />
-            Sumar liquidacion pendiente {montoLiquidacionPendiente > 0 ? formato(montoLiquidacionPendiente) : ""}
+            Sumar liquidación pendiente {montoLiquidacionPendiente > 0 ? formato(montoLiquidacionPendiente) : ""}
           </label>
         </div>
 
@@ -912,7 +914,7 @@ export default function FiniquitosRemuneraciones() {
           <ConceptoCard
             titulo="Feriado proporcional"
             monto={formato(form.vacaciones_proporcionales)}
-            detalle={`${form.dias_vacaciones_pendientes || 0} dias habiles / ${form.vacaciones_pendientes || 0} dias corridos`}
+            detalle={`${form.dias_vacaciones_pendientes || 0} días habiles / ${form.vacaciones_pendientes || 0} dias corridos`}
             obs={form.observacion_vacaciones}
             onEditar={() => abrirModal("vacaciones", "Feriado proporcional / vacaciones")}
           />
@@ -1010,8 +1012,8 @@ export default function FiniquitosRemuneraciones() {
           />
         </div>
 
-        <button style={botonGuardar} type="submit">
-          Guardar finiquito
+        <button style={botonGuardar} type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : "Guardar finiquito"}
         </button>
       </form>
 
@@ -1032,7 +1034,7 @@ export default function FiniquitosRemuneraciones() {
                 <th style={thAccion}>Estado</th>
                 <th style={thAccion}>Contab.</th>
                 <th style={thAccion}>Pago</th>
-                <th style={thAccion}>Accion</th>
+                <th style={thAccion}>Acción</th>
               </tr>
             </thead>
 
@@ -1117,7 +1119,7 @@ export default function FiniquitosRemuneraciones() {
               {finiquitos.length === 0 && (
                 <tr>
                   <td style={td} colSpan="11">
-                    No hay finiquitos registrados para este periodo.
+                    No hay finiquitos registrados para este período.
                   </td>
                 </tr>
               )}
@@ -1156,7 +1158,7 @@ function ModalConcepto({
         {modal.concepto === "remuneracionPendiente" && (
           <>
             <div style={grid}>
-              <Campo label="Dias trabajados del mes" name="dias_trabajados_mes" value={form.dias_trabajados_mes} onChange={cambiarForm} />
+              <Campo label="Días trabajados del mes" name="dias_trabajados_mes" value={form.dias_trabajados_mes} onChange={cambiarForm} />
               <Campo label="Sueldo base" name="sueldo_base" value={form.sueldo_base} onChange={cambiarForm} />
               <Campo label="Monto final" name="sueldo_pendiente" value={form.sueldo_pendiente} onChange={cambiarForm} />
             </div>
@@ -1168,8 +1170,8 @@ function ModalConcepto({
           <>
             <div style={grid}>
               <Campo label="Base vacaciones" name="base_vacaciones" value={form.base_vacaciones} onChange={cambiarForm} />
-              <Campo label="Dias habiles pendientes" name="dias_vacaciones_pendientes" value={form.dias_vacaciones_pendientes} onChange={cambiarForm} />
-              <Campo label="Dias corridos a pagar" name="vacaciones_pendientes" value={form.vacaciones_pendientes} onChange={cambiarForm} />
+              <Campo label="Días habiles pendientes" name="dias_vacaciones_pendientes" value={form.dias_vacaciones_pendientes} onChange={cambiarForm} />
+              <Campo label="Días corridos a pagar" name="vacaciones_pendientes" value={form.vacaciones_pendientes} onChange={cambiarForm} />
               <Campo label="Valor dia" name="valor_dia_vacaciones" value={form.valor_dia_vacaciones} onChange={cambiarForm} />
               <Campo label="Monto final" name="vacaciones_proporcionales" value={form.vacaciones_proporcionales} onChange={cambiarForm} />
             </div>
@@ -1190,11 +1192,11 @@ function ModalConcepto({
         {modal.concepto === "aniosServicio" && (
           <>
             <div style={grid}>
-              <Campo label="Base indemnizacion" name="base_indemnizacion" value={form.base_indemnizacion} onChange={cambiarForm} />
+              <Campo label="Base indemnización" name="base_indemnizacion" value={form.base_indemnizacion} onChange={cambiarForm} />
               <Campo label="Sueldo indemnizable" name="sueldo_indemnizable" value={form.sueldo_indemnizable} onChange={cambiarForm} />
               <Campo label="Años reconocidos" name="anios_servicio" value={form.anios_servicio} onChange={cambiarForm} />
               <Campo label="Meses servicio" name="meses_servicio" value={form.meses_servicio} onChange={cambiarForm} />
-              <Campo label="Dias servicio" name="dias_servicio" value={form.dias_servicio} onChange={cambiarForm} />
+              <Campo label="Días servicio" name="dias_servicio" value={form.dias_servicio} onChange={cambiarForm} />
               <Campo label="Monto final" name="indemnizacion_anios_servicio" value={form.indemnizacion_anios_servicio} onChange={cambiarForm} />
             </div>
             <CampoTexto label="Observacion" name="observacion_anios_servicio" value={form.observacion_anios_servicio} onChange={cambiarForm} />
@@ -1203,7 +1205,7 @@ function ModalConcepto({
 
         {modal.concepto === "voluntaria" && (
           <>
-            <Campo label="Indemnizacion voluntaria" name="indemnizacion_voluntaria" value={form.indemnizacion_voluntaria} onChange={cambiarForm} />
+            <Campo label="Indemnización voluntaria" name="indemnizacion_voluntaria" value={form.indemnizacion_voluntaria} onChange={cambiarForm} />
             <CampoTexto label="Observacion" name="observacion_indemnizacion_voluntaria" value={form.observacion_indemnizacion_voluntaria} onChange={cambiarForm} />
           </>
         )}

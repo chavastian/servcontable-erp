@@ -129,7 +129,7 @@ export default function CartolaRut({ irVista }) {
     if (!empresaActiva) return;
 
     if (!String(busquedaManual || "").trim()) {
-      setError("Ingresa un RUT, nombre o razon social para consultar.");
+      setError("Ingresa un RUT, nombre o razón social para consultar.");
       setMensaje("");
       return;
     }
@@ -400,7 +400,7 @@ export default function CartolaRut({ irVista }) {
             <h1 class="titulo-documento">Cartola de movimientos por RUT</h1>
             <div class="bloque">
               <div class="fila"><span><strong>Empresa:</strong> ${empresaActiva?.razon_social || ""}</span><span><strong>RUT:</strong> ${empresaActiva?.rut || ""}</span></div>
-              <div class="fila"><span><strong>Tercero:</strong> ${busqueda}</span><span><strong>Periodo:</strong> ${fechaCL(fechaDesde)} al ${fechaCL(fechaHasta)}</span></div>
+              <div class="fila"><span><strong>Tercero:</strong> ${busqueda}</span><span><strong>Período:</strong> ${fechaCL(fechaDesde)} al ${fechaCL(fechaHasta)}</span></div>
             </div>
             <div class="bloque">
               <div class="fila"><span><strong>Saldo anterior:</strong> ${formatoMonto(resumen.saldo_anterior)}</span><span><strong>Cargos:</strong> ${formatoMonto(resumen.cargos)}</span><span><strong>Abonos:</strong> ${formatoMonto(resumen.abonos)}</span><span><strong>Saldo actual:</strong> ${formatoMonto(resumen.saldo_actual)}</span></div>
@@ -479,7 +479,7 @@ export default function CartolaRut({ irVista }) {
 
       <div style={filtrosBox}>
         <div style={campoBusqueda}>
-          <label style={label}>RUT, nombre o razon social</label>
+          <label style={label}>RUT, nombre o razón social</label>
           <input
             style={inputBusqueda}
             type="text"
@@ -691,7 +691,7 @@ export default function CartolaRut({ irVista }) {
         </>
       )}
 
-      {cargando && <p style={nota}>Cargando informacion...</p>}
+      {cargando && <p style={nota}>Cargando información...</p>}
     </div>
   );
 }
@@ -720,7 +720,7 @@ function TablaPendientes({ pendientes, formatoMonto, fechaCL, verOrigen }) {
             <th style={thNumero}>Pagado</th>
             <th style={thNumero}>Saldo</th>
             <th style={th}>Estado</th>
-            <th style={thAccion}>Accion</th>
+            <th style={thAccion}>Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -768,7 +768,7 @@ function TablaMovimientos({ movimientos, formatoMonto, fechaCL, verOrigen }) {
             <th style={thNumero}>Abono</th>
             <th style={thNumero}>Saldo</th>
             <th style={th}>Estado</th>
-            <th style={thAccion}>Accion</th>
+            <th style={thAccion}>Acción</th>
           </tr>
         </thead>
         <tbody>

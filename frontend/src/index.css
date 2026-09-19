@@ -1172,3 +1172,28 @@ tbody tr:hover td {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ---------------------------------------------------------------------------
+   Panel principal en pantalla angosta.
+   El menu lateral mide 260 px y va fijo a la izquierda; en un telefono dejaba
+   140 px para el contenido. Aqui el menu pasa a ser una capa sobre el
+   contenido y el panel recupera todo el ancho. Los estilos en linea del
+   componente siguen mandando en escritorio.
+--------------------------------------------------------------------------- */
+@media (max-width: 780px) {
+  .sc-sidebar {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 260px !important;
+    max-width: 86vw;
+    z-index: 60 !important;
+    box-shadow: 18px 0 44px rgba(7, 17, 31, 0.45) !important;
+  }
+
+  .sc-main-panel {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}

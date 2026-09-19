@@ -10,10 +10,17 @@ export default function Registro({ irALogin }) {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function manejarRegistro(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -21,6 +28,8 @@ export default function Registro({ irALogin }) {
       setMensaje(data.mensaje || "Usuario registrado correctamente");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -67,8 +76,8 @@ export default function Registro({ irALogin }) {
             />
           </div>
 
-          <button style={botonPrimario} type="submit">
-            Registrar usuario
+          <button style={botonPrimario} type="submit" disabled={guardando}>
+            {guardando ? "Registrando..." : "Registrar usuario"}
           </button>
         </form>
 

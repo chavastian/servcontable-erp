@@ -297,7 +297,7 @@ export default function LibroDiario() {
               <th style={th}>Fecha</th>
               <th style={th}>Tipo</th>
               <th style={th}>N°</th>
-              <th style={th}>Codigo</th>
+              <th style={th}>Código</th>
               <th style={th}>Cuenta</th>
               <th style={th}>Glosa</th>
               <th style={th}>Debe</th>

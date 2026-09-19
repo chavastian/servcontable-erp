@@ -160,7 +160,7 @@ export default function ResumenF29() {
         </div>
 
         <div style={cardResumen}>
-          <strong>Retencion honorarios</strong>
+          <strong>Retención honorarios</strong>
           <span>{formato(honorarios.retencion)}</span>
         </div>
 
@@ -282,7 +282,7 @@ export default function ResumenF29() {
             </tr>
 
             <tr>
-              <td style={td}>Retencion honorarios</td>
+              <td style={td}>Retención honorarios</td>
               <td style={tdNumero}>{formato(honorarios.retencion)}</td>
             </tr>
 

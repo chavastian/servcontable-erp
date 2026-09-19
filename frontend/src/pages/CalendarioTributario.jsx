@@ -6,12 +6,12 @@
  * confíe en una fecha que puede haberse movido.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EstadoPantalla from "../components/EstadoPantalla";
-import { obtenerCalendarioTributario } from "../services/asistentesService";
+import { obtenerCalendarioTributario, obtenerPanelEstudio } from "../services/asistentesService";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoAnterior, obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
-import { estilos, pildora, numero, fechaCorta } from "../utils/estilosAsistentes";
+import { estilos, pildora, pesos, numero, fechaCorta } from "../utils/estilosAsistentes";
 
 const ESTADO_VISUAL = {
   vencida: { pildora: "error", texto: "Vencida" },
@@ -37,25 +37,57 @@ export default function CalendarioTributario() {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  // IVA del período de la empresa activa, para mostrarlo junto al F29.
+  const [ivaPeriodo, setIvaPeriodo] = useState(null);
+
+  // Número de la última petición: cambiar el período dos veces seguidas no
+  // debe dejar en pantalla el calendario de la primera.
+  const ultimaPeticion = useRef(0);
 
   const cargar = useCallback(
     async (periodoPedido, conFacturacion, conPrevired) => {
+      const marca = ++ultimaPeticion.current;
+
       setCargando(true);
       setError("");
 
       try {
-        setDatos(
-          await obtenerCalendarioTributario(periodoPedido, {
-            empresaId: empresa?.id,
-            facturadorElectronico: conFacturacion,
-            previredElectronico: conPrevired,
-          })
-        );
+        const respuesta = await obtenerCalendarioTributario(periodoPedido, {
+          empresaId: empresa?.id,
+          facturadorElectronico: conFacturacion,
+          previredElectronico: conPrevired,
+        });
+
+        if (marca !== ultimaPeticion.current) return;
+        setDatos(respuesta);
       } catch (problema) {
+        if (marca !== ultimaPeticion.current) return;
         setError(problema.message || "No se pudo obtener el calendario");
         setDatos(null);
       } finally {
-        setCargando(false);
+        if (marca === ultimaPeticion.current) setCargando(false);
+      }
+
+      // El IVA a pagar sale del panel del estudio, que ya lo calcula por
+      // empresa y período. Es un dato de apoyo: si falla, el calendario igual
+      // se muestra y el monto no aparece.
+      if (!empresa?.id) {
+        setIvaPeriodo(null);
+        return;
+      }
+
+      try {
+        const panel = await obtenerPanelEstudio(periodoPedido);
+
+        if (marca !== ultimaPeticion.current) return;
+
+        const fila = (panel?.empresas || []).find(
+          (item) => Number(item.empresa_id) === Number(empresa.id)
+        );
+
+        setIvaPeriodo(fila?.iva || null);
+      } catch {
+        if (marca === ultimaPeticion.current) setIvaPeriodo(null);
       }
     },
     [empresa?.id]
@@ -167,6 +199,20 @@ export default function CalendarioTributario() {
                           <span style={{ fontSize: 11.5, color: "var(--sc-muted)" }}>
                             {obligacion.descripcion}
                           </span>
+                          {obligacion.codigo === "f29" && ivaPeriodo ? (
+                            <>
+                              <br />
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: "bold",
+                                  color: "var(--sc-primary)",
+                                }}
+                              >
+                                IVA a pagar del período: {pesos(ivaPeriodo.a_pagar)}
+                              </span>
+                            </>
+                          ) : null}
                         </td>
 
                         <td style={estilos.td}>{obligacion.organismo}</td>

@@ -523,10 +523,17 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
     });
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarConfig(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
       const indicadores = normalizarIndicadoresSalud({
@@ -618,6 +625,8 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
       await cargarDatos(periodo);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -658,6 +667,8 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
 
   async function guardarAfpSubmit(e) {
     e.preventDefault();
+
+    if (guardandoAfp) return;
 
     try {
       setGuardandoAfp(true);
@@ -704,7 +715,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
     }
 
     const id = item.id;
-    const confirmar = window.confirm("Deseas eliminar esta AFP del periodo?");
+    const confirmar = window.confirm("Deseas eliminar esta AFP del período?");
 
     if (!confirmar) return;
 
@@ -783,7 +794,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
 
         <div style={filtrosHero}>
           <div>
-            <label style={labelHero}>Periodo</label>
+            <label style={labelHero}>Período</label>
             <PeriodoMesSelector
               style={inputHero}
               value={periodo}
@@ -811,7 +822,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
               </TituloIcono>
               <p style={textoMuted}>
                 Selecciona el PDF mensual de Previred. El sistema lee el
-                archivo y rellena los campos previsionales del periodo.
+                archivo y rellena los campos previsionales del período.
               </p>
             </div>
 
@@ -931,7 +942,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
             </div>
 
             <TituloIcono icono={<IconoSistema tipo="trabajador" />} separado>
-              Rentas minimas imponibles
+              Rentas mínimas imponibles
             </TituloIcono>
 
             <div style={grid}>
@@ -1004,7 +1015,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
               />
 
               <Campo
-                label="Cotizacion salud FONASA %"
+                label="Cotización salud FONASA %"
                 name="tasa_salud_legal"
                 value={SALUD_FONASA_LEGAL}
                 onChange={() => {}}
@@ -1141,7 +1152,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
             </div>
 
             <TituloIcono icono={<IconoSistema tipo="herramienta" />} separado>
-              Cotizacion para trabajos pesados
+              Cotización para trabajos pesados
             </TituloIcono>
 
             <div style={grid}>
@@ -1175,7 +1186,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
             </div>
 
             <TituloIcono icono={<IconoSistema tipo="guardar" />} separado>
-              APV y deposito convenido
+              APV y depósito convenido
             </TituloIcono>
 
             <div style={grid}>
@@ -1194,7 +1205,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
               />
 
               <Campo
-                label="Deposito convenido tope anual"
+                label="Depósito convenido tope anual"
                 name="deposito_convenido_tope_anual"
                 value={indicadores.deposito_convenido_tope_anual}
                 onChange={cambiarIndicador}
@@ -1357,7 +1368,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
           />
 
           <CampoCuenta
-            label="Cuenta impuesto unico por pagar"
+            label="Cuenta impuesto único por pagar"
             name="cuenta_impuesto_unico_id"
             value={config.cuenta_impuesto_unico_id}
             onChange={cambiarConfig}
@@ -1415,11 +1426,13 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
           </>
         )}
 
-        <button style={botonGuardar} type="submit" disabled={guardandoAfp}>
+        <button style={botonGuardar} type="submit" disabled={guardando}>
           <span style={botonIcono}>
             <IconoSistema tipo="guardar" size={18} />
           </span>
-          {mostrarPrevisional && !mostrarContable
+          {guardando
+            ? "Guardando..."
+            : mostrarPrevisional && !mostrarContable
             ? "Guardar configuracion previsional"
             : mostrarContable && !mostrarPrevisional
               ? "Guardar configuracion contable"
@@ -1432,10 +1445,10 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
         <div style={cardHeader}>
           <div>
             <TituloIcono icono={<IconoSistema tipo="banco" />}>
-              AFP del periodo
+              AFP del período
             </TituloIcono>
             <p style={textoMuted}>
-              Registra, edita o elimina las AFP vigentes para el periodo.
+              Registra, edita o elimina las AFP vigentes para el período.
             </p>
           </div>
 
@@ -1588,7 +1601,7 @@ export default function ConfiguracionRemuneraciones({ seccion = "completa" }) {
               {afps.length === 0 && (
                 <tr>
                   <td style={td} colSpan="8">
-                    No hay AFP configuradas para este periodo.
+                    No hay AFP configuradas para este período.
                   </td>
                 </tr>
               )}

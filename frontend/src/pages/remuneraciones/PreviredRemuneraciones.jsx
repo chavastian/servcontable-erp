@@ -568,7 +568,7 @@ export default function PreviredRemuneraciones() {
       {error && <p style={err}>{error}</p>}
 
       <div style={card}>
-        <h2 style={tituloSeccion}>Exportacion CSV Previred</h2>
+        <h2 style={tituloSeccion}>Exportación CSV Previred</h2>
 
         <div style={alerta}>
           Se exporta en formato largo variable por separador ";" con 105 campos por linea, segun v95.
@@ -576,7 +576,7 @@ export default function PreviredRemuneraciones() {
 
         <div style={filtros}>
           <div>
-            <label style={label}>Periodo</label>
+            <label style={label}>Período</label>
             <PeriodoMesSelector
               style={input}
               value={periodo}
@@ -611,13 +611,13 @@ export default function PreviredRemuneraciones() {
         </div>
 
         <div style={cardResumenVerde}>
-          <strong>Liquido a pagar</strong>
+          <strong>Líquido a pagar</strong>
           <span>{formato(totales.liquido_pagar)}</span>
         </div>
       </div>
 
       <div style={card}>
-        <h2 style={tituloSeccion}>Validacion previa</h2>
+        <h2 style={tituloSeccion}>Validación previa</h2>
 
         <div style={tablaBox}>
           <table style={tabla}>
@@ -662,7 +662,7 @@ export default function PreviredRemuneraciones() {
               {liquidaciones.length === 0 && (
                 <tr>
                   <td style={td} colSpan="8">
-                    No hay liquidaciones emitidas para este periodo.
+                    No hay liquidaciones emitidas para este período.
                   </td>
                 </tr>
               )}

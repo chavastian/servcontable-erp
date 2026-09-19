@@ -150,10 +150,17 @@ export default function HaberesDescuentosRemuneraciones() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardar(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -180,6 +187,8 @@ export default function HaberesDescuentosRemuneraciones() {
       await cargarDatos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -250,7 +259,7 @@ export default function HaberesDescuentosRemuneraciones() {
 
         <div style={filtros}>
           <div>
-            <label style={label}>Periodo</label>
+            <label style={label}>Período</label>
             <PeriodoMesSelector style={input} value={periodo} onChange={setPeriodo} />
           </div>
 
@@ -400,8 +409,8 @@ export default function HaberesDescuentosRemuneraciones() {
         </div>
 
         <div style={accionesFormulario}>
-          <button style={botonGuardar} type="submit">
-            {editandoId ? "Actualizar concepto" : "Guardar concepto"}
+          <button style={botonGuardar} type="submit" disabled={guardando}>
+            {guardando ? "Guardando..." : editandoId ? "Actualizar concepto" : "Guardar concepto"}
           </button>
 
           {editandoId && (
@@ -429,7 +438,7 @@ export default function HaberesDescuentosRemuneraciones() {
                 <th style={th}>Afecta desc.</th>
                 <th style={th}>Fijo</th>
                 <th style={th}>Obs.</th>
-                <th style={thAccion}>Accion</th>
+                <th style={thAccion}>Acción</th>
               </tr>
             </thead>
 
@@ -495,7 +504,7 @@ export default function HaberesDescuentosRemuneraciones() {
               {items.length === 0 && (
                 <tr>
                   <td style={td} colSpan="11">
-                    No hay haberes o descuentos registrados para este periodo.
+                    No hay haberes o descuentos registrados para este período.
                   </td>
                 </tr>
               )}

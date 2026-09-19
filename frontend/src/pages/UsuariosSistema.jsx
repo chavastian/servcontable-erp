@@ -141,10 +141,6 @@ export default function UsuariosSistema() {
     });
   }, [busqueda, usuarios]);
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
-
   async function cargarDatos() {
     try {
       setCargando(true);
@@ -169,6 +165,10 @@ export default function UsuariosSistema() {
       setCargando(false);
     }
   }
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
 
   async function buscarUsuarios() {
     try {
@@ -242,10 +242,17 @@ export default function UsuariosSistema() {
     });
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarUsuario(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setError("");
       setMensaje("");
 
@@ -277,6 +284,8 @@ export default function UsuariosSistema() {
       await buscarUsuarios();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -455,8 +464,8 @@ export default function UsuariosSistema() {
           </div>
 
           <div style={accionesFormulario}>
-            <button style={botonGuardar} type="submit">
-              {usuarioEditandoId ? "Guardar cambios" : "Crear usuario"}
+            <button style={botonGuardar} type="submit" disabled={guardando}>
+              {guardando ? "Guardando..." : usuarioEditandoId ? "Guardar cambios" : "Crear usuario"}
             </button>
 
             {usuarioEditandoId && (
@@ -521,10 +530,10 @@ export default function UsuariosSistema() {
                 <th style={th}>RUT</th>
                 <th style={th}>Rol</th>
                 <th style={th}>Empresas</th>
-                <th style={th}>Ultimo acceso</th>
-                <th style={th}>Suscripcion</th>
+                <th style={th}>Último acceso</th>
+                <th style={th}>Suscripción</th>
                 <th style={th}>Estado</th>
-                <th style={th}>Accion</th>
+                <th style={th}>Acción</th>
               </tr>
             </thead>
 

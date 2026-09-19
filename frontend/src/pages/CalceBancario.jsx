@@ -9,7 +9,7 @@
  * línea por línea comparando montos a ojo.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EstadoPantalla from "../components/EstadoPantalla";
 import { obtenerSugerenciasDeCalce } from "../services/asistentesService";
 import { actualizarEstadoConciliacion } from "../services/conciliacionBancariaService";
@@ -23,7 +23,8 @@ const TEXTO_CONFIANZA = {
   baja: "Coincide el monto, la fecha está lejos",
 };
 
-const ESTADO_POR_CONFIANZA = { alta: "ok", media: "aviso", baja: "error" };
+// "Baja" es una coincidencia dudosa, no un problema: se pinta como aviso.
+const ESTADO_POR_CONFIANZA = { alta: "ok", media: "aviso", baja: "aviso" };
 
 export default function CalceBancario() {
   const empresa = obtenerEmpresaActiva();
@@ -31,31 +32,49 @@ export default function CalceBancario() {
   const [periodo, setPeriodo] = useState(obtenerPeriodoTrabajo());
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState("");
+  // El error de la consulta va a EstadoPantalla y reemplaza la tabla; el de
+  // una acción se muestra encima sin borrarla, porque las demás propuestas
+  // siguen siendo válidas aunque una no se haya podido confirmar.
+  const [errorCarga, setErrorCarga] = useState("");
+  const [errorAccion, setErrorAccion] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [confirmando, setConfirmando] = useState(null);
   const [confirmados, setConfirmados] = useState([]);
+  // Para los movimientos con varios candidatos: cuál eligió la persona.
+  const [elegidos, setElegidos] = useState({});
+
+  // Número de la última petición: una respuesta lenta de un período anterior
+  // no debe pisar la del período que se está mirando.
+  const ultimaPeticion = useRef(0);
 
   const cargar = useCallback(
     async (periodoPedido) => {
       if (!empresa?.id) {
-        setError("Selecciona una empresa para buscar calces.");
+        setErrorCarga("Selecciona una empresa para buscar calces.");
         setCargando(false);
         return;
       }
 
+      const marca = ++ultimaPeticion.current;
+
       setCargando(true);
-      setError("");
+      setErrorCarga("");
+      setErrorAccion("");
       setMensaje("");
 
       try {
-        setDatos(await obtenerSugerenciasDeCalce(empresa.id, periodoPedido));
+        const respuesta = await obtenerSugerenciasDeCalce(empresa.id, periodoPedido);
+
+        if (marca !== ultimaPeticion.current) return;
+        setDatos(respuesta);
         setConfirmados([]);
+        setElegidos({});
       } catch (problema) {
-        setError(problema.message || "No se pudieron buscar los calces");
+        if (marca !== ultimaPeticion.current) return;
+        setErrorCarga(problema.message || "No se pudieron buscar los calces");
         setDatos(null);
       } finally {
-        setCargando(false);
+        if (marca === ultimaPeticion.current) setCargando(false);
       }
     },
     [empresa?.id]
@@ -68,27 +87,29 @@ export default function CalceBancario() {
   /**
    * Confirmar un calce marca el movimiento como conciliado por la misma vía que
    * la pantalla de conciliación: un solo lugar donde se escribe el estado.
+   * Sirve para la propuesta única y para el candidato elegido a mano.
    */
-  async function confirmar(propuesta) {
-    setConfirmando(propuesta.movimiento_id);
+  async function conciliar(movimientoId, documento, fechaMovimiento) {
+    setConfirmando(movimientoId);
     setMensaje("");
+    setErrorAccion("");
 
     try {
       await actualizarEstadoConciliacion(
-        propuesta.movimiento_id,
+        movimientoId,
         empresa.id,
         "conciliado",
-        propuesta.calza_con?.comprobante_id || null
+        documento?.comprobante_id || null
       );
 
-      setConfirmados((previos) => [...previos, propuesta.movimiento_id]);
+      setConfirmados((previos) => [...previos, movimientoId]);
       setMensaje(
-        `Movimiento del ${fechaCorta(propuesta.fecha)} marcado como conciliado con ${
-          propuesta.calza_con?.origen
-        } folio ${propuesta.calza_con?.folio}.`
+        `Movimiento del ${fechaCorta(fechaMovimiento)} marcado como conciliado con ${
+          documento?.origen
+        } folio ${documento?.folio}.`
       );
     } catch (problema) {
-      setError(problema.message || "No se pudo confirmar el calce");
+      setErrorAccion(problema.message || "No se pudo confirmar el calce");
     } finally {
       setConfirmando(null);
     }
@@ -98,7 +119,9 @@ export default function CalceBancario() {
   const propuestas = (datos?.propuestas || []).filter(
     (p) => !confirmados.includes(p.movimiento_id)
   );
-  const ambiguos = datos?.ambiguos || [];
+  const ambiguos = (datos?.ambiguos || []).filter(
+    (p) => !confirmados.includes(p.movimiento_id)
+  );
   const sinCalce = datos?.sin_calce || [];
 
   return (
@@ -128,10 +151,11 @@ export default function CalceBancario() {
       </div>
 
       {mensaje ? <div className="sc-message sc-message--ok">{mensaje}</div> : null}
+      {errorAccion ? <div className="sc-message sc-message--error">{errorAccion}</div> : null}
 
       <EstadoPantalla
         cargando={cargando}
-        error={error}
+        error={errorCarga}
         alReintentar={() => cargar(periodo)}
         mensajeCargando="Comparando la cartola con los documentos..."
       >
@@ -218,7 +242,9 @@ export default function CalceBancario() {
                           <button
                             type="button"
                             className="sc-btn sc-btn--success"
-                            onClick={() => confirmar(propuesta)}
+                            onClick={() =>
+                              conciliar(propuesta.movimiento_id, propuesta.calza_con, propuesta.fecha)
+                            }
                             disabled={confirmando === propuesta.movimiento_id}
                           >
                             {confirmando === propuesta.movimiento_id
@@ -250,28 +276,70 @@ export default function CalceBancario() {
                       <th style={estilos.th}>Movimiento</th>
                       <th style={{ ...estilos.th, textAlign: "right" }}>Monto</th>
                       <th style={estilos.th}>Candidatos</th>
+                      <th style={estilos.th} aria-label="Acciones" />
                     </tr>
                   </thead>
                   <tbody>
-                    {ambiguos.map((item) => (
-                      <tr key={item.movimiento_id}>
-                        <td style={estilos.td}>{fechaCorta(item.fecha)}</td>
-                        <td style={estilos.td}>{item.descripcion}</td>
-                        <td style={estilos.tdNumero}>
-                          {pesos(item.cargo || item.abono)}
-                        </td>
-                        <td style={estilos.td}>
-                          <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {item.candidatos.map((candidato) => (
-                              <li key={`${candidato.origen}-${candidato.id}`}>
-                                {candidato.origen} folio {candidato.folio} ·{" "}
-                                {fechaCorta(candidato.fecha)} · {candidato.tercero}
-                              </li>
-                            ))}
-                          </ul>
-                        </td>
-                      </tr>
-                    ))}
+                    {ambiguos.map((item) => {
+                      const elegido = elegidos[item.movimiento_id] || null;
+                      const claveElegido = elegido ? `${elegido.origen}-${elegido.id}` : "";
+
+                      return (
+                        <tr key={item.movimiento_id}>
+                          <td style={estilos.td}>{fechaCorta(item.fecha)}</td>
+                          <td style={estilos.td}>{item.descripcion}</td>
+                          <td style={estilos.tdNumero}>
+                            {pesos(item.cargo || item.abono)}
+                          </td>
+                          <td style={estilos.td}>
+                            {item.candidatos.map((candidato) => {
+                              const clave = `${candidato.origen}-${candidato.id}`;
+
+                              return (
+                                <label
+                                  key={clave}
+                                  style={{
+                                    display: "flex",
+                                    gap: 6,
+                                    alignItems: "center",
+                                    marginBottom: 4,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`candidato-${item.movimiento_id}`}
+                                    checked={claveElegido === clave}
+                                    onChange={() =>
+                                      setElegidos((previos) => ({
+                                        ...previos,
+                                        [item.movimiento_id]: candidato,
+                                      }))
+                                    }
+                                  />
+                                  <span>
+                                    {candidato.origen} folio {candidato.folio} ·{" "}
+                                    {fechaCorta(candidato.fecha)} · {candidato.tercero}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </td>
+                          <td style={estilos.td}>
+                            <button
+                              type="button"
+                              className="sc-btn sc-btn--success"
+                              disabled={!elegido || confirmando === item.movimiento_id}
+                              onClick={() => conciliar(item.movimiento_id, elegido, item.fecha)}
+                            >
+                              {confirmando === item.movimiento_id
+                                ? "Guardando..."
+                                : "Conciliar con este"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

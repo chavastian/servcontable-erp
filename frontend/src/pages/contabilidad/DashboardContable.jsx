@@ -73,7 +73,7 @@ export default function DashboardContable({ irVista }) {
       >
         <div style={filtrosHero}>
           <div>
-            <label style={labelHero}>Periodo</label>
+            <label style={labelHero}>Período</label>
             <input
               style={inputHero}
               type="month"
@@ -159,8 +159,8 @@ export default function DashboardContable({ irVista }) {
         <div style={card}>
           <h2 style={tituloSeccion}>Resumen IVA</h2>
 
-          <Fila label="IVA debito ventas" valor={formato(info.iva.debito)} />
-          <Fila label="IVA credito compras" valor={formato(info.iva.credito)} />
+          <Fila label="IVA débito ventas" valor={formato(info.iva.debito)} />
+          <Fila label="IVA crédito compras" valor={formato(info.iva.credito)} />
           <Fila
             label={info.iva.estado || "IVA determinado"}
             valor={formato(info.iva.determinado)}
@@ -228,7 +228,7 @@ export default function DashboardContable({ irVista }) {
       </div>
 
       <div style={card}>
-        <h2 style={tituloSeccion}>Ultimos comprobantes</h2>
+        <h2 style={tituloSeccion}>Últimos comprobantes</h2>
 
         <div style={tablaBox}>
           <table style={tabla}>
@@ -401,30 +401,6 @@ function Fila({ label, valor, destacado }) {
     </div>
   );
 }
-
-const hero = {
-  background: "linear-gradient(135deg, #0f172a, #0369a1, #0ea5e9)",
-  borderRadius: "22px",
-  padding: "28px",
-  color: "white",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "end",
-  gap: "20px",
-  flexWrap: "wrap",
-  marginBottom: "22px",
-  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.18)",
-};
-
-const titulo = {
-  margin: 0,
-  fontSize: "32px",
-};
-
-const subtitulo = {
-  color: "#dff7ff",
-  marginBottom: 0,
-};
 
 const filtrosHero = {
   display: "flex",

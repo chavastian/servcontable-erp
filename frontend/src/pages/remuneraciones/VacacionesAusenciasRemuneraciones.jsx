@@ -213,10 +213,17 @@ export default function VacacionesAusenciasRemuneraciones() {
     return `$${Number(valor || 0).toLocaleString("es-CL")}`;
   }
 
+  // Evita el doble envío: un segundo clic antes de que responda el servidor
+  // creaba el registro dos veces.
+  const [guardando, setGuardando] = useState(false);
+
   async function guardarRegistro(e) {
     e.preventDefault();
 
+    if (guardando) return;
+
     try {
+      setGuardando(true);
       setMensaje("");
       setError("");
 
@@ -255,6 +262,8 @@ export default function VacacionesAusenciasRemuneraciones() {
       await cargarDatos();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -315,7 +324,7 @@ export default function VacacionesAusenciasRemuneraciones() {
 
         <div style={filtrosHero}>
           <div>
-            <label style={labelHero}>Periodo</label>
+            <label style={labelHero}>Período</label>
             <PeriodoMesSelector
               style={inputHero}
               value={periodo}
@@ -409,7 +418,7 @@ export default function VacacionesAusenciasRemuneraciones() {
           />
 
           <Campo
-            label="Dias"
+            label="Días"
             name="dias"
             value={form.dias}
             onChange={cambiarForm}
@@ -464,8 +473,8 @@ export default function VacacionesAusenciasRemuneraciones() {
         </div>
 
         <div style={acciones}>
-          <button style={botonGuardar} type="submit">
-            Guardar registro
+          <button style={botonGuardar} type="submit" disabled={guardando}>
+            {guardando ? "Guardando..." : "Guardar registro"}
           </button>
 
           <button type="button" style={botonSecundario} onClick={verResumenTrabajador}>
@@ -536,7 +545,7 @@ export default function VacacionesAusenciasRemuneraciones() {
       </div>
 
       <div style={card}>
-        <h2 style={tituloSeccion}>Registros del periodo</h2>
+        <h2 style={tituloSeccion}>Registros del período</h2>
 
         <div style={tablaBox}>
           <table style={tabla}>
@@ -547,12 +556,12 @@ export default function VacacionesAusenciasRemuneraciones() {
                 <th style={th}>Subtipo</th>
                 <th style={th}>Inicio</th>
                 <th style={th}>Termino</th>
-                <th style={thNumero}>Dias</th>
+                <th style={thNumero}>Días</th>
                 <th style={thNumero}>Horas</th>
                 <th style={thAccion}>Vacaciones</th>
                 <th style={thAccion}>Remuneracion</th>
                 <th style={thNumero}>Descuento</th>
-                <th style={thAccion}>Accion</th>
+                <th style={thAccion}>Acción</th>
               </tr>
             </thead>
 
@@ -593,7 +602,7 @@ export default function VacacionesAusenciasRemuneraciones() {
               {registros.length === 0 && (
                 <tr>
                   <td style={td} colSpan="11">
-                    No hay registros para este periodo.
+                    No hay registros para este período.
                   </td>
                 </tr>
               )}

@@ -10,7 +10,7 @@
  * mirar. Verde es que no hay nada pendiente en el período.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EstadoPantalla from "../components/EstadoPantalla";
 import { obtenerPanelEstudio } from "../services/asistentesService";
 import { guardarEmpresaActiva } from "../services/empresaService";
@@ -48,23 +48,34 @@ const PENDIENTES = [
 // Los contadores que no tienen sentido mostrar como cantidad: son un si o un no.
 const SIN_CANTIDAD = ["iva_descuadrado", "cuentas_de_iva_sin_configurar"];
 
-export default function PanelEstudio({ irVista, alAbrirEmpresa }) {
+export default function PanelEstudio({ alAbrirEmpresa }) {
   const [periodo, setPeriodo] = useState(obtenerPeriodoTrabajo());
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
+  // Número de la última petición. Cambiar el período dos veces seguidas
+  // lanzaba dos consultas, y si la primera respondía después pisaba a la
+  // segunda: la pantalla mostraba un período con la etiqueta de otro.
+  const ultimaPeticion = useRef(0);
+
   const cargar = useCallback(async (periodoPedido) => {
+    const marca = ++ultimaPeticion.current;
+
     setCargando(true);
     setError("");
 
     try {
-      setDatos(await obtenerPanelEstudio(periodoPedido));
+      const respuesta = await obtenerPanelEstudio(periodoPedido);
+
+      if (marca !== ultimaPeticion.current) return;
+      setDatos(respuesta);
     } catch (problema) {
+      if (marca !== ultimaPeticion.current) return;
       setError(problema.message || "No se pudo cargar el panel");
       setDatos(null);
     } finally {
-      setCargando(false);
+      if (marca === ultimaPeticion.current) setCargando(false);
     }
   }, []);
 

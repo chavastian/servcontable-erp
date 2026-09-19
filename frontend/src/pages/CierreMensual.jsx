@@ -9,7 +9,7 @@
  * las juntaba. Un error se descubría después de presentar el F29.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EstadoPantalla from "../components/EstadoPantalla";
 import { obtenerCierreMensual } from "../services/asistentesService";
 import { obtenerEmpresaActiva } from "../services/empresaService";
@@ -45,6 +45,10 @@ export default function CierreMensual() {
   const [error, setError] = useState("");
   const [abiertas, setAbiertas] = useState({});
 
+  // Número de la última petición: una respuesta lenta de un período anterior
+  // no debe pisar la del período que se está mirando.
+  const ultimaPeticion = useRef(0);
+
   const cargar = useCallback(
     async (periodoPedido) => {
       if (!empresa?.id) {
@@ -53,16 +57,22 @@ export default function CierreMensual() {
         return;
       }
 
+      const marca = ++ultimaPeticion.current;
+
       setCargando(true);
       setError("");
 
       try {
-        setDatos(await obtenerCierreMensual(empresa.id, periodoPedido));
+        const respuesta = await obtenerCierreMensual(empresa.id, periodoPedido);
+
+        if (marca !== ultimaPeticion.current) return;
+        setDatos(respuesta);
       } catch (problema) {
+        if (marca !== ultimaPeticion.current) return;
         setError(problema.message || "No se pudo revisar el período");
         setDatos(null);
       } finally {
-        setCargando(false);
+        if (marca === ultimaPeticion.current) setCargando(false);
       }
     },
     [empresa?.id]

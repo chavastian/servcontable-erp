@@ -53,15 +53,6 @@ export default function DashboardFinanciero({ irVista }) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
   }
 
-  function porcentaje(valor, base) {
-    const v = Number(valor || 0);
-    const b = Number(base || 0);
-
-    if (b <= 0) return 0;
-
-    return Math.round((v / b) * 100);
-  }
-
   if (!empresaActiva) {
     return (
       <div>
@@ -75,7 +66,6 @@ export default function DashboardFinanciero({ irVista }) {
 
   const ventas = data?.ventas || {};
   const compras = data?.compras || {};
-  const honorarios = data?.honorarios || {};
   const iva = data?.iva || {};
   const cuentas = data?.cuentas || {};
   const flujo = data?.flujo || {};
@@ -94,7 +84,7 @@ export default function DashboardFinanciero({ irVista }) {
       >
         <div style={filtrosBox}>
           <div>
-          <label style={label}>Periodo</label>
+          <label style={label}>Período</label>
           <input
             style={input}
             type="month"
@@ -549,36 +539,10 @@ function IconoFinanciero({ tipo }) {
   return iconos[tipo] || iconos.comprobante;
 }
 
-const header = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "16px",
-  marginBottom: "18px",
-};
-
 const titulo = {
   fontSize: "34px",
   color: "#0f172a",
   marginBottom: "5px",
-};
-
-const subtitulo = {
-  color: "#475569",
-  marginBottom: "0",
-};
-
-const empresaCard = {
-  background: "rgba(255,255,255,0.96)",
-  borderRadius: "16px",
-  padding: "16px 24px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  border: "1px solid rgba(169, 216, 239, 0.75)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "5px",
-  color: "#1e293b",
-  minWidth: "220px",
 };
 
 const filtrosBox = {
