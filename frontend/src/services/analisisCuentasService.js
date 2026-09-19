@@ -1,5 +1,4 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
@@ -10,8 +9,6 @@ export async function obtenerAnalisisCuentas({
   fecha_hasta,
   cuenta_id = "",
 }) {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
 
   params.append("empresa_id", empresa_id);
@@ -22,23 +19,7 @@ export async function obtenerAnalisisCuentas({
     params.append("cuenta_id", cuenta_id);
   }
 
-  const respuesta = await fetch(
-    `${API_URL}/analisis-cuentas?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al obtener análisis de cuentas");
-  }
-
-  return data;
+  return peticion(`${API_URL}/analisis-cuentas?${params.toString()}`, { mensajeError: "Error al obtener análisis de cuentas" });
 }
 
 export async function obtenerMovimientosCuentaAnalisis({
@@ -47,8 +28,6 @@ export async function obtenerMovimientosCuentaAnalisis({
   fecha_hasta,
   cuenta_id,
 }) {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
 
   params.append("empresa_id", empresa_id);
@@ -56,21 +35,5 @@ export async function obtenerMovimientosCuentaAnalisis({
   params.append("fecha_hasta", fecha_hasta);
   params.append("cuenta_id", cuenta_id);
 
-  const respuesta = await fetch(
-    `${API_URL}/analisis-cuentas/movimientos?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al obtener movimientos de la cuenta");
-  }
-
-  return data;
+  return peticion(`${API_URL}/analisis-cuentas/movimientos?${params.toString()}`, { mensajeError: "Error al obtener movimientos de la cuenta" });
 }

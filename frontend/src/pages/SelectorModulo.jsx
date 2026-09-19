@@ -13,7 +13,7 @@ export default function SelectorModulo({ usuario, seleccionarModulo, alCerrarSes
       <div style={barraSuperior}>
         <div style={marcaTop}>
           <img style={logoTop} src={LOGO_SRC} alt="ServContable" />
-          <strong style={{ color: "#0369a1" }}>
+          <strong style={{ color: "var(--sc-azul)" }}>
             ServContable PRO · {usuario?.nombre || usuario?.email || "Usuario"}
           </strong>
         </div>
@@ -119,7 +119,7 @@ const barraSuperior = {
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0 22px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   boxShadow: "0 12px 30px rgba(7, 17, 31, 0.16)",
   backdropFilter: "blur(14px)",
 };
@@ -135,7 +135,7 @@ const logoTop = {
   height: "28px",
   borderRadius: "8px",
   objectFit: "contain",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
   border: "1px solid #67e8f9",
   padding: "3px",
   boxSizing: "border-box",
@@ -160,7 +160,7 @@ const titulo = {
 };
 
 const subtitulo = {
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: "22px",
   fontSize: "15px",
   textAlign: "center",
@@ -193,7 +193,7 @@ const icono = {
 };
 
 const cardTitulo = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginBottom: "8px",
   fontSize: "22px",
 };
@@ -207,7 +207,7 @@ const cardTexto = {
 
 const botonPrimario = {
   marginTop: "14px",
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "10px 15px",
@@ -218,7 +218,7 @@ const botonPrimario = {
 };
 
 const botonSalir = {
-  background: "#ef4444",
+  background: "var(--sc-danger)",
   color: "white",
   border: "none",
   padding: "8px 12px",

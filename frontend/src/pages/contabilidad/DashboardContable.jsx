@@ -412,14 +412,14 @@ const filtrosHero = {
 const labelHero = {
   display: "block",
   fontWeight: "bold",
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: "5px",
 };
 
 const inputHero = {
   width: "160px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -427,7 +427,7 @@ const inputHero = {
 
 const botonHero = {
   background: "white",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   padding: "10px 18px",
   borderRadius: "10px",
@@ -444,12 +444,12 @@ const gridIndicadores = {
 };
 
 const indicador = {
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fcff 100%)",
+  background: "linear-gradient(180deg, #ffffff 0%, var(--sc-fondo-claro) 100%)",
   border: "1px solid rgba(169, 216, 239, 0.72)",
   borderRadius: "18px",
   padding: "18px",
   boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   display: "flex",
   flexDirection: "column",
   gap: "7px",
@@ -460,9 +460,9 @@ const indicadorIcono = {
   width: "38px",
   height: "38px",
   borderRadius: "13px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -471,18 +471,18 @@ const indicadorIcono = {
 
 const indicadorDestacado = {
   ...indicador,
-  border: "2px solid #10b981",
+  border: "2px solid var(--sc-teal)",
 };
 
 const indicadorAlerta = {
   ...indicador,
-  border: "2px solid #f97316",
+  border: "2px solid var(--sc-warning)",
 };
 
 const indicadorValor = {
   fontSize: "23px",
   fontWeight: "bold",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
 };
 
 const gridDos = {
@@ -502,27 +502,27 @@ const card = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const fila = {
   display: "flex",
   justifyContent: "space-between",
-  borderBottom: "1px solid #e2e8f0",
+  borderBottom: "1px solid var(--sc-borde-claro)",
   padding: "10px 0",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const filaDestacada = {
   ...fila,
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontWeight: "bold",
 };
 
 const botonSecundario = {
   marginTop: "16px",
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "11px 15px",
@@ -538,9 +538,9 @@ const gridAccesos = {
 };
 
 const acceso = {
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   padding: "14px",
   borderRadius: "12px",
   cursor: "pointer",
@@ -552,7 +552,7 @@ const acceso = {
 };
 
 const accesoIcono = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -570,8 +570,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -582,8 +582,8 @@ const thNumero = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -593,11 +593,11 @@ const tdNumero = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };

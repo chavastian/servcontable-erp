@@ -1,5 +1,12 @@
 const pool = require("../database/db");
 const {
+  leerPaginacion,
+  aplicarPaginacion,
+  fragmentoPaginacion,
+  valoresPaginacion,
+  recortarPagina,
+} = require("../helpers/paginacion.helper");
+const {
   obtenerParametrosOAnteriores,
   completarConNacional,
 } = require("../helpers/parametrosNacionales.helper");
@@ -467,7 +474,29 @@ async function calcularLiquidacionCompleta(client, entradas) {
       gratificacionTopada = topeMensual !== null && sinTope > topeMensual;
     }
 
-    const noImponibles = variablesNoImponibles;
+    // Asignación familiar (DFL 150): un monto por carga según el tramo del
+    // trabajador, con los valores del período. No es imponible ni tributable.
+    // REQUIERE VALIDACIÓN LABORAL: el tramo se toma tal como está en la ficha;
+    // la ley lo fija por el ingreso promedio del semestre anterior.
+    const cargasFamiliares = Math.max(0, Math.trunc(Number(trabajador.cargas || 0)));
+    const tramoAsignacion = String(trabajador.tramo_asignacion || "").trim().toUpperCase();
+    const montoPorCarga = Number(
+      {
+        A: configuracion.tramo_asignacion_a,
+        B: configuracion.tramo_asignacion_b,
+        C: configuracion.tramo_asignacion_c,
+      }[tramoAsignacion] || 0
+    );
+    const asignacionFamiliar = cargasFamiliares > 0 && montoPorCarga > 0 ? redondear(cargasFamiliares * montoPorCarga) : 0;
+
+    if (asignacionFamiliar > 0) {
+      detalleVariablesNoImponibles.push({
+        concepto: `Asignación familiar tramo ${tramoAsignacion} (${cargasFamiliares} carga(s))`,
+        monto: asignacionFamiliar,
+      });
+    }
+
+    const noImponibles = variablesNoImponibles + asignacionFamiliar;
     const otrosDesc = variablesDescuentos;
     const detalleOtrosDescuentos = [...detalleVariablesDescuentos];
 
@@ -726,6 +755,9 @@ async function calcularLiquidacionCompleta(client, entradas) {
 
         descuento_afp: descuentoAfp,
         descuento_salud: descuentoSalud,
+        asignacion_familiar: asignacionFamiliar,
+        cargas_familiares: cargasFamiliares,
+        tramo_asignacion: tramoAsignacion,
         descuento_salud_legal: descuentoSaludLegal,
         descuento_salud_adicional: descuentoSaludAdicional,
         plan_salud_uf: planSaludUf,
@@ -949,10 +981,11 @@ async function guardarLiquidacion(req, res) {
     // El adicional de Isapre se guarda aparte: Previred y el libro de
     // remuneraciones lo informan separado del 7%.
     await client.query(
-      `UPDATE liquidaciones SET descuento_salud_adicional = $3 WHERE id = $1 AND empresa_id = $2`,
-      [resultado.rows[0].id, empresa_id, Number(c.descuento_salud_adicional || 0)]
+      `UPDATE liquidaciones SET descuento_salud_adicional = $3, asignacion_familiar = $4 WHERE id = $1 AND empresa_id = $2`,
+      [resultado.rows[0].id, empresa_id, Number(c.descuento_salud_adicional || 0), Number(c.asignacion_familiar || 0)]
     );
     resultado.rows[0].descuento_salud_adicional = Number(c.descuento_salud_adicional || 0);
+    resultado.rows[0].asignacion_familiar = Number(c.asignacion_familiar || 0);
 
     const liquidacion = resultado.rows[0];
 
@@ -1196,10 +1229,11 @@ async function actualizarLiquidacion(req, res) {
 
     if (resultado.rows[0]) {
       await pool.query(
-        `UPDATE liquidaciones SET descuento_salud_adicional = $3 WHERE id = $1 AND empresa_id = $2`,
-        [resultado.rows[0].id, empresa_id, Number(c.descuento_salud_adicional || 0)]
+        `UPDATE liquidaciones SET descuento_salud_adicional = $3, asignacion_familiar = $4 WHERE id = $1 AND empresa_id = $2`,
+        [resultado.rows[0].id, empresa_id, Number(c.descuento_salud_adicional || 0), Number(c.asignacion_familiar || 0)]
       );
       resultado.rows[0].descuento_salud_adicional = Number(c.descuento_salud_adicional || 0);
+    resultado.rows[0].asignacion_familiar = Number(c.asignacion_familiar || 0);
     }
 
     return res.json({
@@ -1416,8 +1450,12 @@ async function listarLiquidaciones(req, res) {
     }
 
     query += ` ORDER BY l.periodo DESC, t.apellidos ASC, t.nombres ASC`;
+    const paginacion = leerPaginacion(req.query);
+    query = aplicarPaginacion(query, valores, paginacion);
 
     const resultado = await pool.query(query, valores);
+    const pagina = recortarPagina(resultado.rows, paginacion);
+    resultado.rows = pagina.filas;
 
     const totales = resultado.rows.reduce(
       (acc, item) => {
@@ -1442,6 +1480,7 @@ async function listarLiquidaciones(req, res) {
     );
 
     return res.json({
+      paginacion: pagina.paginacion,
       total: resultado.rows.length,
       liquidaciones: resultado.rows,
       totales,
@@ -1481,9 +1520,9 @@ async function contabilizarLiquidaciones(req, res) {
     );
 
     if (configResult.rows.length === 0) {
-      throw new Error(
+      throw Object.assign(new Error(
         "No existe configuración de remuneraciones para este período"
-      );
+      ), { statusCode: 400 });
     }
 
     const config = configResult.rows[0];
@@ -1507,11 +1546,11 @@ async function contabilizarLiquidaciones(req, res) {
     const faltantes = cuentasRequeridas.filter((item) => !config[item.campo]);
 
     if (faltantes.length > 0) {
-      throw new Error(
+      throw Object.assign(new Error(
         `Faltan cuentas en Configuración Remuneraciones: ${faltantes
           .map((item) => item.nombre)
           .join(", ")}`
-      );
+      ), { statusCode: 400 });
     }
 
     const liquidacionesResult = await client.query(
@@ -1537,9 +1576,9 @@ async function contabilizarLiquidaciones(req, res) {
     const liquidaciones = liquidacionesResult.rows;
 
     if (liquidaciones.length === 0) {
-      throw new Error(
+      throw Object.assign(new Error(
         "No hay liquidaciones emitidas pendientes de contabilizar para este período"
-      );
+      ), { statusCode: 400 });
     }
 
     const totales = liquidaciones.reduce(
@@ -1601,8 +1640,9 @@ async function contabilizarLiquidaciones(req, res) {
     const diferencia = Math.round(totalDebe - totalHaber);
 
     if (diferencia !== 0) {
-      throw new Error(
-        `El asiento no cuadra. Debe: ${totalDebe}, Haber: ${totalHaber}, Diferencia: ${diferencia}`
+      throw Object.assign(
+        new Error(`El asiento no cuadra. Debe: ${totalDebe}, Haber: ${totalHaber}, Diferencia: ${diferencia}`),
+        { statusCode: 409 }
       );
     }
 
@@ -1613,7 +1653,10 @@ async function contabilizarLiquidaciones(req, res) {
       tipo
     );
 
-    const fechaComprobante = `${periodo}-28`;
+    // El asiento de nómina se fechaba el 28 fijo. Va al último día del mes.
+    const [anioPeriodo, mesPeriodo] = String(periodo).split("-").map(Number);
+    const ultimoDia = new Date(Date.UTC(anioPeriodo, mesPeriodo, 0)).getUTCDate();
+    const fechaComprobante = `${periodo}-${String(ultimoDia).padStart(2, "0")}`;
     const glosa = `Centralización remuneraciones período ${periodo}`;
 
     const comprobanteResult = await client.query(

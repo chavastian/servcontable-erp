@@ -1,87 +1,22 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 export async function crearEmpresa(datosEmpresa) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/empresas`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datosEmpresa),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al crear empresa");
-  }
-
-  return data;
+  return peticion(`${API_URL}/empresas`, { metodo: "POST", cuerpo: datosEmpresa, mensajeError: "Error al crear empresa" });
 }
 
 export async function listarEmpresas() {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/empresas`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al listar empresas");
-  }
-
-  return data;
+  return peticion(`${API_URL}/empresas`, { mensajeError: "Error al listar empresas" });
 }
 
 export async function actualizarEmpresa(id, datosEmpresa) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/empresas/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datosEmpresa),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al actualizar empresa");
-  }
-
-  return data;
+  return peticion(`${API_URL}/empresas/${id}`, { metodo: "PATCH", cuerpo: datosEmpresa, mensajeError: "Error al actualizar empresa" });
 }
 
 export async function eliminarEmpresa(id) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/empresas/${id}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al eliminar empresa");
-  }
-
-  return data;
+  return peticion(`${API_URL}/empresas/${id}`, { metodo: "DELETE", mensajeError: "Error al eliminar empresa" });
 }
 
 export function guardarEmpresaActiva(empresa) {

@@ -251,6 +251,14 @@ async function crearFiniquito(req, res) {
       ]
     );
 
+    // Un trabajador finiquitado deja la nómina: antes seguía apareciendo en
+    // las liquidaciones del mes siguiente.
+    await pool.query(
+      `UPDATE trabajadores SET estado = 'finiquitado', fecha_termino = $3
+       WHERE id = $1 AND empresa_id = $2 AND estado = 'activo'`,
+      [trabajador_id, empresa_id, c.fecha_termino]
+    );
+
     // Lo que el cálculo del servidor agrega respecto del formulario antiguo.
     const detalle = await pool.query(
       `UPDATE finiquitos

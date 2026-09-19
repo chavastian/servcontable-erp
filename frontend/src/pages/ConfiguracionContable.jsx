@@ -417,12 +417,12 @@ function CampoCuenta({ label, name, value, onChange, opciones }) {
 
 const titulo = {
   fontSize: "32px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -435,17 +435,17 @@ const cardPrincipal = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
   marginBottom: "18px",
 };
 
 const tituloSeccionSeparado = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: "28px",
   marginBottom: "18px",
   paddingTop: "18px",
-  borderTop: "1px solid #e2e8f0",
+  borderTop: "1px solid var(--sc-borde-claro)",
 };
 
 const grid = {
@@ -457,14 +457,14 @@ const grid = {
 const labelStyle = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "6px",
 };
 
 const selectStyle = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   height: "40px",
   boxSizing: "border-box",
@@ -472,7 +472,7 @@ const selectStyle = {
 
 const botonGuardar = {
   marginTop: "22px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -486,39 +486,39 @@ const infoBox = {
   borderRadius: "16px",
   padding: "20px",
   boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
-  border: "1px solid #e2e8f0",
+  border: "1px solid var(--sc-borde-claro)",
 };
 
 const subtituloInfo = {
   marginTop: 0,
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const textoInfo = {
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "10px",
 };
 
 const listaInfo = {
-  color: "#1e293b",
+  color: "var(--sc-text)",
   lineHeight: "1.7",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",

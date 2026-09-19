@@ -1,89 +1,22 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 export async function listarEjercicios(empresa_id) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/ejercicios?empresa_id=${empresa_id}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al listar años de trabajo");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ejercicios?empresa_id=${empresa_id}`, { mensajeError: "Error al listar años de trabajo" });
 }
 
 export async function crearEjercicio(datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/ejercicios`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al crear año de trabajo");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ejercicios`, { metodo: "POST", cuerpo: datos, mensajeError: "Error al crear año de trabajo" });
 }
 
 export async function cerrarEjercicio(id, datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/ejercicios/${id}/cerrar`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al cerrar año de trabajo");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ejercicios/${id}/cerrar`, { metodo: "PUT", cuerpo: datos, mensajeError: "Error al cerrar año de trabajo" });
 }
 
 export async function reabrirEjercicio(id, datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/ejercicios/${id}/reabrir`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al reabrir año de trabajo");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ejercicios/${id}/reabrir`, { metodo: "PUT", cuerpo: datos, mensajeError: "Error al reabrir año de trabajo" });
 }
 
 export function guardarEjercicioActivo(ejercicio) {

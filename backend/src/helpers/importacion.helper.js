@@ -128,7 +128,28 @@ function resumirImportacion({
   };
 }
 
+/**
+ * Texto para informar el error de una fila sin devolver el mensaje de
+ * PostgreSQL, que revela tablas y restricciones.
+ */
+function describirErrorFila(error) {
+  if (error && error.statusCode) return error.message;
+
+  const codigos = {
+    23505: "documento duplicado",
+    23503: "referencia a un registro que no existe",
+    23514: "valor fuera de lo permitido",
+    22001: "texto demasiado largo",
+    22003: "monto fuera de rango",
+    22007: "fecha inválida",
+    22008: "fecha inválida",
+  };
+
+  return codigos[error && error.code] || "no se pudo guardar la fila";
+}
+
 module.exports = {
+  describirErrorFila,
   conPuntoDeGuardado,
   recorrerFilas,
   resumirImportacion,

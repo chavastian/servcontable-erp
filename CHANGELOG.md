@@ -9,6 +9,24 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloque 5
+
+- **La aplicación carga en una fracción del tiempo:** cada pantalla se descarga cuando se
+  abre. Y la pantalla queda en la dirección: F5 vuelve al mismo lugar y el botón atrás
+  funciona.
+- **Los errores del servidor se leen:** un corte del proxy ya no muestra "Unexpected
+  token"; dice que el servidor no respondió y que se intente de nuevo.
+- **Anular un asiento de nómina, finiquito o pago de remuneraciones** deja el documento
+  listo para volver a contabilizar; antes quedaba "contabilizado" contra un asiento anulado.
+- **Importar boletas o una cartola con una fila mala** guarda las demás y dice cuál falló.
+- **Los libros de compra y venta restan las notas de crédito** en totales y por tipo.
+- **Calendario con los feriados reales:** solsticio de junio, San Pedro y San Pablo y
+  12 de octubre al lunes, 31 de octubre al viernes, 17 o 20 de septiembre.
+- **Asignación familiar** en la liquidación según tramo y cargas del trabajador.
+- **Un finiquito saca al trabajador de la nómina.** Las licencias médicas se cuentan.
+- **La base rechaza estados y períodos mal escritos,** y los listados largos pueden
+  pedirse por página.
+
 ### Revisión del 19-09-2026: bloque 4
 
 - **Cerrar el año ahora cierra de verdad:** genera el asiento de cierre de resultados y

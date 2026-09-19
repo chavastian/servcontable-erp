@@ -1,32 +1,13 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 export async function crearComprobante(datosComprobante) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/comprobantes`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datosComprobante),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al crear comprobante");
-  }
-
-  return data;
+  return peticion(`${API_URL}/comprobantes`, { metodo: "POST", cuerpo: datosComprobante, mensajeError: "Error al crear comprobante" });
 }
 
 export async function listarComprobantes(empresaId, filtros = {}) {
-  const token = obtenerToken();
   const params = new URLSearchParams();
 
   params.append("empresa_id", empresaId);
@@ -47,107 +28,24 @@ export async function listarComprobantes(empresaId, filtros = {}) {
     params.append("fecha_hasta", filtros.fecha_hasta);
   }
 
-  const respuesta = await fetch(
-    `${API_URL}/comprobantes?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al listar comprobantes");
-  }
-
-  return data;
+  return peticion(`${API_URL}/comprobantes?${params.toString()}`, { mensajeError: "Error al listar comprobantes" });
 }
 
 export async function obtenerComprobante(id) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/comprobantes/${id}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al obtener comprobante");
-  }
-
-  return data;
+  return peticion(`${API_URL}/comprobantes/${id}`, { mensajeError: "Error al obtener comprobante" });
 }
 
 export async function actualizarComprobante(id, datosComprobante) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/comprobantes/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datosComprobante),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al actualizar comprobante");
-  }
-
-  return data;
+  return peticion(`${API_URL}/comprobantes/${id}`, { metodo: "PUT", cuerpo: datosComprobante, mensajeError: "Error al actualizar comprobante" });
 }
 
 export async function obtenerSiguienteNumeroComprobante(empresaId, tipo) {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
   params.append("tipo", tipo);
 
-  const respuesta = await fetch(
-    `${API_URL}/comprobantes/siguiente-numero?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al obtener siguiente numero");
-  }
-
-  return data;
+  return peticion(`${API_URL}/comprobantes/siguiente-numero?${params.toString()}`, { mensajeError: "Error al obtener siguiente numero" });
 }
 export async function anularComprobante(id, empresaId) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/comprobantes/${id}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ empresa_id: empresaId }),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al eliminar comprobante");
-  }
-
-  return data;
+  return peticion(`${API_URL}/comprobantes/${id}`, { metodo: "DELETE", cuerpo: { empresa_id: empresaId }, mensajeError: "Error al eliminar comprobante" });
 }

@@ -9,6 +9,8 @@ const {
 } = require("../controllers/vacacionesAusencias.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
@@ -27,7 +29,7 @@ router.post(
     limite: 3,
     condicion: "COALESCE(estado, 'vigente') = 'vigente'",
   }),
-  crearRegistro
+  validar(esquemas.vacacionAusencia), crearRegistro
 );
 router.delete(
   "/:id",

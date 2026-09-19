@@ -94,12 +94,12 @@ function estadoStyle(estado = "") {
   };
 
   if (estado === "ACTIVE") return { ...base, background: "#dcfce7", color: "#166534" };
-  if (estado === "TRIAL") return { ...base, background: "#dff7ff", color: "#0369a1" };
+  if (estado === "TRIAL") return { ...base, background: "var(--sc-celeste-suave)", color: "var(--sc-azul)" };
   if (estado === "PAST_DUE") return { ...base, background: "#fef3c7", color: "#92400e" };
   if (estado === "EXPIRED") return { ...base, background: "#fee2e2", color: "#991b1b" };
-  if (estado === "SUSPENDED") return { ...base, background: "#e2e8f0", color: "#334155" };
+  if (estado === "SUSPENDED") return { ...base, background: "var(--sc-borde-claro)", color: "#334155" };
   if (estado === "CANCELLED") return { ...base, background: "#f3f4f6", color: "#4b5563" };
-  return { ...base, background: "#e2e8f0", color: "#334155" };
+  return { ...base, background: "var(--sc-borde-claro)", color: "#334155" };
 }
 
 export default function AdminSuscripciones({ vistaInicial = "dashboard" }) {
@@ -1164,14 +1164,14 @@ function TablaSimple({ columnas, filas }) {
   );
 }
 
-const titulo = { fontSize: "34px", color: "#0f172a", marginBottom: "5px" };
-const subtitulo = { color: "#475569", marginBottom: "18px" };
-const ok = { color: "#10b981", fontWeight: "bold" };
-const errorTexto = { color: "#ef4444", fontWeight: "bold" };
+const titulo = { fontSize: "34px", color: "var(--sc-ink)", marginBottom: "5px" };
+const subtitulo = { color: "var(--sc-gris)", marginBottom: "18px" };
+const ok = { color: "var(--sc-teal)", fontWeight: "bold" };
+const errorTexto = { color: "var(--sc-danger)", fontWeight: "bold" };
 const tabs = { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" };
 const tabButton = (activo) => ({
-  background: activo ? "linear-gradient(135deg, #0369a1, #06b6d4)" : "white",
-  color: activo ? "white" : "#0369a1",
+  background: activo ? "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))" : "white",
+  color: activo ? "white" : "var(--sc-azul)",
   border: "1px solid #38bdf8",
   borderRadius: "999px",
   padding: "9px 13px",
@@ -1192,28 +1192,28 @@ const metricGrid = {
   marginBottom: "18px",
 };
 const metricCard = { ...card, padding: "18px" };
-const metricLabel = { color: "#475569", display: "block", marginBottom: "8px", fontWeight: "bold" };
-const metricValue = { color: "#0369a1", fontSize: "27px" };
+const metricLabel = { color: "var(--sc-gris)", display: "block", marginBottom: "8px", fontWeight: "bold" };
+const metricValue = { color: "var(--sc-azul)", fontSize: "27px" };
 const gridDos = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
   gap: "18px",
   alignItems: "start",
 };
-const tituloSeccion = { color: "#0369a1", marginTop: 0 };
+const tituloSeccion = { color: "var(--sc-azul)", marginTop: 0 };
 const filaResumen = {
   display: "flex",
   justifyContent: "space-between",
-  borderBottom: "1px solid #e2e8f0",
+  borderBottom: "1px solid var(--sc-borde-claro)",
   padding: "10px 0",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 const filaClienteBoton = {
   ...filaResumen,
   width: "100%",
   background: "transparent",
   border: "none",
-  borderBottom: "1px solid #e2e8f0",
+  borderBottom: "1px solid var(--sc-borde-claro)",
   cursor: "pointer",
   textAlign: "left",
 };
@@ -1227,7 +1227,7 @@ const input = {
   width: "100%",
   padding: "11px",
   borderRadius: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   boxSizing: "border-box",
 };
 const inputTabla = {
@@ -1237,7 +1237,7 @@ const inputTabla = {
 };
 const textarea = { ...input, minHeight: "82px", resize: "vertical" };
 const botonPrimario = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   borderRadius: "10px",
@@ -1247,7 +1247,7 @@ const botonPrimario = {
 };
 const botonGuardar = {
   ...botonPrimario,
-  background: "#10b981",
+  background: "var(--sc-teal)",
   marginTop: "6px",
 };
 const tablaWrap = { overflowX: "auto", marginTop: "14px" };
@@ -1255,14 +1255,14 @@ const tabla = { width: "100%", borderCollapse: "collapse" };
 const th = {
   textAlign: "left",
   padding: "11px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 const td = {
   padding: "11px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
   verticalAlign: "top",
   whiteSpace: "nowrap",
 };
@@ -1287,7 +1287,7 @@ const gridFormularioUna = {
   gap: "10px",
   marginBottom: "20px",
 };
-const label = { display: "block", fontWeight: "bold", color: "#1e293b", marginBottom: "6px" };
+const label = { display: "block", fontWeight: "bold", color: "var(--sc-text)", marginBottom: "6px" };
 const datosGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -1317,7 +1317,7 @@ const detalleHeader = {
 };
 const subCard = {
   background: "#ffffff",
-  border: "1px solid #e2e8f0",
+  border: "1px solid var(--sc-borde-claro)",
   borderRadius: "14px",
   padding: "16px",
 };

@@ -29,6 +29,19 @@
   --sc-gradient-danger: linear-gradient(135deg, #ef4444, #f97316);
   --sc-shadow: 0 18px 40px rgba(15, 76, 129, 0.13);
   --sc-shadow-strong: 0 26px 70px rgba(15, 23, 42, 0.28);
+
+  /* Colores que las páginas usaban como literales (revisión 19-09-2026).
+     Cambiar la marca ya no exige tocar 55 archivos. */
+  --sc-azul: #0369a1;
+  --sc-celeste-suave: #dff7ff;
+  --sc-gris: #475569;
+  --sc-cian-fondo: #ecfeff;
+  --sc-borde-claro: #e2e8f0;
+  --sc-celeste-borde: #a9d8ef;
+  --sc-cian-medio: #06b6d4;
+  --sc-fondo-claro: #f8fcff;
+  --sc-naranja-texto: #9a3412;
+  --sc-naranja-fondo: #fff7ed;
 }
 
 html,

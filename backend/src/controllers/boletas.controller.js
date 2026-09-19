@@ -10,6 +10,7 @@ const {
 } = require("../helpers/siiCsv.helper");
 const { crearComprobanteAutomaticoVenta } = require("../helpers/comprobante.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
+const { conPuntoDeGuardado, describirErrorFila } = require("../helpers/importacion.helper");
 
 function normalizarClave(valor = "") {
   return String(valor || "")
@@ -268,204 +269,216 @@ async function importarBoletasSII(req, res) {
 
     for (let index = 0; index < filas.length; index += 1) {
       const fila = filas[index];
-      const tipoBoleta = obtenerTipoBoleta(fila);
 
-      if (!tipoBoleta.esBoleta) {
-        resumen.omitidas += 1;
-        resumen.errores.push(`Fila ${index + 1}: no corresponde a boleta SII.`);
-        continue;
-      }
+      // Punto de guardado por fila: un error de base en una boleta no
+      // abortaba solo esa fila, dejaba la transacción entera inservible y
+      // el COMMIT final se convertía en ROLLBACK con la respuesta diciendo
+      // "insertadas".
+      const resultadoFila = await conPuntoDeGuardado(client, `fila_${index}`, async () => {
+        const tipoBoleta = obtenerTipoBoleta(fila);
 
-      const fecha = convertirFechaFlexible(
-        valorFila(fila, [
-          "Fecha Docto",
-          "Fecha Documento",
-          "Fecha Emision",
-          "Fecha de Emision",
-          "Fecha emisión",
-          "Fecha Boleta",
-          "Fecha",
-        ])
-      );
+        if (!tipoBoleta.esBoleta) {
+          resumen.omitidas += 1;
+          resumen.errores.push(`Fila ${index + 1}: no corresponde a boleta SII.`);
+          return;
+        }
 
-      if (!fecha) {
-        resumen.omitidas += 1;
-        resumen.errores.push(`Fila ${index + 1}: fecha no valida.`);
-        continue;
-      }
-
-      const folio =
-        String(
+        const fecha = convertirFechaFlexible(
           valorFila(fila, [
-            "Folio",
-            "Nro Folio",
-            "Numero Folio",
-            "Número Folio",
-            "Numero Boleta",
-            "Nro Boleta",
-            "Nro Documento",
-            "Numero Documento",
-          ]) || `sin-folio-${index + 1}`
-        )
-          .trim()
-          .replace(/\s+/g, " ");
+            "Fecha Docto",
+            "Fecha Documento",
+            "Fecha Emision",
+            "Fecha de Emision",
+            "Fecha emisión",
+            "Fecha Boleta",
+            "Fecha",
+          ])
+        );
 
-      const rutCliente =
-        String(
+        if (!fecha) {
+          resumen.omitidas += 1;
+          resumen.errores.push(`Fila ${index + 1}: fecha no valida.`);
+          return;
+        }
+
+        const folio =
+          String(
+            valorFila(fila, [
+              "Folio",
+              "Nro Folio",
+              "Numero Folio",
+              "Número Folio",
+              "Numero Boleta",
+              "Nro Boleta",
+              "Nro Documento",
+              "Numero Documento",
+            ]) || `sin-folio-${index + 1}`
+          )
+            .trim()
+            .replace(/\s+/g, " ");
+
+        const rutCliente =
+          String(
+            valorFila(fila, [
+              "RUT Cliente",
+              "Rut Cliente",
+              "RUT receptor",
+              "Rut receptor",
+              "RUT",
+            ]) || "66.666.666-6"
+          ).trim() || "66.666.666-6";
+        const razonCliente =
+          String(
+            valorFila(fila, [
+              "Razon Social",
+              "Razón Social",
+              "Razon Social Cliente",
+              "Cliente",
+              "Receptor",
+            ]) || "Consumidor final"
+          ).trim() || "Consumidor final";
+
+        let neto = convertirMonto(
+          valorFila(fila, ["Monto Neto", "Neto", "Monto Neto Afecto", "Monto Afecto"])
+        );
+        let exento = convertirMonto(
+          valorFila(fila, ["Monto Exento", "Exento", "Monto No Afecto", "Monto Exento Boleta"])
+        );
+        let iva = convertirMonto(
+          valorFila(fila, ["Monto IVA", "IVA", "IVA Debito", "IVA Débito", "Monto Iva"])
+        );
+        let total = convertirMonto(
           valorFila(fila, [
-            "RUT Cliente",
-            "Rut Cliente",
-            "RUT receptor",
-            "Rut receptor",
-            "RUT",
-          ]) || "66.666.666-6"
-        ).trim() || "66.666.666-6";
-      const razonCliente =
-        String(
-          valorFila(fila, [
-            "Razon Social",
-            "Razón Social",
-            "Razon Social Cliente",
-            "Cliente",
-            "Receptor",
-          ]) || "Consumidor final"
-        ).trim() || "Consumidor final";
+            "Monto Total",
+            "Total",
+            "Total Boleta",
+            "Monto Documento",
+            "Monto",
+            "Total Documento",
+          ])
+        );
 
-      let neto = convertirMonto(
-        valorFila(fila, ["Monto Neto", "Neto", "Monto Neto Afecto", "Monto Afecto"])
-      );
-      let exento = convertirMonto(
-        valorFila(fila, ["Monto Exento", "Exento", "Monto No Afecto", "Monto Exento Boleta"])
-      );
-      let iva = convertirMonto(
-        valorFila(fila, ["Monto IVA", "IVA", "IVA Debito", "IVA Débito", "Monto Iva"])
-      );
-      let total = convertirMonto(
-        valorFila(fila, [
-          "Monto Total",
-          "Total",
-          "Total Boleta",
-          "Monto Documento",
-          "Monto",
-          "Total Documento",
-        ])
-      );
+        if (tipoBoleta.esExenta) {
+          exento = exento || total;
+          neto = 0;
+          iva = 0;
+        } else if (total > 0 && neto === 0 && iva === 0) {
+          neto = Math.round(total / 1.19);
+          iva = total - neto;
+        }
 
-      if (tipoBoleta.esExenta) {
-        exento = exento || total;
-        neto = 0;
-        iva = 0;
-      } else if (total > 0 && neto === 0 && iva === 0) {
-        neto = Math.round(total / 1.19);
-        iva = total - neto;
-      }
+        if (total === 0) {
+          total = neto + exento + iva;
+        }
 
-      if (total === 0) {
-        total = neto + exento + iva;
-      }
+        if (total === 0) {
+          resumen.omitidas += 1;
+          resumen.errores.push(`Fila ${index + 1}: monto total en cero.`);
+          return;
+        }
 
-      if (total === 0) {
-        resumen.omitidas += 1;
-        resumen.errores.push(`Fila ${index + 1}: monto total en cero.`);
-        continue;
-      }
+        const periodo = req.body.periodo || obtenerPeriodoDesdeFecha(fecha);
 
-      const periodo = req.body.periodo || obtenerPeriodoDesdeFecha(fecha);
+        const existente = await client.query(
+          `
+          SELECT *
+          FROM ventas
+          WHERE empresa_id = $1
+            AND sii_tipo_doc = $2
+            AND folio = $3
+            AND COALESCE(estado, 'vigente') = 'vigente'
+          LIMIT 1
+          `,
+          [empresaId, tipoBoleta.codigo, folio]
+        );
 
-      const existente = await client.query(
-        `
-        SELECT *
-        FROM ventas
-        WHERE empresa_id = $1
-          AND sii_tipo_doc = $2
-          AND folio = $3
-          AND COALESCE(estado, 'vigente') = 'vigente'
-        LIMIT 1
-        `,
-        [empresaId, tipoBoleta.codigo, folio]
-      );
+        if (existente.rows.length > 0) {
+          const ventaExistente = existente.rows[0];
 
-      if (existente.rows.length > 0) {
-        const ventaExistente = existente.rows[0];
+          if (generarComprobante && !ventaExistente.comprobante_id) {
+            const comprobante = await crearComprobanteAutomaticoVenta(
+              client,
+              {
+                ...ventaExistente,
+                cuenta_ingreso_id: ventaExistente.cuenta_ingreso_id || cuentaIngresoId,
+              },
+              {
+                ...configuracion,
+                cuenta_ingreso_defecto_id: cuentaIngresoId,
+              }
+            );
 
-        if (generarComprobante && !ventaExistente.comprobante_id) {
+            await client.query(
+              "UPDATE ventas SET comprobante_id = $1 WHERE id = $2",
+              [comprobante.id, ventaExistente.id]
+            );
+
+            resumen.comprobantes_creados += 1;
+          }
+
+          resumen.omitidas += 1;
+          return;
+        }
+
+        const insertResult = await client.query(
+          `
+          INSERT INTO ventas
+          (
+            empresa_id, periodo, fecha, tipo_documento, sii_tipo_doc, folio,
+            rut_cliente, razon_social_cliente, neto, exento, iva, total,
+            cuenta_ingreso_id
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          RETURNING *
+          `,
+          [
+            empresaId,
+            periodo,
+            fecha,
+            tipoBoleta.nombre,
+            tipoBoleta.codigo,
+            folio,
+            rutCliente,
+            razonCliente,
+            neto,
+            exento,
+            iva,
+            total,
+            cuentaIngresoId,
+          ]
+        );
+
+        const ventaCreada = insertResult.rows[0];
+
+        if (generarComprobante) {
           const comprobante = await crearComprobanteAutomaticoVenta(
             client,
-            {
-              ...ventaExistente,
-              cuenta_ingreso_id: ventaExistente.cuenta_ingreso_id || cuentaIngresoId,
-            },
+            ventaCreada,
             {
               ...configuracion,
               cuenta_ingreso_defecto_id: cuentaIngresoId,
             }
           );
 
-          await client.query(
-            "UPDATE ventas SET comprobante_id = $1 WHERE id = $2",
-            [comprobante.id, ventaExistente.id]
-          );
+          await client.query("UPDATE ventas SET comprobante_id = $1 WHERE id = $2", [
+            comprobante.id,
+            ventaCreada.id,
+          ]);
 
           resumen.comprobantes_creados += 1;
         }
 
+        resumen.insertadas += 1;
+        resumen.neto += Number(neto || 0);
+        resumen.exento += Number(exento || 0);
+        resumen.iva += Number(iva || 0);
+        resumen.total += Number(total || 0);
+      });
+
+      if (!resultadoFila.ok) {
         resumen.omitidas += 1;
-        continue;
+        resumen.errores.push(`Fila ${index + 1}: ${describirErrorFila(resultadoFila.error)}`);
       }
-
-      const insertResult = await client.query(
-        `
-        INSERT INTO ventas
-        (
-          empresa_id, periodo, fecha, tipo_documento, sii_tipo_doc, folio,
-          rut_cliente, razon_social_cliente, neto, exento, iva, total,
-          cuenta_ingreso_id
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        RETURNING *
-        `,
-        [
-          empresaId,
-          periodo,
-          fecha,
-          tipoBoleta.nombre,
-          tipoBoleta.codigo,
-          folio,
-          rutCliente,
-          razonCliente,
-          neto,
-          exento,
-          iva,
-          total,
-          cuentaIngresoId,
-        ]
-      );
-
-      const ventaCreada = insertResult.rows[0];
-
-      if (generarComprobante) {
-        const comprobante = await crearComprobanteAutomaticoVenta(
-          client,
-          ventaCreada,
-          {
-            ...configuracion,
-            cuenta_ingreso_defecto_id: cuentaIngresoId,
-          }
-        );
-
-        await client.query("UPDATE ventas SET comprobante_id = $1 WHERE id = $2", [
-          comprobante.id,
-          ventaCreada.id,
-        ]);
-
-        resumen.comprobantes_creados += 1;
-      }
-
-      resumen.insertadas += 1;
-      resumen.neto += Number(neto || 0);
-      resumen.exento += Number(exento || 0);
-      resumen.iva += Number(iva || 0);
-      resumen.total += Number(total || 0);
     }
 
     await client.query("COMMIT");

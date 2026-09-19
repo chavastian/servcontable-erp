@@ -13,6 +13,8 @@ const {
 } = require("../controllers/finiquitos.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
@@ -29,7 +31,7 @@ router.post(
   "/calcular",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
-  calcularFiniquitoPrevio
+  validar(esquemas.finiquito), calcularFiniquitoPrevio
 );
 router.get("/:id", verificarToken, obtenerFiniquito);
 router.post(
@@ -42,14 +44,14 @@ router.post(
     limite: 1,
     condicion: "COALESCE(estado, 'vigente') = 'vigente'",
   }),
-  crearFiniquito
+  validar(esquemas.finiquito), crearFiniquito
 );
 router.post(
   "/:id/contabilizar",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la contabilizacion de finiquitos se habilita en la version contratada."),
-  contabilizarFiniquito
+  validar(esquemas.conEmpresa), contabilizarFiniquito
 );
 router.delete(
   "/:id",
@@ -63,7 +65,7 @@ router.post(
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("el pago de finiquitos se habilita en la version contratada."),
-  pagarFiniquito
+  validar(esquemas.finiquitoPagar), pagarFiniquito
 );
 
 

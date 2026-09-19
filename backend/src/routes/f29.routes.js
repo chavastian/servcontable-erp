@@ -7,6 +7,8 @@ const {
   listarPresentadas,
 } = require("../controllers/declaracionesF29.controller");
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirEmpresa, exigirPermiso } = require("../middleware/tenant.middleware");
 
 router.get("/", verificarToken, exigirEmpresa, obtenerF29);
@@ -17,7 +19,7 @@ router.post(
   verificarToken,
   exigirEmpresa,
   exigirPermiso("CERRAR_EJERCICIO"),
-  registrarPresentada
+  validar(esquemas.f29Presentada), registrarPresentada
 );
 
 module.exports = router;

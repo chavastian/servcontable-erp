@@ -1,5 +1,12 @@
 const pool = require("../database/db");
 const {
+  leerPaginacion,
+  aplicarPaginacion,
+  fragmentoPaginacion,
+  valoresPaginacion,
+  recortarPagina,
+} = require("../helpers/paginacion.helper");
+const {
   crearComprobanteAutomaticoVenta,
 } = require("../helpers/comprobante.helper");
 
@@ -242,8 +249,12 @@ async function listarVentas(req, res) {
     }
 
     query += ` ORDER BY v.fecha DESC, v.id DESC`;
+    const paginacion = leerPaginacion(req.query);
+    query = aplicarPaginacion(query, valores, paginacion);
 
     const resultado = await pool.query(query, valores);
+    const pagina = recortarPagina(resultado.rows, paginacion);
+    resultado.rows = pagina.filas;
 
     const totales = resultado.rows.reduce(
       (acc, venta) => {
@@ -262,6 +273,7 @@ async function listarVentas(req, res) {
     );
 
     return res.json({
+      paginacion: pagina.paginacion,
       total: resultado.rows.length,
       totales,
       ventas: resultado.rows,

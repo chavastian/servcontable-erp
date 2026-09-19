@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { listarCuentas } from "../../services/cuentaService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
@@ -1698,7 +1698,7 @@ function CampoSelect({
 }
 
 const hero = {
-  background: "linear-gradient(135deg, #0f172a, #0369a1, #0ea5e9)",
+  background: "linear-gradient(135deg, var(--sc-ink), var(--sc-azul), #0ea5e9)",
   borderRadius: "22px",
   padding: "28px",
   color: "white",
@@ -1717,7 +1717,7 @@ const titulo = {
 };
 
 const subtitulo = {
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: 0,
 };
 
@@ -1731,14 +1731,14 @@ const filtrosHero = {
 const labelHero = {
   display: "block",
   fontWeight: "bold",
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: "5px",
 };
 
 const inputHero = {
   width: "160px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -1746,7 +1746,7 @@ const inputHero = {
 
 const botonHero = {
   background: "white",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   padding: "10px 18px",
   borderRadius: "10px",
@@ -1772,7 +1772,7 @@ const cardHeader = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
   marginBottom: "5px",
   display: "flex",
@@ -1781,10 +1781,10 @@ const tituloSeccion = {
 };
 
 const tituloSeccionSeparado = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: "26px",
   paddingTop: "18px",
-  borderTop: "1px solid #e2e8f0",
+  borderTop: "1px solid var(--sc-borde-claro)",
   display: "flex",
   alignItems: "center",
   gap: "9px",
@@ -1794,9 +1794,9 @@ const tituloIcono = {
   width: "36px",
   height: "36px",
   borderRadius: "12px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -1804,15 +1804,15 @@ const tituloIcono = {
 };
 
 const textoMuted = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginTop: 0,
 };
 
 const notaSalud = {
   gridColumn: "1 / -1",
-  background: "#ecfeff",
+  background: "var(--sc-cian-fondo)",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   padding: "12px",
   borderRadius: "12px",
   fontWeight: "bold",
@@ -1829,12 +1829,12 @@ const importBox = {
 const inputFile = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   boxSizing: "border-box",
   height: "auto",
   minHeight: "42px",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
 };
 
 const botonImportar = {
@@ -1863,14 +1863,14 @@ const gridAfp = {
 const labelStyle = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const inputStyle = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -1893,7 +1893,7 @@ const ayudaCampo = {
 
 const botonGuardar = {
   marginTop: "18px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -1924,8 +1924,8 @@ const botonIcono = {
 };
 
 const badgeInfo = {
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   padding: "8px 12px",
   borderRadius: "999px",
   fontWeight: "bold",
@@ -1944,8 +1944,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -1961,8 +1961,8 @@ const thAccion = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -1979,7 +1979,7 @@ const tdAccion = {
 
 const botonEditar = {
   background: "#e0f2fe",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "1px solid #7dd3fc",
   height: "32px",
   padding: "0 10px",
@@ -1990,7 +1990,7 @@ const botonEditar = {
 };
 
 const botonEliminar = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   width: "32px",
@@ -2007,12 +2007,12 @@ const botonEliminar = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 

@@ -18,10 +18,10 @@ import { exportarFiniquitoPDF } from "../../utils/finiquitoPdf";
 const listaAvisos = {
   margin: "10px 0 0",
   padding: "10px 14px 10px 30px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fdba74",
   borderRadius: 10,
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   fontSize: 13,
   display: "grid",
   gap: 4,
@@ -1466,7 +1466,7 @@ function IconoResumen({ tipo }) {
 }
 
 const hero = {
-  background: "linear-gradient(135deg, #0f172a, #0369a1, #0ea5e9)",
+  background: "linear-gradient(135deg, var(--sc-ink), var(--sc-azul), #0ea5e9)",
   borderRadius: "22px",
   padding: "28px",
   color: "white",
@@ -1485,7 +1485,7 @@ const titulo = {
 };
 
 const subtitulo = {
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: 0,
 };
 
@@ -1499,14 +1499,14 @@ const filtrosHero = {
 const labelHero = {
   display: "block",
   fontWeight: "bold",
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: "5px",
 };
 
 const inputHero = {
   width: "160px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -1514,7 +1514,7 @@ const inputHero = {
 
 const botonHero = {
   background: "white",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   padding: "10px 18px",
   borderRadius: "10px",
@@ -1535,7 +1535,7 @@ const resumenCard = {
   borderRadius: "18px",
   padding: "18px",
   boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   display: "flex",
   flexDirection: "column",
   gap: "7px",
@@ -1545,9 +1545,9 @@ const resumenIcono = {
   width: "38px",
   height: "38px",
   borderRadius: "13px",
-  background: "linear-gradient(135deg, #dff7ff, #ffffff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), #ffffff)",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -1563,15 +1563,15 @@ const card = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const tituloSeccionSeparado = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: "26px",
   paddingTop: "18px",
-  borderTop: "1px solid #e2e8f0",
+  borderTop: "1px solid var(--sc-borde-claro)",
 };
 
 const grid = {
@@ -1604,36 +1604,36 @@ const conceptosGrid = {
 };
 
 const conceptoCard = {
-  background: "#f8fcff",
-  border: "1px solid #e2e8f0",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-borde-claro)",
   borderRadius: "16px",
   padding: "16px",
   display: "flex",
   flexDirection: "column",
   gap: "7px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const conceptoCardNegativo = {
   ...conceptoCard,
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
 };
 
 const conceptoMonto = {
   fontSize: "22px",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontWeight: "bold",
 };
 
 const obsTexto = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontStyle: "italic",
 };
 
 const botonEditar = {
   marginTop: "8px",
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   width: "34px",
@@ -1652,7 +1652,7 @@ const botonEditar = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
@@ -1661,7 +1661,7 @@ const labelStyle = label;
 const input = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -1673,7 +1673,7 @@ const textarea = {
   width: "100%",
   minHeight: "90px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   boxSizing: "border-box",
   resize: "vertical",
@@ -1683,22 +1683,22 @@ const totalesBox = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   gap: "14px",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
   borderRadius: "14px",
   padding: "16px",
   marginTop: "20px",
 };
 
 const totalFinal = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
 };
 
 const checkBox = {
-  background: "#f8fcff",
-  border: "1px solid #e2e8f0",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-borde-claro)",
   borderRadius: "12px",
   padding: "12px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
   display: "flex",
   alignItems: "center",
@@ -1707,7 +1707,7 @@ const checkBox = {
 
 const botonGuardar = {
   marginTop: "18px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -1728,8 +1728,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -1745,8 +1745,8 @@ const thAccion = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -1786,7 +1786,7 @@ const botonAccionBase = {
 
 const botonEliminar = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
 };
 
 const modalFondo = {
@@ -1810,8 +1810,8 @@ const modalCard = {
 };
 
 const modalResumen = {
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   borderRadius: "14px",
   padding: "14px",
   marginTop: "18px",
@@ -1821,23 +1821,23 @@ const modalResumen = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const botonPDF = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
 };
 
 const botonContabilizar = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #10b981, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-teal), var(--sc-cian-medio))",
 };
 
 const badgeOk = {
@@ -1851,7 +1851,7 @@ const badgeOk = {
 
 const botonPagar = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #10b981, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-teal), var(--sc-cian-medio))",
 };
 
 const botonPagarDisabled = {

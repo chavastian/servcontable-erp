@@ -55,6 +55,50 @@ function comoFecha(d) {
  * Carmen cuando corre la ley de traslado, Día de la Raza) y cualquier feriado
  * regional o decretado. Por eso toda fecha calculada viaja con un aviso.
  */
+function trasladar(fecha, dias) {
+  return new Date(fecha.getTime() + dias * DIA);
+}
+
+/**
+ * Ley 19.668: 29 de junio y 12 de octubre se corren al lunes cuando caen
+ * martes, miércoles o jueves (al anterior) o viernes (al siguiente).
+ */
+function trasladadoALunes(fecha) {
+  const dia = fecha.getUTCDay();
+
+  if (dia === 2) return trasladar(fecha, -1);
+  if (dia === 3) return trasladar(fecha, -2);
+  if (dia === 4) return trasladar(fecha, -3);
+  if (dia === 5) return trasladar(fecha, 3);
+
+  return fecha;
+}
+
+/**
+ * Ley 20.299: el 31 de octubre se corre al viernes anterior si cae martes y
+ * al viernes siguiente si cae miércoles.
+ */
+function trasladadoAViernes(fecha) {
+  const dia = fecha.getUTCDay();
+
+  if (dia === 2) return trasladar(fecha, -4);
+  if (dia === 3) return trasladar(fecha, 2);
+
+  return fecha;
+}
+
+/**
+ * Ley 21.357: el Día de los Pueblos Indígenas es el del solsticio de invierno,
+ * 20 o 21 de junio según el año. Desde 2024 cae el 20 en los años múltiplos
+ * de 4 y en el siguiente, y el 21 en los otros dos; antes de 2024 fue el 21.
+ * REQUIERE VALIDACIÓN: cotejar con el decreto de cada año.
+ */
+function diaSolsticioJunio(anio) {
+  if (anio < 2024) return 21;
+
+  return anio % 4 <= 1 ? 20 : 21;
+}
+
 function feriadosDelAnio(anio) {
   const pascua = domingoDePascua(anio);
 
@@ -62,12 +106,10 @@ function feriadosDelAnio(anio) {
     [1, 1], // Año Nuevo
     [5, 1], // Día del Trabajo
     [5, 21], // Glorias Navales
-    [6, 20], // Día de los Pueblos Indígenas
     [7, 16], // Virgen del Carmen
     [8, 15], // Asunción de la Virgen
     [9, 18], // Independencia
     [9, 19], // Glorias del Ejército
-    [10, 31], // Iglesias Evangélicas
     [11, 1], // Todos los Santos
     [12, 8], // Inmaculada Concepción
     [12, 25], // Navidad
@@ -79,6 +121,20 @@ function feriadosDelAnio(anio) {
 
   feriados.add(comoFecha(new Date(pascua.getTime() - 2 * DIA))); // Viernes Santo
   feriados.add(comoFecha(new Date(pascua.getTime() - 1 * DIA))); // Sábado Santo
+
+  // Antes el 20 de junio era fijo, y el 29 de junio, el 12 de octubre y el
+  // 31 de octubre se ignoraban o se tomaban sin traslado.
+  feriados.add(comoFecha(new Date(Date.UTC(anio, 5, diaSolsticioJunio(anio)))));
+  feriados.add(comoFecha(trasladadoALunes(new Date(Date.UTC(anio, 5, 29))))); // San Pedro y San Pablo
+  feriados.add(comoFecha(trasladadoALunes(new Date(Date.UTC(anio, 9, 12))))); // Encuentro de Dos Mundos
+  feriados.add(comoFecha(trasladadoAViernes(new Date(Date.UTC(anio, 9, 31))))); // Iglesias Evangélicas
+
+  // Ley 20.215: cuando el 18 cae martes el lunes 17 es feriado; cuando cae
+  // miércoles lo es el viernes 20.
+  const dia18 = new Date(Date.UTC(anio, 8, 18)).getUTCDay();
+
+  if (dia18 === 2) feriados.add(comoFecha(new Date(Date.UTC(anio, 8, 17))));
+  if (dia18 === 3) feriados.add(comoFecha(new Date(Date.UTC(anio, 8, 20))));
 
   return feriados;
 }

@@ -1,3 +1,4 @@
+import { peticion } from "./http";
 /**
  * Las seis consultas nuevas: panel del estudio, cierre mensual, calce bancario,
  * sugerencia de cuenta, calendario tributario y flujo de caja.
@@ -6,13 +7,11 @@
  * escribe (aplicar sugerencias) lo hace sobre lo que la persona confirmó.
  */
 
-import { obtenerToken } from "./authService";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 async function pedir(ruta, parametros = {}) {
-  const token = obtenerToken();
   const params = new URLSearchParams();
 
   Object.entries(parametros).forEach(([clave, valor]) => {
@@ -22,38 +21,11 @@ async function pedir(ruta, parametros = {}) {
   });
 
   const consulta = params.toString();
-  const respuesta = await fetch(`${API_URL}${ruta}${consulta ? `?${consulta}` : ""}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const datos = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(datos.error || "No se pudo obtener la información");
-  }
-
-  return datos;
+  return peticion(`${API_URL}${ruta}${consulta ? `?${consulta}` : ""}`, { mensajeError: "No se pudo obtener la información" });
 }
 
 async function enviar(ruta, cuerpo) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}${ruta}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(cuerpo),
-  });
-
-  const datos = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(datos.error || "No se pudo guardar el cambio");
-  }
-
-  return datos;
+  return peticion(`${API_URL}${ruta}`, { metodo: "POST", cuerpo: cuerpo, mensajeError: "No se pudo guardar el cambio" });
 }
 
 export function obtenerPanelEstudio(periodo) {

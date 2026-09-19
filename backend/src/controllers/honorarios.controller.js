@@ -1,4 +1,11 @@
 const pool = require("../database/db");
+const {
+  leerPaginacion,
+  aplicarPaginacion,
+  fragmentoPaginacion,
+  valoresPaginacion,
+  recortarPagina,
+} = require("../helpers/paginacion.helper");
 const { tasaRetencionVigente } = require("../helpers/retencionHonorarios.helper");
 const {
   insertarDetallesComprobante,
@@ -134,6 +141,7 @@ async function listarHonorarios(req, res) {
       });
     }
 
+    const paginacion = leerPaginacion(req.query);
     const resultado = await pool.query(
       `
       SELECT
@@ -145,12 +153,13 @@ async function listarHonorarios(req, res) {
       WHERE h.empresa_id = $1
         AND h.estado = 'vigente'
         AND h.fecha_emision BETWEEN $2 AND $3
-      ORDER BY h.fecha_emision ASC, h.id ASC
+      ORDER BY h.fecha_emision ASC, h.id ASC${fragmentoPaginacion(paginacion, 4)}
       `,
-      [empresa_id, fecha_desde, fecha_hasta]
+      [empresa_id, fecha_desde, fecha_hasta, ...valoresPaginacion(paginacion)]
     );
 
-    const honorarios = resultado.rows;
+    const pagina = recortarPagina(resultado.rows, paginacion);
+    const honorarios = pagina.filas;
 
     const totales = honorarios.reduce(
       (acc, item) => {
@@ -167,6 +176,7 @@ async function listarHonorarios(req, res) {
     );
 
     return res.json({
+      paginacion: pagina.paginacion,
       total: honorarios.length,
       honorarios,
       totales,
@@ -211,13 +221,13 @@ async function contabilizarHonorario(req, res) {
     );
 
     if (honorarioResult.rows.length === 0) {
-      throw new Error("Honorario no encontrado");
+      throw Object.assign(new Error("Honorario no encontrado"), { statusCode: 404 });
     }
 
     const honorario = honorarioResult.rows[0];
 
     if (honorario.contabilizado && honorario.comprobante_id) {
-      throw new Error("Este honorario ya fue contabilizado");
+      throw Object.assign(new Error("Este honorario ya fue contabilizado"), { statusCode: 400 });
     }
 
     const configResult = await client.query(
@@ -230,8 +240,9 @@ async function contabilizarHonorario(req, res) {
     );
 
     if (configResult.rows.length === 0) {
-      throw new Error(
-        "Debes guardar la Configuración Contable antes de contabilizar honorarios"
+      throw Object.assign(
+        new Error("Debes guardar la Configuración Contable antes de contabilizar honorarios"),
+        { statusCode: 400 }
       );
     }
 
@@ -248,8 +259,9 @@ async function contabilizarHonorario(req, res) {
       config.cuenta_caja_banco_id;
 
     if (!cuentaGasto || !cuentaRetencion || !cuentaPago) {
-      throw new Error(
-        "Faltan cuentas en Configuración Contable: gasto honorarios, retención honorarios y pago honorarios"
+      throw Object.assign(
+        new Error("Faltan cuentas en Configuración Contable: gasto honorarios, retención honorarios y pago honorarios"),
+        { statusCode: 400 }
       );
     }
 

@@ -377,7 +377,7 @@ const logo = {
   height: "58px",
   borderRadius: "16px",
   objectFit: "contain",
-  background: "linear-gradient(135deg, #dff7ff, #ffffff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), #ffffff)",
   border: "1px solid #67e8f9",
   padding: "6px",
   boxSizing: "border-box",
@@ -387,14 +387,14 @@ const logo = {
 };
 
 const titulo = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontSize: "26px",
   textAlign: "center",
   margin: "0 0 4px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   textAlign: "center",
   margin: "0 0 18px",
   fontSize: "14px",
@@ -409,7 +409,7 @@ const formulario = {
 const labelEstilo = {
   display: "block",
   marginBottom: "5px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
   fontSize: "13px",
 };
@@ -418,13 +418,13 @@ const input = {
   width: "100%",
   padding: "11px 12px",
   borderRadius: "11px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   fontSize: "14px",
   boxSizing: "border-box",
 };
 
 const botonPrimario = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "12px",
@@ -435,8 +435,8 @@ const botonPrimario = {
 };
 
 const botonDemo = {
-  background: "linear-gradient(135deg, #ecfeff, #dff7ff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-cian-fondo), var(--sc-celeste-suave))",
+  color: "var(--sc-azul)",
   border: "2px solid #22d3ee",
   padding: "11px",
   borderRadius: "12px",
@@ -448,7 +448,7 @@ const botonDemo = {
 
 const botonSecundario = {
   background: "transparent",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   marginTop: "14px",
   width: "100%",
@@ -458,7 +458,7 @@ const botonSecundario = {
 
 const mensajeError = {
   marginTop: "12px",
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
   textAlign: "center",
   fontSize: "13px",
@@ -474,7 +474,7 @@ const mensajeOk = {
 
 const textoAyuda = {
   margin: "0 0 2px",
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontSize: "12.5px",
   lineHeight: 1.45,
   textAlign: "center",
@@ -483,7 +483,7 @@ const textoAyuda = {
 const enlaceDev = {
   display: "block",
   marginTop: "12px",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontWeight: "bold",
   textAlign: "center",
   textDecoration: "none",
@@ -491,7 +491,7 @@ const enlaceDev = {
 
 const notaAcceso = {
   marginTop: "16px",
-  color: "#475569",
+  color: "var(--sc-gris)",
   textAlign: "center",
   fontSize: "12px",
 };

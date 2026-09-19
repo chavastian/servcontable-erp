@@ -1,12 +1,9 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 export async function listarFiniquitos(empresaId, periodo = "") {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
 
@@ -14,65 +11,18 @@ export async function listarFiniquitos(empresaId, periodo = "") {
     params.append("periodo", periodo);
   }
 
-  const respuesta = await fetch(`${API_URL}/finiquitos?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al listar finiquitos");
-  }
-
-  return data;
+  return peticion(`${API_URL}/finiquitos?${params.toString()}`, { mensajeError: "Error al listar finiquitos" });
 }
 
 export async function crearFiniquito(datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/finiquitos`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al crear finiquito");
-  }
-
-  return data;
+  return peticion(`${API_URL}/finiquitos`, { metodo: "POST", cuerpo: datos, mensajeError: "Error al crear finiquito" });
 }
 
 /**
  * Cálculo completo del finiquito en el servidor, sin guardarlo.
  */
 export async function calcularFiniquito(datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/finiquitos/calcular`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al calcular finiquito");
-  }
-
-  return data;
+  return peticion(`${API_URL}/finiquitos/calcular`, { metodo: "POST", cuerpo: datos, mensajeError: "Error al calcular finiquito" });
 }
 
 export async function calcularVacacionesFiniquito({
@@ -81,7 +31,6 @@ export async function calcularVacacionesFiniquito({
   fechaTermino,
   sueldoBase,
 }) {
-  const token = obtenerToken();
   const params = new URLSearchParams();
 
   params.append("empresa_id", empresaId);
@@ -92,110 +41,25 @@ export async function calcularVacacionesFiniquito({
     params.append("sueldo_base", sueldoBase);
   }
 
-  const respuesta = await fetch(
-    `${API_URL}/finiquitos/calcular-vacaciones?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al calcular vacaciones finiquito");
-  }
-
-  return data;
+  return peticion(`${API_URL}/finiquitos/calcular-vacaciones?${params.toString()}`, { mensajeError: "Error al calcular vacaciones finiquito" });
 }
 
 export async function obtenerFiniquito(id, empresaId) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(
-    `${API_URL}/finiquitos/${id}?empresa_id=${empresaId}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al obtener finiquito");
-  }
-
-  return data;
+  return peticion(`${API_URL}/finiquitos/${id}?empresa_id=${empresaId}`, { mensajeError: "Error al obtener finiquito" });
 }
 
 export async function eliminarFiniquito(id, empresaId) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/finiquitos/${id}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
+  return peticion(`${API_URL}/finiquitos/${id}`, { metodo: "DELETE", cuerpo: {
       empresa_id: empresaId,
-    }),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al eliminar finiquito");
-  }
-
-  return data;
+    }, mensajeError: "Error al eliminar finiquito" });
 }
 
 export async function contabilizarFiniquito(id, empresaId) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/finiquitos/${id}/contabilizar`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
+  return peticion(`${API_URL}/finiquitos/${id}/contabilizar`, { metodo: "POST", cuerpo: {
       empresa_id: empresaId,
-    }),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al contabilizar finiquito");
-  }
-
-  return data;
+    }, mensajeError: "Error al contabilizar finiquito" });
 }
 
 export async function pagarFiniquito(id, datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/finiquitos/${id}/pagar`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al registrar pago de finiquito");
-  }
-
-  return data;
+  return peticion(`${API_URL}/finiquitos/${id}/pagar`, { metodo: "POST", cuerpo: datos, mensajeError: "Error al registrar pago de finiquito" });
 }

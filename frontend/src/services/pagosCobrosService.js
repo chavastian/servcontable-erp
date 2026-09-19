@@ -1,33 +1,14 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 export async function listarDocumentosPendientes(empresaId, tipo) {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
   params.append("tipo", tipo);
 
-  const respuesta = await fetch(
-    `${API_URL}/pagos-cobros/documentos-pendientes?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al obtener documentos pendientes");
-  }
-
-  return data;
+  return peticion(`${API_URL}/pagos-cobros/documentos-pendientes?${params.toString()}`, { mensajeError: "Error al obtener documentos pendientes" });
 }
 
 export async function listarPagosCobros(
@@ -36,70 +17,21 @@ export async function listarPagosCobros(
   fechaHasta,
   incluirAnulados = false
 ) {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
   params.append("fecha_desde", fechaDesde);
   params.append("fecha_hasta", fechaHasta);
   params.append("incluir_anulados", incluirAnulados ? "true" : "false");
 
-  const respuesta = await fetch(`${API_URL}/pagos-cobros?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al listar pagos/cobros");
-  }
-
-  return data;
+  return peticion(`${API_URL}/pagos-cobros?${params.toString()}`, { mensajeError: "Error al listar pagos/cobros" });
 }
 
 export async function registrarPagoCobro(datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/pagos-cobros`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al registrar pago/cobro");
-  }
-
-  return data;
+  return peticion(`${API_URL}/pagos-cobros`, { metodo: "POST", cuerpo: datos, mensajeError: "Error al registrar pago/cobro" });
 }
 
 export async function anularPagoCobro(id, empresaId) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/pagos-cobros/${id}/anular`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
+  return peticion(`${API_URL}/pagos-cobros/${id}/anular`, { metodo: "PUT", cuerpo: {
       empresa_id: empresaId,
-    }),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al anular pago/cobro");
-  }
-
-  return data;
+    }, mensajeError: "Error al anular pago/cobro" });
 }

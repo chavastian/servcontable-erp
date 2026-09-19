@@ -198,7 +198,7 @@ export default function SelectorEjercicio({
   return (
     <div style={contenedor}>
       <div style={barraSuperior}>
-        <strong style={{ color: "#0369a1" }}>
+        <strong style={{ color: "var(--sc-azul)" }}>
           ServContable PRO · {usuario?.nombre || usuario?.email || "Usuario"}
         </strong>
 
@@ -399,7 +399,7 @@ const icono = {
 };
 
 const titulo = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   textAlign: "center",
   fontSize: "28px",
   margin: "0 0 6px 0",
@@ -422,7 +422,7 @@ const formulario = {
 const label = {
   display: "block",
   marginBottom: "4px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
   fontSize: "13px",
 };
@@ -431,7 +431,7 @@ const input = {
   width: "100%",
   padding: "9px 11px",
   borderRadius: "9px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   fontSize: "14px",
   boxSizing: "border-box",
 };
@@ -456,7 +456,7 @@ const resumenCerrado = {
 };
 
 const botonPrimario = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "11px",
@@ -467,8 +467,8 @@ const botonPrimario = {
 
 const botonCrear = {
   background: "transparent",
-  color: "#0369a1",
-  border: "1px solid #0369a1",
+  color: "var(--sc-azul)",
+  border: "1px solid var(--sc-azul)",
   padding: "10px",
   borderRadius: "10px",
   fontWeight: "bold",
@@ -476,7 +476,7 @@ const botonCrear = {
 };
 
 const botonGuardar = {
-  background: "linear-gradient(135deg, #10b981, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-teal), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "10px",
@@ -488,7 +488,7 @@ const botonGuardar = {
 };
 
 const botonCerrarAnio = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   padding: "10px",
@@ -498,7 +498,7 @@ const botonCerrarAnio = {
 };
 
 const botonReabrir = {
-  background: "linear-gradient(135deg, #f59e0b, #f97316)",
+  background: "linear-gradient(135deg, #f59e0b, var(--sc-warning))",
   color: "white",
   border: "none",
   padding: "10px",
@@ -508,7 +508,7 @@ const botonReabrir = {
 };
 
 const botonTop = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "8px 12px",
@@ -518,7 +518,7 @@ const botonTop = {
 };
 
 const botonSalir = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   padding: "8px 12px",
@@ -528,27 +528,27 @@ const botonSalir = {
 };
 
 const cardCrear = {
-  background: "#f8fcff",
-  border: "1px solid #a9d8ef",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "12px",
   padding: "12px",
 };
 
 const tituloCrear = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
   marginBottom: "10px",
   fontSize: "18px",
 };
 
 const mensajeError = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
   textAlign: "center",
 };
 
 const mensajeOk = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
   textAlign: "center",
 };

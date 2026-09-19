@@ -683,14 +683,14 @@ const card = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const alerta = {
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "12px",
   borderRadius: "12px",
   marginBottom: "16px",
@@ -707,14 +707,14 @@ const filtros = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const input = {
   width: "170px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -732,7 +732,7 @@ const botonBase = {
 
 const botonBuscar = {
   ...botonBase,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
 };
 
 const botonCsv = {
@@ -755,7 +755,7 @@ const cardResumen = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const cardResumenVerde = {
@@ -775,8 +775,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -787,8 +787,8 @@ const thNumero = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -816,11 +816,11 @@ const badgeError = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };

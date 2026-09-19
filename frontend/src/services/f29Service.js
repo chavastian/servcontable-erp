@@ -1,3 +1,4 @@
+import { peticion } from "./http";
 /**
  * F29: cálculo completo y registro del formulario presentado.
  *
@@ -5,22 +6,12 @@
  * presentado fija el remanente del período para el mes siguiente.
  */
 
-import { obtenerToken } from "./authService";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 async function pedir(ruta) {
-  const respuesta = await fetch(`${API_URL}${ruta}`, {
-    headers: { Authorization: `Bearer ${obtenerToken()}` },
-  });
-  const datos = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(datos.error || "No se pudo obtener la información del F29");
-  }
-
-  return datos;
+  return peticion(`${API_URL}${ruta}`, { mensajeError: "No se pudo obtener la información del F29" });
 }
 
 export function obtenerF29(empresaId, periodo) {
@@ -36,19 +27,5 @@ export function listarF29Presentadas(empresaId) {
 }
 
 export async function registrarF29Presentada(datos) {
-  const respuesta = await fetch(`${API_URL}/f29/presentada`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${obtenerToken()}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(datos),
-  });
-  const cuerpo = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(cuerpo.error || "No se pudo registrar el F29");
-  }
-
-  return cuerpo;
+  return peticion(`${API_URL}/f29/presentada`, { metodo: "POST", cuerpo: datos, mensajeError: "No se pudo registrar el F29" });
 }

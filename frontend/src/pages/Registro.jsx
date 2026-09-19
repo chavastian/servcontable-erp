@@ -95,7 +95,7 @@ export default function Registro({ irALogin }) {
 const contenedor = {
   minHeight: "100vh",
   background:
-    "radial-gradient(circle at 18% 18%, rgba(16, 185, 129, 0.28), transparent 24%), linear-gradient(135deg, #07111f 0%, #0369a1 52%, #22d3ee 100%)",
+    "radial-gradient(circle at 18% 18%, rgba(16, 185, 129, 0.28), transparent 24%), linear-gradient(135deg, #07111f 0%, var(--sc-azul) 52%, #22d3ee 100%)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -118,7 +118,7 @@ const logo = {
   height: "76px",
   borderRadius: "22px",
   objectFit: "contain",
-  background: "linear-gradient(135deg, #dff7ff, #ffffff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), #ffffff)",
   border: "1px solid #67e8f9",
   padding: "8px",
   boxSizing: "border-box",
@@ -128,14 +128,14 @@ const logo = {
 };
 
 const titulo = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontSize: "32px",
   textAlign: "center",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   textAlign: "center",
   marginBottom: "25px",
 };
@@ -149,7 +149,7 @@ const formulario = {
 const label = {
   display: "block",
   marginBottom: "6px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
   fontSize: "14px",
 };
@@ -158,13 +158,13 @@ const input = {
   width: "100%",
   padding: "13px",
   borderRadius: "12px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   fontSize: "15px",
   boxSizing: "border-box",
 };
 
 const botonPrimario = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "14px",
@@ -176,7 +176,7 @@ const botonPrimario = {
 
 const botonSecundario = {
   background: "transparent",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   marginTop: "20px",
   width: "100%",
@@ -186,14 +186,14 @@ const botonSecundario = {
 
 const mensajeOk = {
   marginTop: "15px",
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
   textAlign: "center",
 };
 
 const mensajeError = {
   marginTop: "15px",
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
   textAlign: "center",
 };

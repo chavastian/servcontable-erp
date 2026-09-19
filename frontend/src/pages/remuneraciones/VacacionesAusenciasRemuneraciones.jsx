@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { listarTrabajadores } from "../../services/trabajadoresService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
@@ -14,7 +14,7 @@ import {
 const TIPOS = [
   "Vacaciones",
   "Ausencia",
-  "Licencia medica",
+  "Licencia médica",
   "Permiso",
   "Atraso",
   "Suspension",
@@ -23,7 +23,7 @@ const TIPOS = [
 const SUBTIPOS = {
   Vacaciones: ["Feriado legal", "Feriado progresivo", "Vacaciones proporcionales"],
   Ausencia: ["Inasistencia injustificada", "Inasistencia justificada"],
-  "Licencia medica": ["Enfermedad comun", "Accidente laboral", "Pre natal", "Post natal", "Otro"],
+  "Licencia médica": ["Enfermedad comun", "Accidente laboral", "Pre natal", "Post natal", "Otro"],
   Permiso: ["Con goce de sueldo", "Sin goce de sueldo"],
   Atraso: ["Atraso entrada", "Salida anticipada"],
   Suspension: ["Suspension laboral", "Pacto suspension", "Otro"],
@@ -141,7 +141,7 @@ export default function VacacionesAusenciasRemuneraciones() {
       valores.afecta_remuneracion = true;
     }
 
-    if (tipo === "Licencia medica") {
+    if (tipo === "Licencia médica") {
       valores.descuenta_vacaciones = false;
       valores.afecta_remuneracion = false;
     }
@@ -641,7 +641,7 @@ function ResumenCard({ titulo, valor, icono }) {
 }
 
 const hero = {
-  background: "linear-gradient(135deg, #0f172a, #0369a1, #0ea5e9)",
+  background: "linear-gradient(135deg, var(--sc-ink), var(--sc-azul), #0ea5e9)",
   borderRadius: "22px",
   padding: "28px",
   color: "white",
@@ -660,7 +660,7 @@ const titulo = {
 };
 
 const subtitulo = {
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: 0,
 };
 
@@ -674,14 +674,14 @@ const filtrosHero = {
 const labelHero = {
   display: "block",
   fontWeight: "bold",
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: "5px",
 };
 
 const inputHero = {
   width: "160px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -689,7 +689,7 @@ const inputHero = {
 
 const botonHero = {
   background: "white",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   padding: "10px 18px",
   borderRadius: "10px",
@@ -710,7 +710,7 @@ const resumenCard = {
   borderRadius: "18px",
   padding: "18px",
   boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   display: "flex",
   flexDirection: "column",
   gap: "7px",
@@ -720,9 +720,9 @@ const resumenIcono = {
   width: "38px",
   height: "38px",
   borderRadius: "13px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -738,7 +738,7 @@ const card = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -758,7 +758,7 @@ const checksGrid = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
@@ -767,7 +767,7 @@ const labelStyle = label;
 const input = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -779,18 +779,18 @@ const textarea = {
   width: "100%",
   minHeight: "90px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   boxSizing: "border-box",
   resize: "vertical",
 };
 
 const checkBox = {
-  background: "#f8fcff",
-  border: "1px solid #e2e8f0",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-borde-claro)",
   borderRadius: "12px",
   padding: "12px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
   display: "flex",
   alignItems: "center",
@@ -805,7 +805,7 @@ const acciones = {
 };
 
 const botonGuardar = {
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -815,7 +815,7 @@ const botonGuardar = {
 };
 
 const botonSecundario = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -841,8 +841,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -858,8 +858,8 @@ const thAccion = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -875,7 +875,7 @@ const tdAccion = {
 };
 
 const botonEliminar = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   width: "32px",
@@ -892,12 +892,12 @@ const botonEliminar = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 

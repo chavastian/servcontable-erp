@@ -319,8 +319,37 @@ artefacto y sus bloques se cierran en este orden.
   servidor con los avisos a la vista; selector de año muestra quién cerró o reabrió y
   los comprobantes; configuración contable con la cuenta de resultado; libro mayor con
   saldo inicial; libro de remuneraciones con el botón del LRE.
-- [ ] Asignación familiar por tramo en la liquidación (queda para el bloque 5).
-- [ ] Bloque 5 (deuda técnica).
+- [x] Asignación familiar por tramo en la liquidación (bloque 5).
+
+**Bloque 5 — Deuda técnica  ✅ 19-09-2026**
+- [x] Base: lista cerrada de estados en ocho tablas, formato AAAA-MM del período en
+  quince, cinco claves foráneas de la configuración al plan, trece índices (calce por
+  monto, finiquitos y conciliación por período, plan por tipo). La migración solo agrega
+  cada restricción si los datos la cumplen; si no, avisa y sigue.
+- [x] Anular un comprobante descontabiliza liquidaciones, finiquitos, pagos de
+  remuneraciones y conciliación. Boletas y cartola importan con punto de guardado por
+  fila y sin filtrar el mensaje de PostgreSQL. Calce bancario en una consulta por sentido.
+  Importar indicadores pasa por la subida común y valida la empresa después del archivo.
+  Libros de compra y venta restan las notas de crédito en totales y resumen. Calendario
+  con solsticio (Ley 21.357), traslados al lunes y al viernes (Leyes 19.668 y 20.299) y
+  17/20 de septiembre (Ley 20.215). Licencia médica con y sin tilde. Nómina centralizada
+  a fin de mes. Un finiquito deja al trabajador fuera de la nómina. Asignación familiar
+  por tramo y cargas (**REQUIERE VALIDACIÓN LABORAL** del tramo). Plan base con nueve
+  cuentas que faltaban. Errores de negocio con código en honorarios y liquidaciones.
+- [x] Validación por esquema (zod) en 15 routers más: 24 esquemas permisivos con lo
+  desconocido y estrictos con identificadores, fechas, períodos y montos.
+- [x] Paginación opcional (`limite`, `pagina`, `hay_mas`) en compras, ventas,
+  comprobantes, honorarios, liquidaciones, pagos y auditoría. Sin parámetros, todo sigue
+  igual.
+- [x] Frontend: `services/http.js` es el único camino a la API (40 servicios migrados,
+  115 fetch menos; un 502 ya muestra un mensaje legible). Las 34 páginas del panel se
+  cargan bajo demanda: el paquete inicial bajó de 1,59 MB a 277 KB. La vista viaja en el
+  hash de la URL (F5 y botón atrás). 993 colores literales pasaron a tokens `--sc-*`.
+- [ ] Pendiente del bloque: partir las diez páginas más grandes, etiquetas asociadas a
+  su campo, totales y exportación en las pantallas que no los tienen, un solo modelo de
+  período. Son cambios de pantalla sin efecto contable.
+- [ ] Módulos 7 a 14 del informe (activo fijo, corrección monetaria, renta anual, DJ,
+  boletas SII, proveedores y clientes, proporcionalidad completa, centros de costo).
 
 ## Flujo de trabajo
 

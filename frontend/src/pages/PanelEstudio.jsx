@@ -161,7 +161,7 @@ export default function PanelEstudio({ alAbrirEmpresa }) {
               <span style={estilos.indicadorTexto}>Con problemas que impiden declarar</span>
             </div>
             <div style={estilos.indicador}>
-              <span style={{ ...estilos.indicadorValor, color: "#9a3412" }}>
+              <span style={{ ...estilos.indicadorValor, color: "var(--sc-naranja-texto)" }}>
                 {numero(resumen.con_avisos)}
               </span>
               <span style={estilos.indicadorTexto}>Con algo por revisar</span>
@@ -237,7 +237,7 @@ export default function PanelEstudio({ alAbrirEmpresa }) {
                                   key={falta.clave}
                                   style={{
                                     color:
-                                      falta.gravedad === "error" ? "#991b1b" : "#9a3412",
+                                      falta.gravedad === "error" ? "#991b1b" : "var(--sc-naranja-texto)",
                                   }}
                                 >
                                   {falta.texto}

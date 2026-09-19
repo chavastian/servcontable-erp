@@ -601,12 +601,12 @@ export default function UsuariosSistema() {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "20px",
 };
 
@@ -636,7 +636,7 @@ const cardTabla = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -649,7 +649,7 @@ const gridFormulario = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "6px",
 };
 
@@ -657,7 +657,7 @@ const input = {
   width: "100%",
   padding: "12px",
   borderRadius: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   boxSizing: "border-box",
 };
 
@@ -667,7 +667,7 @@ const inputFiltro = {
 };
 
 const botonGuardar = {
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "13px 18px",
@@ -687,7 +687,7 @@ const accionesFormulario = {
 
 const botonCancelar = {
   background: "white",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "1px solid #38bdf8",
   padding: "13px 18px",
   borderRadius: "12px",
@@ -696,7 +696,7 @@ const botonCancelar = {
 };
 
 const botonBuscar = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -728,15 +728,15 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "12px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
 const td = {
   padding: "12px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
   verticalAlign: "top",
 };
 
@@ -771,7 +771,7 @@ const botonIconoAzul = {
   height: "32px",
   border: "none",
   borderRadius: "9px",
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   fontWeight: "bold",
   cursor: "pointer",
@@ -790,25 +790,25 @@ const botonIconoEditar = {
 
 const botonIconoRojo = {
   ...botonIconoAzul,
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
 };
 
 const botonIconoVerde = {
   ...botonIconoAzul,
-  background: "linear-gradient(135deg, #10b981, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-teal), var(--sc-cian-medio))",
 };
 
 const textoInfo = {
-  color: "#1e293b",
+  color: "var(--sc-text)",
   lineHeight: "1.45",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const errorTexto = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };

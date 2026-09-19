@@ -1,6 +1,15 @@
 const pool = require("../database/db");
 
 const PLAN_CUENTAS_BASE_TEXTO = `
+1300905|IVA CREDITO USO COMUN|ACTIVO|Deudores comerciales y otras cuentas por cobrar corrientes
+1300906|IVA POR RECUPERAR ART. 27 BIS|ACTIVO|Deudores comerciales y otras cuentas por cobrar corrientes
+2101040|COTIZACION EMPLEADOR LEY 21.735 POR PAGAR|PASIVO|Cuentas por pagar comerciales y otras cuentas por pagar
+2101041|CCAF POR PAGAR|PASIVO|Cuentas por pagar comerciales y otras cuentas por pagar
+2101042|APV POR PAGAR|PASIVO|Cuentas por pagar comerciales y otras cuentas por pagar
+2101043|RETENCION JUDICIAL POR PAGAR|PASIVO|Cuentas por pagar comerciales y otras cuentas por pagar
+2101044|IMPUESTOS ADICIONALES POR PAGAR|PASIVO|Cuentas por pagar comerciales y otras cuentas por pagar
+2101045|PROVISION GRATIFICACION LEGAL|PASIVO|Cuentas por pagar comerciales y otras cuentas por pagar
+3101040|APORTE EMPLEADOR LEY 21.735|PERDIDA|Gastos de administración
 1101001|CAJA|ACTIVO|Efectivo y equivalentes al efectivo
 1101002|FONDO FIJO|ACTIVO|Efectivo y equivalentes al efectivo
 1101003|BANCO BCI|ACTIVO|Efectivo y equivalentes al efectivo

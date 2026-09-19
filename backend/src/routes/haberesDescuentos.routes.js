@@ -11,6 +11,8 @@ const {
 } = require("../controllers/haberesDescuentos.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
@@ -29,22 +31,22 @@ router.post(
     limite: 4,
     condicion: "COALESCE(estado, 'vigente') = 'vigente'",
   }),
-  crearHaberDescuento
+  validar(esquemas.haberDescuento), crearHaberDescuento
 );
-router.put("/:id", verificarToken, exigirPermiso("REMUNERACIONES"), actualizarHaberDescuento);
+router.put("/:id", verificarToken, exigirPermiso("REMUNERACIONES"), validar(esquemas.haberDescuento), actualizarHaberDescuento);
 router.put(
   "/:id/recurrente",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("los conceptos fijos mensuales se habilitan en la version contratada."),
-  actualizarRecurrenteHaberDescuento
+  validar(esquemas.conEmpresa), actualizarRecurrenteHaberDescuento
 );
 router.put(
   "/:id/eliminar",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la eliminacion de conceptos se habilita en la version contratada."),
-  eliminarHaberDescuento
+  validar(esquemas.conEmpresa), eliminarHaberDescuento
 );
 
 module.exports = router;

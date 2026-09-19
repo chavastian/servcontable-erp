@@ -156,7 +156,7 @@ export default function CalendarioTributario() {
               <span style={estilos.indicadorTexto}>Vencen en tres días o menos</span>
             </div>
             <div style={estilos.indicador}>
-              <span style={{ ...estilos.indicadorValor, color: "#9a3412" }}>
+              <span style={{ ...estilos.indicadorValor, color: "var(--sc-naranja-texto)" }}>
                 {numero(resumen.proximas)}
               </span>
               <span style={estilos.indicadorTexto}>Vencen dentro de diez días</span>

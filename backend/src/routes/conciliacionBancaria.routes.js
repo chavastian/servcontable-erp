@@ -8,6 +8,8 @@ const {
 } = require("../controllers/conciliacionBancaria.controller");
 const { sugerirCalces } = require("../controllers/calceBancario.controller");
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
 const { limiteImportacion } = require("../middleware/seguridad.middleware");
@@ -45,7 +47,7 @@ router.put(
   // podia marcar como conciliado un movimiento de otro cliente.
   exigirEmpresa,
   exigirPermiso("REGISTRAR"),
-  actualizarEstado
+  validar(esquemas.conciliacionEstado), actualizarEstado
 );
 
 module.exports = router;

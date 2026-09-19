@@ -435,12 +435,12 @@ export default function PlanCuentas() {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -467,7 +467,7 @@ const formularioEstilo = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -484,7 +484,7 @@ const avisoEdicion = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginTop: "12px",
   marginBottom: "5px",
 };
@@ -492,7 +492,7 @@ const label = {
 const input = {
   width: "100%",
   padding: "11px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   boxSizing: "border-box",
 };
@@ -500,7 +500,7 @@ const input = {
 const boton = {
   width: "100%",
   marginTop: "18px",
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "13px",
@@ -511,13 +511,13 @@ const boton = {
 
 const botonActualizar = {
   ...boton,
-  background: "#10b981",
+  background: "var(--sc-teal)",
 };
 
 const botonCancelar = {
   width: "100%",
   marginTop: "10px",
-  background: "#475569",
+  background: "var(--sc-gris)",
   color: "white",
   border: "none",
   padding: "12px",
@@ -527,7 +527,7 @@ const botonCancelar = {
 };
 
 const botonPlanBase = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "11px 16px",
@@ -570,8 +570,8 @@ const contadorBusqueda = {
 const th = {
   textAlign: "left",
   padding: "12px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -582,8 +582,8 @@ const thAccion = {
 
 const td = {
   padding: "12px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdAccion = {
@@ -600,7 +600,7 @@ const accionesCuenta = {
 };
 
 const botonEditar = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   width: "32px",
@@ -617,7 +617,7 @@ const botonEditar = {
 };
 
 const botonDesactivar = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   width: "32px",
@@ -635,34 +635,34 @@ const botonDesactivar = {
 
 const botonHabilitar = {
   ...botonDesactivar,
-  background: "linear-gradient(135deg, #10b981, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-teal), var(--sc-cian-medio))",
 };
 
 const estadoActivo = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const estadoInactivo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontWeight: "bold",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",

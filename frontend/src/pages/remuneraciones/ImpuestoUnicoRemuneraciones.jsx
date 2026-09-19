@@ -500,14 +500,14 @@ const card = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const alerta = {
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "12px",
   borderRadius: "12px",
   marginBottom: "16px",
@@ -530,14 +530,14 @@ const grid = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const input = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -555,17 +555,17 @@ const botonBase = {
 
 const botonBuscar = {
   ...botonBase,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
 };
 
 const botonEliminarPeriodo = {
   ...botonBase,
-  background: "#f97316",
+  background: "var(--sc-warning)",
 };
 
 const botonGuardar = {
   marginTop: "18px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -583,7 +583,7 @@ const simuladorBox = {
   padding: "12px",
   border: "1px solid #bae6fd",
   borderRadius: "14px",
-  background: "linear-gradient(135deg, #f0f9ff, #ecfeff)",
+  background: "linear-gradient(135deg, #f0f9ff, var(--sc-cian-fondo))",
 };
 
 const resultadoSimulador = {
@@ -592,7 +592,7 @@ const resultadoSimulador = {
   flexDirection: "column",
   justifyContent: "center",
   gap: "4px",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
 };
 
 const tablaBox = {
@@ -607,8 +607,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -619,8 +619,8 @@ const thAccion = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdAccion = {
@@ -630,7 +630,7 @@ const tdAccion = {
 };
 
 const botonEliminar = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   width: "32px",
@@ -647,11 +647,11 @@ const botonEliminar = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };

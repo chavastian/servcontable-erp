@@ -132,7 +132,7 @@ export default function SelectorEmpresaModulo({
   return (
     <div style={contenedor}>
       <div style={barraSuperior}>
-        <strong style={{ color: "#0369a1" }}>
+        <strong style={{ color: "var(--sc-azul)" }}>
           ServContable PRO - {usuario?.nombre || usuario?.email || "Usuario"}
         </strong>
 
@@ -334,7 +334,7 @@ const barraSuperior = {
   alignItems: "center",
   justifyContent: "space-between",
   padding: "8px 22px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   boxShadow: "0 12px 30px rgba(7, 17, 31, 0.16)",
   boxSizing: "border-box",
   gap: "12px",
@@ -371,7 +371,7 @@ const icono = {
   width: "48px",
   height: "48px",
   borderRadius: "14px",
-  background: "linear-gradient(135deg, #dff7ff, #ffffff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), #ffffff)",
   border: "1px solid #67e8f9",
   objectFit: "contain",
   padding: "6px",
@@ -381,7 +381,7 @@ const icono = {
 };
 
 const titulo = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   textAlign: "center",
   fontSize: "28px",
   margin: "0 0 6px 0",
@@ -404,7 +404,7 @@ const formulario = {
 const label = {
   display: "block",
   marginBottom: "4px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
   fontSize: "13px",
 };
@@ -415,17 +415,17 @@ const input = {
   width: "100%",
   padding: "9px 11px",
   borderRadius: "9px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   fontSize: "14px",
   boxSizing: "border-box",
 };
 
 const resumenEmpresa = {
-  background: "#f8fcff",
-  border: "1px solid #e2e8f0",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-borde-claro)",
   borderRadius: "12px",
   padding: "12px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   display: "flex",
   flexDirection: "column",
   gap: "3px",
@@ -433,12 +433,12 @@ const resumenEmpresa = {
 };
 
 const resumenTitulo = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontSize: "15px",
 };
 
 const botonPrimario = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "11px",
@@ -450,7 +450,7 @@ const botonPrimario = {
 
 const botonSecundario = {
   background: "transparent",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   padding: "7px",
   fontWeight: "bold",
@@ -458,7 +458,7 @@ const botonSecundario = {
 };
 
 const botonVolverTop = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "8px 12px",
@@ -468,7 +468,7 @@ const botonVolverTop = {
 };
 
 const botonSalir = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   padding: "8px 12px",
@@ -479,20 +479,20 @@ const botonSalir = {
 
 const mensajeError = {
   marginTop: "6px",
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
   textAlign: "center",
 };
 
 const mensajeOk = {
   marginTop: "6px",
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
   textAlign: "center",
 };
 
 const bienvenidaTrialBox = {
-  background: "linear-gradient(135deg, #ecfeff, #f0fdf4)",
+  background: "linear-gradient(135deg, var(--sc-cian-fondo), #f0fdf4)",
   border: "1px solid #67e8f9",
   color: "#075985",
   borderRadius: "12px",
@@ -504,14 +504,14 @@ const bienvenidaTrialBox = {
 
 const bienvenidaTitulo = {
   margin: "0 0 8px 0",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontSize: "22px",
 };
 
 const sinEmpresasBox = {
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   borderRadius: "11px",
   padding: "10px",
   fontWeight: "bold",
@@ -521,8 +521,8 @@ const sinEmpresasBox = {
 
 const botonCrearEmpresa = {
   background: "transparent",
-  color: "#0369a1",
-  border: "1px solid #0369a1",
+  color: "var(--sc-azul)",
+  border: "1px solid var(--sc-azul)",
   padding: "10px",
   borderRadius: "10px",
   fontWeight: "bold",
@@ -531,15 +531,15 @@ const botonCrearEmpresa = {
 };
 
 const cardCrearEmpresa = {
-  background: "#f8fcff",
-  border: "1px solid #a9d8ef",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "12px",
   padding: "12px",
   marginTop: "4px",
 };
 
 const tituloCrearEmpresa = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
   marginBottom: "10px",
   fontSize: "18px",
@@ -558,7 +558,7 @@ const campoAnchoCompleto = {
 
 const separadorFormulario = {
   ...campoAnchoCompleto,
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontWeight: "bold",
   fontSize: "14px",
   borderTop: "1px solid #dbeafe",
@@ -567,7 +567,7 @@ const separadorFormulario = {
 };
 
 const botonGuardarEmpresa = {
-  background: "linear-gradient(135deg, #10b981, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-teal), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "10px 14px",

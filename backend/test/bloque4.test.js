@@ -362,30 +362,6 @@ test("finiquito art. 161 en el servidor: tope 90 UF, sustitutiva del aviso, AFC 
   await pool.query(`UPDATE trabajadores SET sueldo_base = 1500000 WHERE id = $1`, [ctx.trabajador]);
 });
 
-test("una renuncia no paga indemnización aunque el cliente la mande, y el guardado recalcula", async () => {
-  const { status, datos } = await enviar("/api/finiquitos", {
-    empresa_id: ctx.empresa,
-    trabajador_id: ctx.trabajador,
-    periodo: PERIODO,
-    fecha_termino: `${PERIODO}-31`,
-    causal: "Art. 159 Nro.2 - Renuncia del trabajador",
-    indemnizacion_anios_servicio: 9999999,
-    indemnizacion_aviso_previo: 9999999,
-    sueldo_pendiente: 1,
-  });
-
-  assert.equal(status, 201, JSON.stringify(datos).slice(0, 300));
-  const f = datos.finiquito;
-
-  assert.equal(Number(f.indemnizacion_anios_servicio), 0);
-  assert.equal(Number(f.indemnizacion_aviso_previo), 0);
-  assert.equal(Number(f.sueldo_pendiente), 1, "el sueldo pendiente digitado se respeta como supuesto");
-  assert.equal(f.calculado_en_servidor, true);
-  assert.equal(f.supuestos.regla, "Art. 159");
-  assert.ok(Number(f.vacaciones_proporcionales) > 0);
-  assert.equal(Number(f.total_finiquito), Number(f.total_haberes) - Number(f.seguro_cesantia_descuento) - Number(f.otros_descuentos) - Number(f.descuentos) - Number(f.impuesto_unico_finiquito));
-});
-
 // ---------------------------------------------------------------- isapre
 
 test("la liquidación descuenta el plan de Isapre en UF y el adicional no rebaja la base tributable", async () => {
@@ -455,4 +431,30 @@ test("el archivo LRE lleva una fila por liquidación con los códigos de la DT",
   assert.equal(fila[indice("1141")], "4");
 
   assert.equal(construirCsv([]).trim().split(";").length, COLUMNAS.length);
+});
+
+// Va al final: guardar el finiquito deja al trabajador fuera de la nómina
+// (bloque 5), y las pruebas de liquidación lo necesitan activo.
+test("una renuncia no paga indemnización aunque el cliente la mande, y el guardado recalcula", async () => {
+  const { status, datos } = await enviar("/api/finiquitos", {
+    empresa_id: ctx.empresa,
+    trabajador_id: ctx.trabajador,
+    periodo: PERIODO,
+    fecha_termino: `${PERIODO}-31`,
+    causal: "Art. 159 Nro.2 - Renuncia del trabajador",
+    indemnizacion_anios_servicio: 9999999,
+    indemnizacion_aviso_previo: 9999999,
+    sueldo_pendiente: 1,
+  });
+
+  assert.equal(status, 201, JSON.stringify(datos).slice(0, 300));
+  const f = datos.finiquito;
+
+  assert.equal(Number(f.indemnizacion_anios_servicio), 0);
+  assert.equal(Number(f.indemnizacion_aviso_previo), 0);
+  assert.equal(Number(f.sueldo_pendiente), 1, "el sueldo pendiente digitado se respeta como supuesto");
+  assert.equal(f.calculado_en_servidor, true);
+  assert.equal(f.supuestos.regla, "Art. 159");
+  assert.ok(Number(f.vacaciones_proporcionales) > 0);
+  assert.equal(Number(f.total_finiquito), Number(f.total_haberes) - Number(f.seguro_cesantia_descuento) - Number(f.otros_descuentos) - Number(f.descuentos) - Number(f.impuesto_unico_finiquito));
 });

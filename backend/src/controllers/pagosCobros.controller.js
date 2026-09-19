@@ -1,4 +1,10 @@
 const pool = require("../database/db");
+const {
+  leerPaginacion,
+  fragmentoPaginacion,
+  valoresPaginacion,
+  recortarPagina,
+} = require("../helpers/paginacion.helper");
 const { expresionSigno } = require("../helpers/documentoTributario.helper");
 
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
@@ -568,6 +574,7 @@ async function listarPagosCobros(req, res) {
     }
 
     const incluirAnulados = esVerdadero(incluir_anulados);
+    const paginacion = leerPaginacion(req.query);
 
     const resultado = await pool.query(
       `
@@ -592,12 +599,13 @@ async function listarPagosCobros(req, res) {
       WHERE pc.empresa_id = $1
         AND ($4::boolean = true OR pc.estado = 'vigente')
         AND pc.fecha BETWEEN $2 AND $3
-      ORDER BY pc.fecha DESC, pc.id DESC
+      ORDER BY pc.fecha DESC, pc.id DESC${fragmentoPaginacion(paginacion, 5)}
       `,
-      [empresa_id, fecha_desde, fecha_hasta, incluirAnulados]
+      [empresa_id, fecha_desde, fecha_hasta, incluirAnulados, ...valoresPaginacion(paginacion)]
     );
 
-    const movimientos = resultado.rows;
+    const pagina = recortarPagina(resultado.rows, paginacion);
+    const movimientos = pagina.filas;
 
     const totales = movimientos.reduce(
       (acc, item) => {
@@ -622,6 +630,7 @@ async function listarPagosCobros(req, res) {
     );
 
     return res.json({
+      paginacion: pagina.paginacion,
       total: movimientos.length,
       movimientos,
       totales,

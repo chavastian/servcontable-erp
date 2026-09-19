@@ -9,6 +9,8 @@ const {
 } = require("../controllers/trabajadores.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
@@ -26,16 +28,16 @@ router.post(
     limite: 2,
     condicion: "COALESCE(estado, 'activo') <> 'eliminado'",
   }),
-  crearTrabajador
+  validar(esquemas.trabajador), crearTrabajador
 );
 router.put("/:id", verificarToken,
-  exigirPermiso("REMUNERACIONES"), actualizarTrabajador);
+  exigirPermiso("REMUNERACIONES"), validar(esquemas.trabajador), actualizarTrabajador);
 router.put(
   "/:id/eliminar",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la eliminacion de trabajadores se habilita en la version contratada."),
-  eliminarTrabajador
+  validar(esquemas.conEmpresa), eliminarTrabajador
 );
 
 module.exports = router;

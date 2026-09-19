@@ -1,98 +1,27 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 export async function calcularLiquidacion(datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/liquidaciones/calcular`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al calcular liquidación");
-  }
-
-  return data;
+  return peticion(`${API_URL}/liquidaciones/calcular`, { metodo: "POST", cuerpo: datos, mensajeError: "Error al calcular liquidación" });
 }
 
 export async function guardarLiquidacion(datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/liquidaciones`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al guardar liquidación");
-  }
-
-  return data;
+  return peticion(`${API_URL}/liquidaciones`, { metodo: "POST", cuerpo: datos, mensajeError: "Error al guardar liquidación" });
 }
 
 export async function actualizarLiquidacion(id, datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/liquidaciones/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al actualizar liquidacion");
-  }
-
-  return data;
+  return peticion(`${API_URL}/liquidaciones/${id}`, { metodo: "PUT", cuerpo: datos, mensajeError: "Error al actualizar liquidacion" });
 }
 
 export async function eliminarLiquidacion(id, empresaId) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/liquidaciones/${id}/eliminar`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
+  return peticion(`${API_URL}/liquidaciones/${id}/eliminar`, { metodo: "PUT", cuerpo: {
       empresa_id: empresaId,
-    }),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al eliminar liquidacion");
-  }
-
-  return data;
+    }, mensajeError: "Error al eliminar liquidacion" });
 }
 
 export async function listarLiquidaciones(empresaId, periodo = "") {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
 
@@ -100,44 +29,14 @@ export async function listarLiquidaciones(empresaId, periodo = "") {
     params.append("periodo", periodo);
   }
 
-  const respuesta = await fetch(`${API_URL}/liquidaciones?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al listar liquidaciones");
-  }
-
-  return data;
+  return peticion(`${API_URL}/liquidaciones?${params.toString()}`, { mensajeError: "Error al listar liquidaciones" });
 }
 
 export async function contabilizarLiquidaciones(empresaId, periodo) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/liquidaciones/contabilizar`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
+  return peticion(`${API_URL}/liquidaciones/contabilizar`, { metodo: "POST", cuerpo: {
       empresa_id: empresaId,
       periodo,
-    }),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al contabilizar liquidaciones");
-  }
-
-  return data;
+    }, mensajeError: "Error al contabilizar liquidaciones" });
 }
 
 /**
@@ -145,17 +44,11 @@ export async function contabilizarLiquidaciones(empresaId, periodo) {
  * Devuelve el Blob; la página decide cómo ofrecerlo.
  */
 export async function descargarLre(empresaId, periodo) {
-  const token = obtenerToken();
   const params = new URLSearchParams({ empresa_id: empresaId, periodo });
-
-  const respuesta = await fetch(`${API_URL}/liquidaciones/lre?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const respuesta = await peticion(`${API_URL}/liquidaciones/lre?${params.toString()}`, {
+    crudo: true,
+    mensajeError: "Error al exportar el libro electrónico",
   });
-
-  if (!respuesta.ok) {
-    const data = await respuesta.json().catch(() => ({}));
-    throw new Error(data.error || "Error al exportar el libro electrónico");
-  }
 
   return respuesta.blob();
 }

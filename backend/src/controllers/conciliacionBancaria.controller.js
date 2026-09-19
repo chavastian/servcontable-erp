@@ -1,6 +1,7 @@
 const { parse } = require("csv-parse/sync");
 const pool = require("../database/db");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
+const { conPuntoDeGuardado, describirErrorFila } = require("../helpers/importacion.helper");
 
 function normalizarClave(valor = "") {
   return String(valor || "")
@@ -172,97 +173,109 @@ async function importarCartola(req, res) {
 
     for (let index = 0; index < filas.length; index += 1) {
       const fila = filas[index];
-      const fecha = convertirFechaFlexible(
-        valorFila(fila, [
-          "Fecha",
-          "Fecha Movimiento",
-          "Fecha Contable",
-          "Fecha Transaccion",
-          "Fecha Transacción",
-        ])
-      );
 
-      if (!fecha) {
-        resumen.omitidas += 1;
-        resumen.errores.push(`Fila ${index + 1}: fecha no valida.`);
-        continue;
-      }
-
-      const descripcion =
-        String(
+      // Punto de guardado por fila: un error de base en una boleta no
+      // abortaba solo esa fila, dejaba la transacción entera inservible y
+      // el COMMIT final se convertía en ROLLBACK con la respuesta diciendo
+      // "insertadas".
+      const resultadoFila = await conPuntoDeGuardado(client, `fila_${index}`, async () => {
+        const fecha = convertirFechaFlexible(
           valorFila(fila, [
-            "Descripcion",
-            "Descripción",
-            "Glosa",
-            "Detalle",
-            "Movimiento",
-            "Operacion",
-          ]) || "Movimiento bancario"
-        ).trim() || "Movimiento bancario";
-      const documento = String(
-        valorFila(fila, ["Documento", "Nro", "Numero", "Número", "Referencia"]) || ""
-      ).trim();
-      let cargo = convertirMonto(valorFila(fila, ["Cargo", "Cargos", "Debe", "Egreso", "Retiros"]));
-      let abono = convertirMonto(valorFila(fila, ["Abono", "Abonos", "Haber", "Ingreso", "Depositos", "Depósitos"]));
-      const montoInformado = convertirMonto(valorFila(fila, ["Monto", "Importe", "Valor"]));
-      const saldo = convertirMonto(valorFila(fila, ["Saldo", "Saldo Contable", "Saldo Disponible"]));
+            "Fecha",
+            "Fecha Movimiento",
+            "Fecha Contable",
+            "Fecha Transaccion",
+            "Fecha Transacción",
+          ])
+        );
 
-      if (cargo === 0 && abono === 0 && montoInformado !== 0) {
-        if (montoInformado < 0) {
-          cargo = Math.abs(montoInformado);
-        } else {
-          abono = montoInformado;
+        if (!fecha) {
+          resumen.omitidas += 1;
+          resumen.errores.push(`Fila ${index + 1}: fecha no valida.`);
+          return;
         }
-      }
 
-      if (cargo === 0 && abono === 0) {
+        const descripcion =
+          String(
+            valorFila(fila, [
+              "Descripcion",
+              "Descripción",
+              "Glosa",
+              "Detalle",
+              "Movimiento",
+              "Operacion",
+            ]) || "Movimiento bancario"
+          ).trim() || "Movimiento bancario";
+        const documento = String(
+          valorFila(fila, ["Documento", "Nro", "Numero", "Número", "Referencia"]) || ""
+        ).trim();
+        let cargo = convertirMonto(valorFila(fila, ["Cargo", "Cargos", "Debe", "Egreso", "Retiros"]));
+        let abono = convertirMonto(valorFila(fila, ["Abono", "Abonos", "Haber", "Ingreso", "Depositos", "Depósitos"]));
+        const montoInformado = convertirMonto(valorFila(fila, ["Monto", "Importe", "Valor"]));
+        const saldo = convertirMonto(valorFila(fila, ["Saldo", "Saldo Contable", "Saldo Disponible"]));
+
+        if (cargo === 0 && abono === 0 && montoInformado !== 0) {
+          if (montoInformado < 0) {
+            cargo = Math.abs(montoInformado);
+          } else {
+            abono = montoInformado;
+          }
+        }
+
+        if (cargo === 0 && abono === 0) {
+          resumen.omitidas += 1;
+          resumen.errores.push(`Fila ${index + 1}: sin cargo ni abono.`);
+          return;
+        }
+
+        const existente = await client.query(
+          `
+          SELECT id
+          FROM conciliacion_bancaria_movimientos
+          WHERE empresa_id = $1
+            AND fecha = $2
+            AND descripcion = $3
+            AND documento = $4
+            AND cargo = $5
+            AND abono = $6
+          LIMIT 1
+          `,
+          [empresaId, fecha, descripcion, documento, cargo, abono]
+        );
+
+        if (existente.rows.length > 0) {
+          resumen.omitidas += 1;
+          return;
+        }
+
+        await client.query(
+          `
+          INSERT INTO conciliacion_bancaria_movimientos
+          (empresa_id, periodo, fecha, descripcion, documento, cargo, abono, monto, saldo)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          `,
+          [
+            empresaId,
+            fecha.substring(0, 7),
+            fecha,
+            descripcion,
+            documento,
+            cargo,
+            abono,
+            abono - cargo,
+            saldo,
+          ]
+        );
+
+        resumen.insertadas += 1;
+        resumen.cargos += cargo;
+        resumen.abonos += abono;
+      });
+
+      if (!resultadoFila.ok) {
         resumen.omitidas += 1;
-        resumen.errores.push(`Fila ${index + 1}: sin cargo ni abono.`);
-        continue;
+        resumen.errores.push(`Fila ${index + 1}: ${describirErrorFila(resultadoFila.error)}`);
       }
-
-      const existente = await client.query(
-        `
-        SELECT id
-        FROM conciliacion_bancaria_movimientos
-        WHERE empresa_id = $1
-          AND fecha = $2
-          AND descripcion = $3
-          AND documento = $4
-          AND cargo = $5
-          AND abono = $6
-        LIMIT 1
-        `,
-        [empresaId, fecha, descripcion, documento, cargo, abono]
-      );
-
-      if (existente.rows.length > 0) {
-        resumen.omitidas += 1;
-        continue;
-      }
-
-      await client.query(
-        `
-        INSERT INTO conciliacion_bancaria_movimientos
-        (empresa_id, periodo, fecha, descripcion, documento, cargo, abono, monto, saldo)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        `,
-        [
-          empresaId,
-          fecha.substring(0, 7),
-          fecha,
-          descripcion,
-          documento,
-          cargo,
-          abono,
-          abono - cargo,
-          saldo,
-        ]
-      );
-
-      resumen.insertadas += 1;
-      resumen.cargos += cargo;
-      resumen.abonos += abono;
     }
 
     await client.query("COMMIT");

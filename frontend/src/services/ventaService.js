@@ -1,33 +1,13 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
 
 export async function crearVenta(datosVenta) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/ventas`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datosVenta),
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al registrar venta");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ventas`, { metodo: "POST", cuerpo: datosVenta, mensajeError: "Error al registrar venta" });
 }
 
 export async function listarVentas(empresaId, fechaDesde = "", fechaHasta = "") {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
 
@@ -39,20 +19,7 @@ export async function listarVentas(empresaId, fechaDesde = "", fechaHasta = "") 
     params.append("fecha_hasta", fechaHasta);
   }
 
-  const respuesta = await fetch(`${API_URL}/ventas?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al listar ventas");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ventas?${params.toString()}`, { mensajeError: "Error al listar ventas" });
 }
 
 export async function importarVentasSII(
@@ -60,8 +27,6 @@ export async function importarVentasSII(
   archivo,
   generarComprobante = true
 ) {
-  const token = obtenerToken();
-
   const formData = new FormData();
   formData.append("empresa_id", empresaId);
   formData.append(
@@ -70,21 +35,7 @@ export async function importarVentasSII(
   );
   formData.append("archivo", archivo);
 
-  const respuesta = await fetch(`${API_URL}/ventas/importar-sii`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al importar ventas SII");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ventas/importar-sii`, { metodo: "POST", formulario: formData, mensajeError: "Error al importar ventas SII" });
 }
 
 
@@ -94,43 +45,9 @@ export async function importarVentasSII(
  * anulando su asiento, y el documento seguia sumando en el F29.
  */
 export async function actualizarVenta(id, datos) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/ventas/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
-
-  const data = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al actualizar venta");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ventas/${id}`, { metodo: "PUT", cuerpo: datos, mensajeError: "Error al actualizar venta" });
 }
 
 export async function anularVenta(id, empresaId, motivo) {
-  const token = obtenerToken();
-
-  const respuesta = await fetch(`${API_URL}/ventas/${id}/anular`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ empresa_id: empresaId, motivo }),
-  });
-
-  const data = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al anular venta");
-  }
-
-  return data;
+  return peticion(`${API_URL}/ventas/${id}/anular`, { metodo: "PUT", cuerpo: { empresa_id: empresaId, motivo }, mensajeError: "Error al anular venta" });
 }

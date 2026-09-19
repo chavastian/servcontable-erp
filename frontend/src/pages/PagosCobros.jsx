@@ -760,12 +760,12 @@ export default function PagosCobros() {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -778,7 +778,7 @@ const formularioBox = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -791,7 +791,7 @@ const gridFormulario = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginTop: "10px",
   marginBottom: "5px",
 };
@@ -799,7 +799,7 @@ const label = {
 const input = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   boxSizing: "border-box",
   height: "40px",
@@ -810,14 +810,14 @@ const checkLabel = {
   alignItems: "center",
   gap: "8px",
   marginTop: "14px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
 };
 
 const bloqueModoComprobante = {
   marginTop: "14px",
-  background: "#f8fcff",
-  border: "1px solid #a9d8ef",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "12px",
   padding: "12px",
 };
@@ -830,7 +830,7 @@ const textoAyuda = {
 
 const botonGuardar = {
   marginTop: "18px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -852,7 +852,7 @@ const filtrosBox = {
 };
 
 const botonBuscar = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "10px 20px",
@@ -877,7 +877,7 @@ const card = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const listadoBox = {
@@ -899,8 +899,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -916,8 +916,8 @@ const thAccion = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
   verticalAlign: "top",
 };
 
@@ -934,7 +934,7 @@ const tdAccion = {
 };
 
 const botonEliminar = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   borderRadius: "9px",
@@ -969,26 +969,26 @@ const badgePendiente = {
 };
 
 const textoSuave = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontSize: "13px",
   fontWeight: "bold",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",

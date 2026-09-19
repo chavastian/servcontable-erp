@@ -9,6 +9,8 @@ const {
 } = require("../controllers/pagosCobros.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { bloquearDemo } = require("../middleware/demo.middleware");
 
@@ -19,14 +21,14 @@ router.post(
   verificarToken,
   exigirPermiso("REGISTRAR"),
   bloquearDemo("el registro de pagos y cobros se habilita en la version contratada."),
-  registrarPagoCobro
+  validar(esquemas.pagoCobro), registrarPagoCobro
 );
 router.put(
   "/:id/anular",
   verificarToken,
   exigirPermiso("ANULAR"),
   bloquearDemo("la anulacion de pagos y cobros se habilita en la version contratada."),
-  anularPagoCobro
+  validar(esquemas.conEmpresa), anularPagoCobro
 );
 
 module.exports = router;

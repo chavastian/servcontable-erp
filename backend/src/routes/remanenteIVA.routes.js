@@ -8,6 +8,8 @@ const {
 } = require("../controllers/remanenteIVA.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { bloquearDemo } = require("../middleware/demo.middleware");
 
@@ -18,7 +20,7 @@ router.post(
   verificarToken,
   exigirPermiso("CONFIGURAR"),
   bloquearDemo("el control de remanente IVA operativo se habilita en la version contratada."),
-  guardarControlRemanenteIVA
+  validar(esquemas.remanente), guardarControlRemanenteIVA
 );
 
 module.exports = router;

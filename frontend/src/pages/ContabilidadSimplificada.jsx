@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerLibroVentas, obtenerLibroCompras } from "../services/librosTributariosService";
 import { listarPagosCobros } from "../services/pagosCobrosService";
@@ -245,7 +245,7 @@ export default function ContabilidadSimplificada({ vista = "registro" }) {
 
 function Card({ titulo, valor, destacado = false }) {
   return (
-    <div style={{ ...smallCard, borderColor: destacado ? "#10b981" : "#bae6fd" }}>
+    <div style={{ ...smallCard, borderColor: destacado ? "var(--sc-teal)" : "#bae6fd" }}>
       <p style={cardLabel}>{titulo}</p>
       <strong style={cardValue}>{valor}</strong>
     </div>
@@ -256,18 +256,18 @@ const page = { display: "flex", flexDirection: "column", gap: "12px" };
 const ok = { color: "#059669", fontWeight: "bold", margin: 0 };
 const bad = { color: "#dc2626", fontWeight: "bold", margin: 0 };
 const card = { background: "white", borderRadius: "16px", padding: "16px", boxShadow: "0 14px 30px rgba(3, 105, 161, 0.08)" };
-const title = { color: "#0369a1", margin: "0 0 4px", fontSize: "22px" };
-const hint = { color: "#475569", margin: "0 0 12px" };
+const title = { color: "var(--sc-azul)", margin: "0 0 4px", fontSize: "22px" };
+const hint = { color: "var(--sc-gris)", margin: "0 0 12px" };
 const filters = { display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "end" };
 const field = { display: "flex", flexDirection: "column", gap: "5px", fontWeight: "bold" };
 const input = { border: "1px solid #93c5fd", borderRadius: "10px", padding: "9px 10px", minHeight: "38px" };
-const primaryButton = { border: "none", borderRadius: "10px", padding: "10px 18px", color: "white", fontWeight: "bold", background: "linear-gradient(135deg, #0369a1, #06b6d4)", cursor: "pointer" };
+const primaryButton = { border: "none", borderRadius: "10px", padding: "10px 18px", color: "white", fontWeight: "bold", background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))", cursor: "pointer" };
 const summaryGrid = { display: "grid", gridTemplateColumns: "repeat(3, minmax(160px, 1fr))", gap: "10px" };
 const smallCard = { background: "white", border: "1px solid #bae6fd", borderRadius: "14px", padding: "12px", boxShadow: "0 12px 26px rgba(3, 105, 161, 0.08)" };
-const cardLabel = { margin: "0 0 6px", color: "#0f172a", fontWeight: "bold" };
-const cardValue = { color: "#0369a1", fontSize: "18px" };
+const cardLabel = { margin: "0 0 6px", color: "var(--sc-ink)", fontWeight: "bold" };
+const cardValue = { color: "var(--sc-azul)", fontSize: "18px" };
 const table = { width: "100%", borderCollapse: "collapse", fontSize: "13px" };
 const th = { background: "#dff4ff", color: "#075985", padding: "9px", textAlign: "left" };
 const thRight = { ...th, textAlign: "right" };
-const td = { borderBottom: "1px solid #dbeafe", padding: "8px", color: "#0f172a" };
+const td = { borderBottom: "1px solid #dbeafe", padding: "8px", color: "var(--sc-ink)" };
 const tdRight = { ...td, textAlign: "right" };

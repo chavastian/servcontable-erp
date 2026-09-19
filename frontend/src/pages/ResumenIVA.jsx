@@ -230,12 +230,12 @@ export default function ResumenIVA() {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -254,19 +254,19 @@ const filtrosBox = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const input = {
   padding: "11px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   minWidth: "160px",
 };
 
 const botonBuscar = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "12px 20px",
@@ -290,7 +290,7 @@ const cardResumen = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const cardResumenOk = {
@@ -300,7 +300,7 @@ const cardResumenOk = {
 
 const cardResumenError = {
   ...cardResumen,
-  border: "2px solid #ef4444",
+  border: "2px solid var(--sc-danger)",
 };
 
 const layout = {
@@ -318,7 +318,7 @@ const seccionBox = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -329,8 +329,8 @@ const tabla = {
 
 const td = {
   padding: "12px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -341,41 +341,41 @@ const tdNumero = {
 const tdTotal = {
   ...td,
   fontWeight: "bold",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
 };
 
 const tdTotalNumero = {
   ...tdNumero,
   fontWeight: "bold",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
 };
 
 const determinacionBox = {
-  background: "#f8fcff",
-  border: "1px solid #e2e8f0",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-borde-claro)",
   borderRadius: "16px",
   padding: "22px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const textoPagar = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
 };
 
 const textoRemanente = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "20px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",

@@ -177,7 +177,7 @@ export default function CalceBancario() {
               <span style={estilos.indicadorTexto}>Con un documento propuesto</span>
             </div>
             <div style={estilos.indicador}>
-              <span style={{ ...estilos.indicadorValor, color: "#9a3412" }}>
+              <span style={{ ...estilos.indicadorValor, color: "var(--sc-naranja-texto)" }}>
                 {numero(resumen.ambiguos)}
               </span>
               <span style={estilos.indicadorTexto}>Con más de un candidato</span>

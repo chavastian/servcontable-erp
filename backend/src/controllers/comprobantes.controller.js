@@ -1,4 +1,11 @@
 const pool = require("../database/db");
+const {
+  leerPaginacion,
+  aplicarPaginacion,
+  fragmentoPaginacion,
+  valoresPaginacion,
+  recortarPagina,
+} = require("../helpers/paginacion.helper");
 const { obtenerPeriodoDesdeFecha } = require("../helpers/siiCsv.helper");
 const { registrarAuditoria } = require("../helpers/auditoria.helper");
 const {
@@ -220,11 +227,16 @@ async function listarComprobantes(req, res) {
       ORDER BY c.fecha DESC, c.tipo ASC, c.numero DESC
     `;
 
+    const paginacion = leerPaginacion(req.query);
+    query = aplicarPaginacion(query, valores, paginacion);
+
     const resultado = await pool.query(query, valores);
+    const pagina = recortarPagina(resultado.rows, paginacion);
 
     return res.json({
-      total: resultado.rows.length,
-      comprobantes: resultado.rows,
+      total: pagina.filas.length,
+      paginacion: pagina.paginacion,
+      comprobantes: pagina.filas,
     });
   } catch (error) {
     console.error("Error al listar comprobantes:", error);
@@ -589,6 +601,30 @@ async function anularComprobante(req, res) {
       WHERE empresa_id = $1
         AND comprobante_id = $2
       `,
+      [empresa_id, id]
+    );
+
+    // Remuneraciones y conciliación también apuntan al asiento. Quedaban
+    // "contabilizadas" contra un comprobante anulado y nadie podía volver a
+    // centralizarlas ni conciliarlas.
+    await client.query(
+      `UPDATE liquidaciones SET comprobante_id = NULL, contabilizada = false
+       WHERE empresa_id = $1 AND comprobante_id = $2`,
+      [empresa_id, id]
+    );
+    await client.query(
+      `UPDATE finiquitos SET comprobante_id = NULL, contabilizado = false, actualizado_en = NOW()
+       WHERE empresa_id = $1 AND comprobante_id = $2`,
+      [empresa_id, id]
+    );
+    await client.query(
+      `UPDATE pagos_remuneraciones SET estado = 'anulado', contabilizado = false, actualizado_en = NOW()
+       WHERE empresa_id = $1 AND comprobante_id = $2 AND estado = 'vigente'`,
+      [empresa_id, id]
+    );
+    await client.query(
+      `UPDATE conciliacion_bancaria_movimientos SET comprobante_id = NULL, estado = 'pendiente', actualizado_en = NOW()
+       WHERE empresa_id = $1 AND comprobante_id = $2`,
       [empresa_id, id]
     );
 

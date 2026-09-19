@@ -12,6 +12,8 @@ const {
 const { exportarLre } = require("../controllers/libroRemuneracionesElectronico.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
@@ -21,7 +23,7 @@ const {
 router.get("/", verificarToken, listarLiquidaciones);
 router.get("/lre", verificarToken, exigirPermiso("REMUNERACIONES"), exportarLre);
 router.post("/calcular", verificarToken,
-  exigirPermiso("REMUNERACIONES"), calcularLiquidacionBase);
+  exigirPermiso("REMUNERACIONES"), validar(esquemas.liquidacionGuardar), calcularLiquidacionBase);
 router.post(
   "/",
   verificarToken,
@@ -32,23 +34,23 @@ router.post(
     limite: 2,
     condicion: "COALESCE(estado, 'vigente') <> 'eliminada'",
   }),
-  guardarLiquidacion
+  validar(esquemas.liquidacionGuardar), guardarLiquidacion
 );
 router.put("/:id", verificarToken,
-  exigirPermiso("REMUNERACIONES"), actualizarLiquidacion);
+  exigirPermiso("REMUNERACIONES"), validar(esquemas.liquidacionGuardar), actualizarLiquidacion);
 router.put(
   "/:id/eliminar",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la eliminacion de liquidaciones se habilita en la version contratada."),
-  eliminarLiquidacion
+  validar(esquemas.conEmpresa), eliminarLiquidacion
 );
 router.post(
   "/contabilizar",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la contabilizacion de liquidaciones se habilita en la version contratada."),
-  contabilizarLiquidaciones
+  validar(esquemas.porPeriodo), contabilizarLiquidaciones
 );
 
 module.exports = router;

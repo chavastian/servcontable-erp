@@ -590,12 +590,12 @@ function ResumenCard({ titulo, valor }) {
 
 const tituloPrincipal = {
   fontSize: "32px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "10px",
 };
 
 const empresaTexto = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -614,14 +614,14 @@ const cardFiltros = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const input = {
   width: "170px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   height: "40px",
   boxSizing: "border-box",
@@ -631,7 +631,7 @@ const inputFull = {
   width: "100%",
   minWidth: "260px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   height: "40px",
   boxSizing: "border-box",
@@ -649,17 +649,17 @@ const botonBase = {
 
 const botonExcel = {
   ...botonBase,
-  background: "#10b981",
+  background: "var(--sc-teal)",
 };
 
 const botonPDF = {
   ...botonBase,
-  background: "#ef4444",
+  background: "var(--sc-danger)",
 };
 
 const botonBuscar = {
   ...botonBase,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
 };
 
 const gridResumen = {
@@ -677,7 +677,7 @@ const cardResumen = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const cardTabla = {
@@ -689,7 +689,7 @@ const cardTabla = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -705,8 +705,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -717,8 +717,8 @@ const thNumero = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -730,8 +730,8 @@ const tdNumero = {
 const tdTotal = {
   ...td,
   fontWeight: "bold",
-  background: "#f8fcff",
-  color: "#0369a1",
+  background: "var(--sc-fondo-claro)",
+  color: "var(--sc-azul)",
 };
 
 const tdTotalNumero = {
@@ -741,19 +741,19 @@ const tdTotalNumero = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const linkCuenta = {
   background: "transparent",
   border: "none",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontWeight: "bold",
   cursor: "pointer",
   textAlign: "left",
@@ -781,12 +781,12 @@ const detalleHeader = {
 };
 
 const textoDetalle = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginTop: "-6px",
 };
 
 const botonCerrar = {
-  background: "#475569",
+  background: "var(--sc-gris)",
   color: "white",
   border: "none",
   padding: "10px 14px",

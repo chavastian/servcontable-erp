@@ -187,7 +187,9 @@ async function listarRegistros(req, res) {
           acc.dias_ausencias += dias;
         }
 
-        if (item.tipo === "Licencia médica") {
+        // La pantalla guardaba "Licencia medica" sin tilde y aquí se
+        // comparaba con tilde: el contador era siempre cero.
+        if (/^licencia m[eé]dica$/i.test(String(item.tipo || "").trim())) {
           acc.dias_licencias += dias;
         }
 
@@ -259,7 +261,7 @@ async function obtenerResumenTrabajador(req, res) {
       SELECT
         COALESCE(SUM(CASE WHEN tipo = 'Vacaciones' THEN dias ELSE 0 END), 0) AS dias_vacaciones,
         COALESCE(SUM(CASE WHEN tipo = 'Ausencia' THEN dias ELSE 0 END), 0) AS dias_ausencias,
-        COALESCE(SUM(CASE WHEN tipo = 'Licencia médica' THEN dias ELSE 0 END), 0) AS dias_licencias,
+        COALESCE(SUM(CASE WHEN LOWER(TRANSLATE(tipo, 'é', 'e')) = 'licencia medica' THEN dias ELSE 0 END), 0) AS dias_licencias,
         COALESCE(SUM(CASE WHEN tipo = 'Permiso' THEN dias ELSE 0 END), 0) AS dias_permisos,
         COALESCE(SUM(CASE WHEN descuenta_vacaciones = true THEN dias ELSE 0 END), 0) AS dias_descuentan_vacaciones,
         COALESCE(SUM(CASE WHEN afecta_remuneracion = true THEN dias ELSE 0 END), 0) AS dias_afectan_remuneracion,

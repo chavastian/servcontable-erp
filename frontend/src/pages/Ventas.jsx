@@ -664,12 +664,12 @@ export default function Ventas() {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -688,7 +688,7 @@ const cardResumen = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const cardResumenOk = {
@@ -719,14 +719,14 @@ const tablaBox = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginTop: "12px",
   marginBottom: "5px",
 };
@@ -734,7 +734,7 @@ const label = {
 const input = {
   width: "100%",
   padding: "11px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   boxSizing: "border-box",
 };
@@ -742,7 +742,7 @@ const input = {
 const botonGuardar = {
   width: "100%",
   marginTop: "18px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "13px",
@@ -759,7 +759,7 @@ const botonGuardarDeshabilitado = {
 };
 
 const botonBuscar = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "12px 20px",
@@ -785,14 +785,14 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "12px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
 };
 
 const td = {
   padding: "10px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -828,28 +828,28 @@ const botonImportar = {
 
 const resultadoBox = {
   marginTop: "14px",
-  background: "#f8fcff",
-  border: "1px solid #e2e8f0",
+  background: "var(--sc-fondo-claro)",
+  border: "1px solid var(--sc-borde-claro)",
   borderRadius: "12px",
   padding: "12px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "20px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",

@@ -105,7 +105,7 @@ export default function DashboardFinanciero({ irVista }) {
           valor={formato(ventas.total)}
           detalle={`${ventas.cantidad || 0} documentos`}
           icono={<IconoFinanciero tipo="ventas" />}
-          color="#10b981"
+          color="var(--sc-teal)"
           onClick={() => irVista && irVista("ventas")}
         />
 
@@ -132,7 +132,7 @@ export default function DashboardFinanciero({ irVista }) {
           valor={formato(cuentas.por_pagar)}
           detalle={`${cuentas.por_pagar_cantidad || 0} pendientes`}
           icono={<IconoFinanciero tipo="pagar" />}
-          color="#ef4444"
+          color="var(--sc-danger)"
           onClick={() => irVista && irVista("cuentasPendientes")}
         />
 
@@ -145,7 +145,7 @@ export default function DashboardFinanciero({ irVista }) {
               : "IVA determinado positivo"
           }
           icono={<IconoFinanciero tipo="iva" />}
-          color={iva.iva_a_pagar > 0 ? "#ef4444" : "#22c55e"}
+          color={iva.iva_a_pagar > 0 ? "var(--sc-danger)" : "#22c55e"}
           onClick={() => irVista && irVista("resumenIVA")}
         />
 
@@ -160,8 +160,8 @@ export default function DashboardFinanciero({ irVista }) {
           icono={<IconoFinanciero tipo="resultado" />}
           color={
             Number(resultado.resultado_ejercicio || 0) >= 0
-              ? "#10b981"
-              : "#ef4444"
+              ? "var(--sc-teal)"
+              : "var(--sc-danger)"
           }
           onClick={() => irVista && irVista("estadoResultados")}
         />
@@ -293,7 +293,7 @@ export default function DashboardFinanciero({ irVista }) {
             label="Por cobrar"
             valor={cuentas.por_cobrar}
             total={Number(cuentas.por_cobrar || 0) + Number(cuentas.por_pagar || 0)}
-            color="#10b981"
+            color="var(--sc-teal)"
             formato={formato}
           />
 
@@ -301,7 +301,7 @@ export default function DashboardFinanciero({ irVista }) {
             label="Por pagar compras"
             valor={cuentas.por_pagar_compras}
             total={Number(cuentas.por_cobrar || 0) + Number(cuentas.por_pagar || 0)}
-            color="#ef4444"
+            color="var(--sc-danger)"
             formato={formato}
           />
 
@@ -309,7 +309,7 @@ export default function DashboardFinanciero({ irVista }) {
             label="Por pagar honorarios"
             valor={cuentas.por_pagar_honorarios}
             total={Number(cuentas.por_cobrar || 0) + Number(cuentas.por_pagar || 0)}
-            color="#f97316"
+            color="var(--sc-warning)"
             formato={formato}
           />
         </div>
@@ -395,7 +395,7 @@ function FilaResumen({ label, valor, destacado, rojo, verde }) {
       <span>{label}</span>
       <strong
         style={{
-          color: rojo ? "#ef4444" : verde ? "#10b981" : "#0f172a",
+          color: rojo ? "var(--sc-danger)" : verde ? "var(--sc-teal)" : "var(--sc-ink)",
         }}
       >
         {valor}
@@ -541,7 +541,7 @@ function IconoFinanciero({ tipo }) {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
@@ -561,7 +561,7 @@ const label = {
 
 const input = {
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   minWidth: "170px",
   height: "40px",
@@ -570,7 +570,7 @@ const input = {
 
 const botonBuscar = {
   background: "white",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   border: "none",
   padding: "10px 20px",
   borderRadius: "10px",
@@ -587,7 +587,7 @@ const gridPrincipal = {
 };
 
 const cardKpi = (color) => ({
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fcff 100%)",
+  background: "linear-gradient(180deg, #ffffff 0%, var(--sc-fondo-claro) 100%)",
   border: "1px solid rgba(169, 216, 239, 0.78)",
   borderLeft: `5px solid ${color}`,
   borderRadius: "18px",
@@ -609,9 +609,9 @@ const cardIcono = {
   width: "38px",
   height: "38px",
   borderRadius: "13px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -626,7 +626,7 @@ const cardLinea = {
 
 const cardTitulo = {
   display: "block",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "8px",
 };
 
@@ -634,12 +634,12 @@ const cardValor = {
   display: "block",
   fontSize: "24px",
   fontWeight: "bold",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginBottom: "5px",
 };
 
 const cardDetalle = {
-  color: "#475569",
+  color: "var(--sc-gris)",
 };
 
 const gridSecundario = {
@@ -677,14 +677,14 @@ const panelHeader = {
 };
 
 const tituloPanel = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   fontSize: "20px",
   margin: 0,
 };
 
 const botonMini = {
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   border: "1px solid #67e8f9",
   borderRadius: "9px",
   padding: "8px 12px",
@@ -696,14 +696,14 @@ const filaResumen = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  borderBottom: "1px solid #e2e8f0",
+  borderBottom: "1px solid var(--sc-borde-claro)",
   padding: "9px 0",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const filaResumenDestacada = {
   ...filaResumen,
-  background: "linear-gradient(135deg, #ecfeff, #f8fcff)",
+  background: "linear-gradient(135deg, var(--sc-cian-fondo), var(--sc-fondo-claro))",
   padding: "10px",
   borderRadius: "10px",
   borderBottom: "none",
@@ -717,12 +717,12 @@ const barraBox = {
 const barraTexto = {
   display: "flex",
   justifyContent: "space-between",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "6px",
 };
 
 const barraFondo = {
-  background: "#e2e8f0",
+  background: "var(--sc-borde-claro)",
   height: "10px",
   borderRadius: "999px",
   overflow: "hidden",
@@ -736,7 +736,7 @@ const barraRelleno = {
 const barraPorcentaje = {
   display: "block",
   marginTop: "4px",
-  color: "#475569",
+  color: "var(--sc-gris)",
 };
 
 const tablaBox = {
@@ -751,8 +751,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -763,8 +763,8 @@ const thNumero = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
   verticalAlign: "top",
 };
 
@@ -781,8 +781,8 @@ const accesosRapidos = {
 };
 
 const botonAcceso = {
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   border: "1px solid #67e8f9",
   borderRadius: "14px",
   padding: "14px",
@@ -795,27 +795,27 @@ const botonAcceso = {
 };
 
 const botonAccesoIcono = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",

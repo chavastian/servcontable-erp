@@ -1,4 +1,10 @@
 const pool = require("../database/db");
+const {
+  leerPaginacion,
+  fragmentoPaginacion,
+  valoresPaginacion,
+  recortarPagina,
+} = require("../helpers/paginacion.helper");
 
 async function listarAuditoria(req, res) {
   const client = await pool.connect();
@@ -12,6 +18,7 @@ async function listarAuditoria(req, res) {
       });
     }
 
+    const paginacion = leerPaginacion(req.query);
 
     const resultado = await client.query(
       `
@@ -66,14 +73,17 @@ async function listarAuditoria(req, res) {
             AND ax.accion = 'Eliminar asiento'
         )
 
-      ORDER BY creado_en DESC, id DESC
+      ORDER BY creado_en DESC, id DESC${fragmentoPaginacion(paginacion, 4)}
       `,
-      [empresa_id, fecha_desde, fecha_hasta]
+      [empresa_id, fecha_desde, fecha_hasta, ...valoresPaginacion(paginacion)]
     );
 
+    const pagina = recortarPagina(resultado.rows, paginacion);
+
     return res.json({
-      total: resultado.rows.length,
-      movimientos: resultado.rows,
+      total: pagina.filas.length,
+      paginacion: pagina.paginacion,
+      movimientos: pagina.filas,
     });
   } catch (error) {
     console.error("Error al listar auditoria:", error);

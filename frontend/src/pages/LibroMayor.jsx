@@ -466,12 +466,12 @@ export default function LibroMayor() {
 
 const tituloPrincipal = {
   fontSize: "32px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "10px",
 };
 
 const empresaTexto = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -490,14 +490,14 @@ const cardFiltros = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const input = {
   width: "170px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   height: "40px",
   boxSizing: "border-box",
@@ -507,7 +507,7 @@ const inputFull = {
   width: "100%",
   minWidth: "250px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   height: "40px",
   boxSizing: "border-box",
@@ -525,17 +525,17 @@ const botonBase = {
 
 const botonExcel = {
   ...botonBase,
-  background: "#10b981",
+  background: "var(--sc-teal)",
 };
 
 const botonPDF = {
   ...botonBase,
-  background: "#ef4444",
+  background: "var(--sc-danger)",
 };
 
 const botonBuscar = {
   ...botonBase,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
 };
 
 const cardCuenta = {
@@ -555,19 +555,19 @@ const cabeceraCuenta = {
 };
 
 const tituloCuenta = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   margin: 0,
   fontSize: "23px",
 };
 
 const naturaleza = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginTop: "6px",
 };
 
 const resumenCuenta = {
   textAlign: "right",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   minWidth: "180px",
 };
 
@@ -583,8 +583,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -595,8 +595,8 @@ const thNumero = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -606,16 +606,16 @@ const tdNumero = {
 };
 
 const sinDatos = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontWeight: "bold",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };

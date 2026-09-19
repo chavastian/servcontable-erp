@@ -341,19 +341,19 @@ export default function LibroDiario() {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
@@ -372,7 +372,7 @@ const cardResumen = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const cardResumenOk = {
@@ -382,7 +382,7 @@ const cardResumenOk = {
 
 const cardResumenError = {
   ...cardResumen,
-  border: "2px solid #ef4444",
+  border: "2px solid var(--sc-danger)",
 };
 
 const tablaBox = {
@@ -394,7 +394,7 @@ const tablaBox = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -406,14 +406,14 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "12px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
 };
 
 const td = {
   padding: "10px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -422,15 +422,15 @@ const tdNumero = {
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",
@@ -446,7 +446,7 @@ const filtrosAcciones = {
 
 const inputPeriodo = {
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   minWidth: "180px",
   height: "40px",
@@ -454,7 +454,7 @@ const inputPeriodo = {
 };
 
 const botonExcel = {
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "10px 16px",
@@ -465,7 +465,7 @@ const botonExcel = {
 };
 
 const botonPDF = {
-  background: "#ef4444",
+  background: "var(--sc-danger)",
   color: "white",
   border: "none",
   padding: "10px 16px",
@@ -476,7 +476,7 @@ const botonPDF = {
 };
 
 const botonBuscar = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "10px 20px",

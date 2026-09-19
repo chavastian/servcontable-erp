@@ -824,12 +824,12 @@ export default function NuevoComprobante() {
 
 const titulo = {
   fontSize: "28px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "12px",
 };
 
@@ -841,7 +841,7 @@ const formularioBox = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: "0",
   marginBottom: "8px",
   fontSize: "22px",
@@ -856,7 +856,7 @@ const gridCabecera = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginTop: "8px",
   marginBottom: "4px",
   fontSize: "13px",
@@ -865,7 +865,7 @@ const label = {
 const input = {
   width: "100%",
   padding: "8px 10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "8px",
   boxSizing: "border-box",
   fontSize: "13px",
@@ -878,7 +878,7 @@ const inputGlosaCompacta = {
 
 const ayuda = {
   fontSize: "12px",
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginTop: "5px",
 };
 
@@ -908,8 +908,8 @@ const tablaComprobantes = {
 const th = {
   textAlign: "left",
   padding: "12px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -941,8 +941,8 @@ const thAccionCompacto = {
 
 const td = {
   padding: "10px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
   verticalAlign: "top",
 };
 
@@ -978,7 +978,7 @@ const inputTabla = {
   width: "100%",
   minWidth: "140px",
   padding: "9px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "8px",
   boxSizing: "border-box",
 };
@@ -1004,7 +1004,7 @@ const inputNumeroCompacto = {
 };
 
 const botonEliminar = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   borderRadius: "8px",
@@ -1035,7 +1035,7 @@ const botonSecundario = {
 
 const botonCancelar = {
   ...botonSecundario,
-  background: "#475569",
+  background: "var(--sc-gris)",
   marginLeft: "10px",
 };
 
@@ -1044,23 +1044,23 @@ const totalesBox = {
   display: "flex",
   gap: "20px",
   flexWrap: "wrap",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
   padding: "16px",
   borderRadius: "14px",
 };
 
 const diferenciaOk = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
 };
 
 const diferenciaError = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
 };
 
 const botonGuardar = {
   width: "100%",
   marginTop: "20px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "14px",
@@ -1085,7 +1085,7 @@ const listadoBox = {
 };
 
 const botonEditar = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   borderRadius: "9px",
@@ -1126,7 +1126,7 @@ const botonAccionDeshabilitado = {
 };
 
 const botonEliminarAsiento = {
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   borderRadius: "9px",
@@ -1143,20 +1143,20 @@ const botonEliminarAsiento = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",
@@ -1171,7 +1171,7 @@ const accionesFila = {
 };
 
 const botonDetalle = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   borderRadius: "9px",
@@ -1189,11 +1189,11 @@ const botonDetalle = {
 
 const tdDetalleContenedor = {
   padding: "0",
-  borderBottom: "1px solid #e2e8f0",
+  borderBottom: "1px solid var(--sc-borde-claro)",
 };
 
 const detalleComprobanteBox = {
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
   border: "1px solid #dbeafe",
   borderRadius: "14px",
   padding: "16px",
@@ -1201,13 +1201,13 @@ const detalleComprobanteBox = {
 };
 
 const tituloDetalleComprobante = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
   marginBottom: "12px",
 };
 
 const textoSuave = {
-  color: "#475569",
+  color: "var(--sc-gris)",
 };
 
 const tablaDetalleComprobante = {

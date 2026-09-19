@@ -142,6 +142,69 @@ async function candidatosParaMovimiento(cliente, empresaId, movimiento) {
 }
 
 /**
+ * Candidatos para muchos montos en una sola consulta por sentido (entró o
+ * salió plata). Antes se consultaba por movimiento: 200 movimientos eran 200
+ * consultas de tres tablas cada una.
+ */
+async function candidatosPorMonto(cliente, empresaId, montos, esAbono) {
+  const lista = [...new Set(montos.filter((m) => m > 0))];
+  const porMonto = new Map();
+
+  if (lista.length === 0) return porMonto;
+
+  const sql = esAbono
+    ? `
+      SELECT m.monto AS monto_buscado, v.id, 'venta' AS origen, v.folio, v.fecha,
+             v.rut_cliente AS rut, v.razon_social_cliente AS tercero,
+             v.total AS monto, v.comprobante_id
+      FROM unnest($2::numeric[]) AS m(monto)
+      JOIN ventas v ON v.empresa_id = $1 AND v.estado = 'vigente' AND ABS(v.total - m.monto) <= $3
+      UNION ALL
+      SELECT m.monto, pc.id, 'pago_cobro', pc.folio, pc.fecha,
+             pc.rut_tercero, pc.nombre_tercero, pc.monto, pc.comprobante_id
+      FROM unnest($2::numeric[]) AS m(monto)
+      JOIN pagos_cobros pc ON pc.empresa_id = $1 AND pc.estado = 'vigente'
+        AND pc.tipo_movimiento = 'Cobro' AND ABS(pc.monto - m.monto) <= $3
+      LIMIT 4000
+      `
+    : `
+      SELECT m.monto AS monto_buscado, c.id, 'compra' AS origen, c.folio, c.fecha,
+             c.rut_proveedor AS rut, c.razon_social_proveedor AS tercero,
+             c.total AS monto, c.comprobante_id
+      FROM unnest($2::numeric[]) AS m(monto)
+      JOIN compras c ON c.empresa_id = $1 AND c.estado = 'vigente' AND ABS(c.total - m.monto) <= $3
+      UNION ALL
+      SELECT m.monto, h.id, 'honorario', h.folio, h.fecha_emision,
+             h.rut_prestador, h.nombre_prestador, h.liquido, h.comprobante_id
+      FROM unnest($2::numeric[]) AS m(monto)
+      JOIN honorarios h ON h.empresa_id = $1 AND h.estado = 'vigente' AND ABS(h.liquido - m.monto) <= $3
+      UNION ALL
+      SELECT m.monto, pc.id, 'pago_cobro', pc.folio, pc.fecha,
+             pc.rut_tercero, pc.nombre_tercero, pc.monto, pc.comprobante_id
+      FROM unnest($2::numeric[]) AS m(monto)
+      JOIN pagos_cobros pc ON pc.empresa_id = $1 AND pc.estado = 'vigente'
+        AND pc.tipo_movimiento = 'Pago' AND ABS(pc.monto - m.monto) <= $3
+      LIMIT 4000
+      `;
+
+  const { rows } = await cliente.query(sql, [empresaId, lista, TOLERANCIA]);
+
+  for (const fila of rows) {
+    const clave = Number(fila.monto_buscado);
+    const { monto_buscado, ...candidato } = fila;
+
+    if (!porMonto.has(clave)) porMonto.set(clave, []);
+    if (porMonto.get(clave).length < 40) porMonto.get(clave).push(candidato);
+  }
+
+  return porMonto;
+}
+
+function montoDe(movimiento) {
+  return Math.abs(Number(movimiento.monto || movimiento.abono || movimiento.cargo || 0));
+}
+
+/**
  * Decide la mejor propuesta para un movimiento, o ninguna.
  */
 function elegirPropuesta(movimiento, candidatos) {
@@ -233,8 +296,15 @@ async function proponerCalces(cliente, empresaId, periodo, { limite = 200 } = {}
   const sinCalce = [];
   const ambiguos = [];
 
+  const esAbono = (m) => Number(m.abono || 0) > 0;
+  const [abonos, cargos] = await Promise.all([
+    candidatosPorMonto(cliente, empresaId, movimientos.filter(esAbono).map(montoDe), true),
+    candidatosPorMonto(cliente, empresaId, movimientos.filter((m) => !esAbono(m)).map(montoDe), false),
+  ]);
+
   for (const movimiento of movimientos) {
-    const candidatos = await candidatosParaMovimiento(cliente, empresaId, movimiento);
+    const monto = montoDe(movimiento);
+    const candidatos = monto > 0 ? (esAbono(movimiento) ? abonos : cargos).get(monto) || [] : [];
     const decision = elegirPropuesta(movimiento, candidatos);
 
     const base = {
@@ -310,5 +380,6 @@ module.exports = {
   diasEntre,
   elegirPropuesta,
   candidatosParaMovimiento,
+  candidatosPorMonto,
   proponerCalces,
 };

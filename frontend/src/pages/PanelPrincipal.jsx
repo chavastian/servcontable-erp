@@ -1,41 +1,41 @@
-import { useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { cerrarSesion } from "../services/authService";
 import ModuloHero from "../components/ModuloHero";
 
-import Empresas from "./Empresas";
-import PlanCuentas from "./PlanCuentas";
-import Comprobantes from "./NuevoComprobante";
-import LibroDiario from "./LibroDiario";
-import LibroMayor from "./LibroMayor";
-import Balance8Columnas from "./Balance8Columnas";
-import EstadoResultados from "./EstadoResultados";
-import Ventas from "./Ventas";
-import RegistroBoletas from "./RegistroBoletas";
-import Compras from "./Compras";
-import ResumenIVA from "./ResumenIVA";
-import ResumenF29 from "./ResumenF29";
-import ControlRemanenteIVA from "./ControlRemanenteIVA";
-import ConfiguracionContable from "./ConfiguracionContable";
-import LibrosCompraVenta from "./LibrosCompraVenta";
-import ContabilidadSimplificada from "./ContabilidadSimplificada";
-import Honorarios from "./Honorarios";
-import PagosCobros from "./PagosCobros";
-import ConciliacionBancaria from "./ConciliacionBancaria";
-import CuentasPendientes from "./CuentasPendientes";
-import CartolaRut from "./CartolaRut";
-import DashboardFinanciero from "./DashboardFinanciero";
-import Remuneraciones from "./Remuneraciones";
-import DashboardContable from "./contabilidad/DashboardContable";
-import AnalisisCuentas from "./AnalisisCuentas";
-import AuditoriaSistema from "./AuditoriaSistema";
-import UsuariosSistema from "./UsuariosSistema";
-import AdminSuscripciones from "./AdminSuscripciones";
-import PanelEstudio from "./PanelEstudio";
-import CierreMensual from "./CierreMensual";
-import CalceBancario from "./CalceBancario";
-import ClasificarDocumentos from "./ClasificarDocumentos";
-import CalendarioTributario from "./CalendarioTributario";
-import FlujoCaja from "./FlujoCaja";
+const Empresas = lazy(() => import("./Empresas"));
+const PlanCuentas = lazy(() => import("./PlanCuentas"));
+const Comprobantes = lazy(() => import("./NuevoComprobante"));
+const LibroDiario = lazy(() => import("./LibroDiario"));
+const LibroMayor = lazy(() => import("./LibroMayor"));
+const Balance8Columnas = lazy(() => import("./Balance8Columnas"));
+const EstadoResultados = lazy(() => import("./EstadoResultados"));
+const Ventas = lazy(() => import("./Ventas"));
+const RegistroBoletas = lazy(() => import("./RegistroBoletas"));
+const Compras = lazy(() => import("./Compras"));
+const ResumenIVA = lazy(() => import("./ResumenIVA"));
+const ResumenF29 = lazy(() => import("./ResumenF29"));
+const ControlRemanenteIVA = lazy(() => import("./ControlRemanenteIVA"));
+const ConfiguracionContable = lazy(() => import("./ConfiguracionContable"));
+const LibrosCompraVenta = lazy(() => import("./LibrosCompraVenta"));
+const ContabilidadSimplificada = lazy(() => import("./ContabilidadSimplificada"));
+const Honorarios = lazy(() => import("./Honorarios"));
+const PagosCobros = lazy(() => import("./PagosCobros"));
+const ConciliacionBancaria = lazy(() => import("./ConciliacionBancaria"));
+const CuentasPendientes = lazy(() => import("./CuentasPendientes"));
+const CartolaRut = lazy(() => import("./CartolaRut"));
+const DashboardFinanciero = lazy(() => import("./DashboardFinanciero"));
+const Remuneraciones = lazy(() => import("./Remuneraciones"));
+const DashboardContable = lazy(() => import("./contabilidad/DashboardContable"));
+const AnalisisCuentas = lazy(() => import("./AnalisisCuentas"));
+const AuditoriaSistema = lazy(() => import("./AuditoriaSistema"));
+const UsuariosSistema = lazy(() => import("./UsuariosSistema"));
+const AdminSuscripciones = lazy(() => import("./AdminSuscripciones"));
+const PanelEstudio = lazy(() => import("./PanelEstudio"));
+const CierreMensual = lazy(() => import("./CierreMensual"));
+const CalceBancario = lazy(() => import("./CalceBancario"));
+const ClasificarDocumentos = lazy(() => import("./ClasificarDocumentos"));
+const CalendarioTributario = lazy(() => import("./CalendarioTributario"));
+const FlujoCaja = lazy(() => import("./FlujoCaja"));
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 const LOGO_SRC = "/servcontable-logo.png";
@@ -291,6 +291,82 @@ function vistaInicialPorModulo(moduloActivo) {
   return "inicio";
 }
 
+const VISTAS_VALIDAS = new Set([
+  "adminSuscripciones",
+  "adminSuscripcionesAuditoria",
+  "adminSuscripcionesClientes",
+  "adminSuscripcionesConfiguracion",
+  "adminSuscripcionesEmpresas",
+  "adminSuscripcionesGestion",
+  "adminSuscripcionesPagos",
+  "adminSuscripcionesSolicitudes",
+  "analisisCuentas",
+  "auditoria",
+  "balance8",
+  "boletas",
+  "calceBancario",
+  "calendarioTributario",
+  "cartolaRut",
+  "cierreMensual",
+  "clasificarDocumentos",
+  "compras",
+  "comprobantes",
+  "conciliacionBancaria",
+  "configuracionContable",
+  "cuentasPendientes",
+  "dashboardContable",
+  "empresas",
+  "estadoResultados",
+  "flujoCaja",
+  "honorarios",
+  "inicio",
+  "libroCaja",
+  "libroDiario",
+  "libroIngresosEgresos",
+  "libroMayor",
+  "librosCompraVenta",
+  "pagosCobros",
+  "panelEstudio",
+  "planCuentas",
+  "registroSimplificado",
+  "remConfiguracion",
+  "remConfiguracionContable",
+  "remConfiguracionPrevisional",
+  "remFiniquitos",
+  "remHaberes",
+  "remImpuestoUnico",
+  "remLibro",
+  "remLiquidacionPDF",
+  "remLiquidaciones",
+  "remPagos",
+  "remPrevired",
+  "remSaldoVacaciones",
+  "remTrabajadores",
+  "remVacacionesAusencias",
+  "remanenteIVA",
+  "remuneraciones",
+  "resumenF29",
+  "resumenIVA",
+  "usuariosSistema",
+  "ventas",
+]);
+
+/**
+ * La vista viaja en el hash de la URL: así F5 vuelve a la misma pantalla y el
+ * botón atrás funciona. Un hash desconocido se ignora.
+ */
+function vistaDesdeHash() {
+  const hash = String(window.location.hash || "").replace(/^#\/?/, "");
+
+  return VISTAS_VALIDAS.has(hash) ? hash : "";
+}
+
+const cargandoPagina = (
+  <p style={{ padding: 24, color: "var(--sc-muted)" }} aria-live="polite">
+    Cargando…
+  </p>
+);
+
 export default function PanelPrincipal({
   usuario,
   moduloActivo,
@@ -302,7 +378,27 @@ export default function PanelPrincipal({
   alCerrarSesion,
   alSeleccionarEmpresa,
 }) {
-  const [vistaActiva, setVistaActiva] = useState(() => vistaInicialPorModulo(moduloActivo));
+  const [vistaActiva, setVistaActiva] = useState(
+    () => vistaDesdeHash() || vistaInicialPorModulo(moduloActivo)
+  );
+
+  useEffect(() => {
+    function alCambiarHash() {
+      const vista = vistaDesdeHash();
+
+      if (vista) setVistaActiva(vista);
+    }
+
+    window.addEventListener("hashchange", alCambiarHash);
+
+    return () => window.removeEventListener("hashchange", alCambiarHash);
+  }, []);
+
+  useEffect(() => {
+    if (vistaDesdeHash() !== vistaActiva) {
+      window.history.replaceState(null, "", `#${vistaActiva}`);
+    }
+  }, [vistaActiva]);
   // En un teléfono el menú de 260 px dejaba 140 px de contenido: arranca
   // cerrado y se abre con el botón de la barra superior.
   const [menuAbierto, setMenuAbierto] = useState(() => !pantallaAngosta());
@@ -324,6 +420,12 @@ export default function PanelPrincipal({
 
   function irVista(vista) {
     setVistaActiva(vista);
+
+    if (vistaDesdeHash() !== vista) {
+      // pushState deja la entrada en el historial: el botón atrás vuelve a la
+      // vista anterior y dispara hashchange.
+      window.history.pushState(null, "", `#${vista}`);
+    }
 
     // En pantalla angosta el menú es una capa sobre el contenido: si quedara
     // abierto tras elegir, taparía la pantalla que se acaba de pedir.
@@ -350,8 +452,8 @@ export default function PanelPrincipal({
   }
 
   function colorEstadoEjercicio() {
-    if (!ejercicioActivo) return "#475569";
-    return ejercicioActivo.estado === "cerrado" ? "#ef4444" : "#10b981";
+    if (!ejercicioActivo) return "var(--sc-gris)";
+    return ejercicioActivo.estado === "cerrado" ? "var(--sc-danger)" : "var(--sc-teal)";
   }
 
   const menuContable = [
@@ -609,6 +711,7 @@ export default function PanelPrincipal({
               mostrarHeroPanel ? " servcontable-has-panel-hero" : ""
             }`}
           >
+            <Suspense fallback={cargandoPagina}>
             {vistaActiva === "panelEstudio" && (
               <PanelEstudio alAbrirEmpresa={alSeleccionarEmpresa} />
             )}
@@ -691,6 +794,7 @@ export default function PanelPrincipal({
             {vistaActiva === "remFiniquitos" && <Remuneraciones vistaInicial="finiquitos" />}
             {vistaActiva === "remVacacionesAusencias" && <Remuneraciones vistaInicial="vacacionesAusencias" />}
             {vistaActiva === "remSaldoVacaciones" && <Remuneraciones vistaInicial="saldoVacaciones" />}
+            </Suspense>
           </div>
         </section>
       </main>
@@ -780,7 +884,7 @@ const ejercicioBox = {
 const empresaLabel = {
   fontSize: "12px",
   margin: 0,
-  color: "#a9d8ef",
+  color: "var(--sc-celeste-borde)",
 };
 
 const estadoBadge = {
@@ -793,7 +897,7 @@ const estadoBadge = {
 };
 
 const moduloBox = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   borderRadius: "10px",
   padding: "10px",
   fontWeight: "bold",
@@ -826,7 +930,7 @@ const grupoHeader = {
 };
 
 const grupoFlecha = {
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   fontSize: "14px",
   lineHeight: 1,
 };
@@ -837,7 +941,7 @@ const grupoContenido = {
 
 const menuItem = (activo) => ({
   width: "100%",
-  background: activo ? "linear-gradient(135deg, #22d3ee, #10b981)" : "transparent",
+  background: activo ? "linear-gradient(135deg, #22d3ee, var(--sc-teal))" : "transparent",
   color: activo ? "#062033" : "white",
   border: "none",
   borderTop: "1px solid rgba(103, 232, 249, 0.12)",
@@ -860,7 +964,7 @@ const accionesMenu = {
 
 const botonCambiar = {
   width: "100%",
-  background: "linear-gradient(135deg, #0369a1, #0891b2)",
+  background: "linear-gradient(135deg, var(--sc-azul), #0891b2)",
   color: "white",
   border: "none",
   borderRadius: "9px",
@@ -872,7 +976,7 @@ const botonCambiar = {
 
 const botonSalir = {
   width: "100%",
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
   color: "white",
   border: "none",
   borderRadius: "9px",
@@ -907,7 +1011,7 @@ const topbar = {
 };
 
 const botonToggle = {
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
   color: "white",
   border: "none",
   padding: "8px 12px",
@@ -921,15 +1025,15 @@ const topbarRight = {
   display: "flex",
   alignItems: "center",
   gap: "10px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontSize: "13px",
   flexWrap: "wrap",
   justifyContent: "flex-end",
 };
 
 const topbarAnio = {
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   padding: "5px 9px",
   borderRadius: "999px",
   fontWeight: "bold",
@@ -952,7 +1056,7 @@ const tarjetaAccesoDenegado = {
   border: "1px solid #bae6fd",
   borderRadius: "12px",
   padding: "24px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   maxWidth: "620px",
   boxShadow: "0 12px 30px rgba(2, 132, 199, 0.10)",
 };

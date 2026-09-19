@@ -1,5 +1,4 @@
-﻿import { obtenerToken } from "./authService";
-
+import { peticion } from "./http";
 import { API_BASE_URL } from "./apiConfig";
 
 const API_URL = API_BASE_URL;
@@ -10,29 +9,11 @@ export async function obtenerEstadoResultados(
   fechaHasta,
   incluirSinMovimiento = false
 ) {
-  const token = obtenerToken();
-
   const params = new URLSearchParams();
   params.append("empresa_id", empresaId);
   params.append("fecha_desde", fechaDesde);
   params.append("fecha_hasta", fechaHasta);
   params.append("incluir_sin_movimiento", incluirSinMovimiento ? "1" : "0");
 
-  const respuesta = await fetch(
-    `${API_URL}/estado-resultados?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await respuesta.json();
-
-  if (!respuesta.ok) {
-    throw new Error(data.error || "Error al obtener estado de resultados");
-  }
-
-  return data;
+  return peticion(`${API_URL}/estado-resultados?${params.toString()}`, { mensajeError: "Error al obtener estado de resultados" });
 }

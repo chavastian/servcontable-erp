@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { listarTrabajadores } from "../../services/trabajadoresService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
@@ -526,7 +526,7 @@ function ResumenCard({ titulo, valor, icono }) {
 }
 
 const hero = {
-  background: "linear-gradient(135deg, #0f172a, #0369a1, #0ea5e9)",
+  background: "linear-gradient(135deg, var(--sc-ink), var(--sc-azul), #0ea5e9)",
   borderRadius: "22px",
   padding: "28px",
   color: "white",
@@ -540,7 +540,7 @@ const titulo = {
 };
 
 const subtitulo = {
-  color: "#dff7ff",
+  color: "var(--sc-celeste-suave)",
   marginBottom: 0,
 };
 
@@ -559,14 +559,14 @@ const cardFiltros = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const input = {
   width: "170px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   height: "40px",
   boxSizing: "border-box",
@@ -576,7 +576,7 @@ const inputFull = {
   width: "100%",
   minWidth: "280px",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   height: "40px",
   boxSizing: "border-box",
@@ -594,21 +594,21 @@ const botonBase = {
 
 const botonExcel = {
   ...botonBase,
-  background: "#10b981",
+  background: "var(--sc-teal)",
 };
 
 const botonPDF = {
   ...botonBase,
-  background: "#ef4444",
+  background: "var(--sc-danger)",
 };
 
 const botonBuscar = {
   ...botonBase,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
 };
 
 const botonMini = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "8px 11px",
@@ -618,7 +618,7 @@ const botonMini = {
 };
 
 const botonCerrar = {
-  background: "#475569",
+  background: "var(--sc-gris)",
   color: "white",
   border: "none",
   padding: "10px 14px",
@@ -642,16 +642,16 @@ const cardResumen = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const resumenIcono = {
   width: "38px",
   height: "38px",
   borderRadius: "13px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
   border: "1px solid #67e8f9",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -680,12 +680,12 @@ const historialHeader = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const textoSuave = {
-  color: "#475569",
+  color: "var(--sc-gris)",
 };
 
 const tablaBox = {
@@ -700,8 +700,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -712,8 +712,8 @@ const thNumero = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -737,8 +737,8 @@ const tdNumeroRojo = {
 const tdTotal = {
   ...td,
   fontWeight: "bold",
-  background: "#f8fcff",
-  color: "#0369a1",
+  background: "var(--sc-fondo-claro)",
+  color: "var(--sc-azul)",
 };
 
 const tdTotalNumero = {
@@ -748,12 +748,12 @@ const tdTotalNumero = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 

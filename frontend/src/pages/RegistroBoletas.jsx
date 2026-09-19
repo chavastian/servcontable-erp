@@ -274,7 +274,7 @@ export default function RegistroBoletas() {
 
 function Card({ titulo, valor, destacado = false }) {
   return (
-    <div style={{ ...smallCard, borderColor: destacado ? "#10b981" : "#bae6fd" }}>
+    <div style={{ ...smallCard, borderColor: destacado ? "var(--sc-teal)" : "#bae6fd" }}>
       <p style={cardLabel}>{titulo}</p>
       <strong style={cardValue}>{valor}</strong>
     </div>
@@ -286,24 +286,24 @@ const ok = { color: "#059669", fontWeight: "bold", margin: 0 };
 const bad = { color: "#dc2626", fontWeight: "bold", margin: 0 };
 const summaryGrid = { display: "grid", gridTemplateColumns: "repeat(4, minmax(160px, 1fr))", gap: "10px" };
 const smallCard = { background: "white", border: "1px solid #bae6fd", borderRadius: "14px", padding: "12px", boxShadow: "0 12px 26px rgba(3, 105, 161, 0.08)" };
-const cardLabel = { margin: "0 0 6px", color: "#0f172a", fontWeight: "bold" };
-const cardValue = { color: "#0369a1", fontSize: "18px" };
+const cardLabel = { margin: "0 0 6px", color: "var(--sc-ink)", fontWeight: "bold" };
+const cardValue = { color: "var(--sc-azul)", fontSize: "18px" };
 const card = { background: "white", borderRadius: "16px", padding: "16px", boxShadow: "0 14px 30px rgba(3, 105, 161, 0.08)" };
-const sectionTitle = { color: "#0369a1", margin: "0 0 8px", fontSize: "22px" };
-const hint = { margin: "0 0 12px", color: "#475569" };
+const sectionTitle = { color: "var(--sc-azul)", margin: "0 0 8px", fontSize: "22px" };
+const hint = { margin: "0 0 12px", color: "var(--sc-gris)" };
 const formGrid = { display: "grid", gridTemplateColumns: "repeat(6, minmax(120px, 1fr))", gap: "10px", alignItems: "end" };
-const field = { display: "flex", flexDirection: "column", gap: "5px", fontWeight: "bold", color: "#1e293b" };
+const field = { display: "flex", flexDirection: "column", gap: "5px", fontWeight: "bold", color: "var(--sc-text)" };
 const input = { border: "1px solid #93c5fd", borderRadius: "10px", padding: "9px 10px", minHeight: "38px", fontSize: "13px", background: "white" };
 const buttonRow = { display: "flex", gap: "8px", gridColumn: "span 6", flexWrap: "wrap" };
-const primaryButton = { border: "none", borderRadius: "10px", padding: "10px 16px", color: "white", fontWeight: "bold", background: "linear-gradient(135deg, #0369a1, #06b6d4)", cursor: "pointer" };
-const ghostButton = { border: "1px solid #67e8f9", borderRadius: "10px", padding: "10px 16px", color: "#0369a1", fontWeight: "bold", background: "#ecfeff", cursor: "pointer" };
+const primaryButton = { border: "none", borderRadius: "10px", padding: "10px 16px", color: "white", fontWeight: "bold", background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))", cursor: "pointer" };
+const ghostButton = { border: "1px solid #67e8f9", borderRadius: "10px", padding: "10px 16px", color: "var(--sc-azul)", fontWeight: "bold", background: "var(--sc-cian-fondo)", cursor: "pointer" };
 const dangerButton = { border: "1px solid #fecaca", borderRadius: "10px", padding: "10px 16px", color: "#b91c1c", fontWeight: "bold", background: "#fff1f2", cursor: "pointer" };
-const resultBox = { marginTop: "12px", border: "1px solid #bae6fd", borderRadius: "12px", padding: "10px", display: "grid", gridTemplateColumns: "repeat(4, minmax(120px, 1fr))", gap: "8px", color: "#1e293b" };
+const resultBox = { marginTop: "12px", border: "1px solid #bae6fd", borderRadius: "12px", padding: "10px", display: "grid", gridTemplateColumns: "repeat(4, minmax(120px, 1fr))", gap: "8px", color: "var(--sc-text)" };
 const tableWrap = { overflowX: "auto" };
 const table = { width: "100%", borderCollapse: "collapse", fontSize: "13px" };
 const th = { background: "#dff4ff", color: "#075985", padding: "9px", textAlign: "left" };
 const thRight = { ...th, textAlign: "right" };
-const td = { borderBottom: "1px solid #dbeafe", padding: "8px", color: "#0f172a" };
+const td = { borderBottom: "1px solid #dbeafe", padding: "8px", color: "var(--sc-ink)" };
 const tdRight = { ...td, textAlign: "right" };
 const created = { color: "#059669", fontWeight: "bold" };
 const pending = { color: "#64748b", fontWeight: "bold" };

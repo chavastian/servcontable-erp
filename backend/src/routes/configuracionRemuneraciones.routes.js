@@ -1,5 +1,4 @@
 const express = require("express");
-const multer = require("multer");
 const router = express.Router();
 
 const {
@@ -11,54 +10,34 @@ const {
 } = require("../controllers/configuracionRemuneraciones.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { bloquearDemo } = require("../middleware/demo.middleware");
-
-const uploadIndicadores = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024,
-  },
-});
-
-function cargarIndicadores(req, res, next) {
-  uploadIndicadores.single("archivo")(req, res, (error) => {
-    if (!error) {
-      return next();
-    }
-
-    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({
-        error: "El archivo PDF supera el tamano maximo permitido.",
-      });
-    }
-
-    console.error("Error al recibir PDF de indicadores Previred:", {
-      mensaje: error.message,
-      codigo: error.code,
-    });
-
-    return res.status(400).json({
-      error: "No fue posible recibir el archivo PDF de Previred.",
-    });
-  });
-}
+const { exigirEmpresa } = require("../middleware/tenant.middleware");
+const { subidaArchivo, manejarErroresDeSubida } = require("../middleware/upload.middleware");
 
 router.get("/", verificarToken, obtenerConfiguracionRemuneraciones);
-router.post("/", verificarToken, exigirPermiso("REMUNERACIONES"), guardarConfiguracionRemuneraciones);
+router.post("/", verificarToken, exigirPermiso("REMUNERACIONES"), validar(esquemas.configuracionRemuneraciones), guardarConfiguracionRemuneraciones);
+// La empresa se valida después de multer: antes del archivo `req.body`
+// está vacío y la membresía no se comprobaba. El límite de tamaño y el
+// filtro de tipo son los mismos de todas las subidas.
 router.post(
   "/importar-indicadores",
   verificarToken,
-  cargarIndicadores,
+  subidaArchivo.single("archivo"),
+  manejarErroresDeSubida,
+  exigirEmpresa,
+  exigirPermiso("REMUNERACIONES"),
   importarIndicadoresPrevisionales
 );
-router.post("/afp", verificarToken, exigirPermiso("REMUNERACIONES"), guardarAFP);
+router.post("/afp", verificarToken, exigirPermiso("REMUNERACIONES"), validar(esquemas.afp), guardarAFP);
 router.put(
   "/afp/:id/eliminar",
   verificarToken,
   exigirPermiso("REMUNERACIONES"),
   bloquearDemo("la eliminacion de AFP se habilita en la version contratada."),
-  eliminarAFP
+  validar(esquemas.conEmpresa), eliminarAFP
 );
 
 module.exports = router;

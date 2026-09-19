@@ -197,6 +197,184 @@ const importacion = z
   })
   .passthrough();
 
+// ---------------------------------------------------------------------------
+// Esquemas de la revisión del 19-09-2026: ningún controlador fuera de
+// compras, ventas, comprobantes, boletas y sesión validaba por esquema. Los
+// esquemas son permisivos con lo que no conocen (`passthrough`) y estrictos
+// con lo que rompe una consulta: identificadores, fechas, períodos y montos.
+// ---------------------------------------------------------------------------
+
+const fechaOpcional = z.union([fecha, z.literal(""), z.null()]).optional().transform((v) => (v ? v : null));
+const montoOpcional = monto.optional();
+const enteroNoNegativo = z.coerce.number().int("debe ser un numero entero").nonnegative("no puede ser negativo");
+const correo = z.union([z.string().trim().email("no es un correo valido"), z.literal(""), z.null()]).optional();
+
+const conEmpresa = z.object({ empresa_id: id }).passthrough();
+
+const honorario = z
+  .object({
+    empresa_id: id,
+    fecha_emision: fecha,
+    fecha_pago: fechaOpcional,
+    folio: texto(50).optional().nullable(),
+    rut_prestador: texto(20).min(1, "es obligatorio"),
+    nombre_prestador: texto(200).optional(),
+    bruto: montoPositivo,
+    tasa_retencion: montoOpcional,
+  })
+  .passthrough();
+
+const trabajador = z
+  .object({
+    empresa_id: id,
+    rut: texto(20).min(1, "es obligatorio"),
+    nombres: texto(120).min(1, "es obligatorio"),
+    apellidos: texto(120).optional().nullable(),
+    fecha_ingreso: fecha,
+    fecha_termino: fechaOpcional,
+    fecha_nacimiento: fechaOpcional,
+    sueldo_base: montoPositivo.optional(),
+    cargas: enteroNoNegativo.optional(),
+    plan_salud_uf: montoPositivo.optional(),
+    anios_cotizados_previos: enteroNoNegativo.optional(),
+    email: correo,
+  })
+  .passthrough();
+
+const liquidacionGuardar = z
+  .object({
+    empresa_id: id,
+    trabajador_id: id,
+    periodo,
+    dias_trabajados: z.coerce.number().min(0, "no puede ser negativo").max(31, "no puede superar 31").optional(),
+  })
+  .passthrough();
+
+const porPeriodo = z.object({ empresa_id: id, periodo }).passthrough();
+
+const finiquito = z
+  .object({
+    empresa_id: id,
+    trabajador_id: id,
+    fecha_termino: fecha,
+    fecha_aviso: fechaOpcional,
+    fecha_pago: fechaOpcional,
+    causal: texto(200).min(1, "es obligatoria"),
+    indemnizacion_voluntaria: montoPositivo.optional(),
+    otros_haberes: montoPositivo.optional(),
+    descuentos: montoPositivo.optional(),
+    otros_descuentos: montoPositivo.optional(),
+  })
+  .passthrough();
+
+const finiquitoPagar = z
+  .object({ empresa_id: id, fecha_pago: fechaOpcional, cuenta_banco_id: idOpcional })
+  .passthrough();
+
+const ejercicioCrear = z
+  .object({
+    empresa_id: id,
+    anio: z.coerce.number().int().min(2000, "año fuera de rango").max(2100, "año fuera de rango"),
+    observacion: texto(500).optional().nullable(),
+  })
+  .passthrough();
+
+const ejercicioReabrir = z
+  .object({ empresa_id: id, motivo: texto(500).min(5, "indica el motivo (mínimo 5 caracteres)") })
+  .passthrough();
+
+const pagoCobro = z
+  .object({
+    empresa_id: id,
+    fecha,
+    monto: montoPositivo.optional(),
+    documento_id: idOpcional,
+    cuenta_banco_id: idOpcional,
+    cuenta_contraparte_id: idOpcional,
+  })
+  .passthrough();
+
+const haberDescuento = z
+  .object({
+    empresa_id: id,
+    trabajador_id: id,
+    periodo,
+    nombre: texto(150).min(1, "es obligatorio"),
+    tipo: texto(30).min(1, "es obligatorio"),
+    monto: montoPositivo,
+  })
+  .passthrough();
+
+const vacacionAusencia = z
+  .object({
+    empresa_id: id,
+    trabajador_id: id,
+    periodo,
+    tipo: texto(50).min(1, "es obligatorio"),
+    fecha_inicio: fecha,
+    fecha_termino: fecha,
+    dias: montoPositivo.optional(),
+    horas: montoPositivo.optional(),
+    monto_descuento: montoPositivo.optional(),
+  })
+  .passthrough()
+  .refine((d) => d.fecha_inicio <= d.fecha_termino, {
+    message: "no puede ser posterior a fecha_termino",
+    path: ["fecha_inicio"],
+  });
+
+const configuracionRemuneraciones = z
+  .object({
+    empresa_id: id,
+    periodo,
+    valor_uf: montoPositivo.optional(),
+    ingreso_minimo: montoPositivo.optional(),
+    tope_imponible_uf: montoPositivo.optional(),
+  })
+  .passthrough();
+
+const afp = z
+  .object({ empresa_id: id, periodo, nombre: texto(100).min(1, "es obligatorio"), tasa_afp: montoPositivo })
+  .passthrough();
+
+const cuentaPlan = z
+  .object({
+    empresa_id: id,
+    codigo: texto(30).min(1, "es obligatorio"),
+    nombre: texto(200).min(1, "es obligatorio"),
+    tipo: texto(30).min(1, "es obligatorio"),
+  })
+  .passthrough();
+
+const empresa = z
+  .object({
+    rut: texto(20).min(1, "es obligatorio"),
+    razon_social: texto(200).min(1, "es obligatoria"),
+    correo,
+    correo_representante: correo,
+  })
+  .passthrough();
+
+const remanente = z.object({ empresa_id: id, periodo, remanente_anterior: montoOpcional }).passthrough();
+
+const f29Presentada = z
+  .object({
+    empresa_id: id,
+    periodo,
+    folio_sii: texto(50).optional().nullable(),
+    fecha_presentacion: fecha,
+    total_pagado: montoOpcional,
+  })
+  .passthrough();
+
+const conciliacionEstado = z
+  .object({
+    empresa_id: id,
+    estado: z.enum(["pendiente", "conciliado"], { message: "debe ser pendiente o conciliado" }),
+    comprobante_id: idOpcional,
+  })
+  .passthrough();
+
 module.exports = {
   validar,
   esquemas: {
@@ -205,6 +383,25 @@ module.exports = {
     login,
     registro,
     importacion,
+    conEmpresa,
+    honorario,
+    trabajador,
+    liquidacionGuardar,
+    porPeriodo,
+    finiquito,
+    finiquitoPagar,
+    ejercicioCrear,
+    ejercicioReabrir,
+    pagoCobro,
+    haberDescuento,
+    vacacionAusencia,
+    configuracionRemuneraciones,
+    afp,
+    cuentaPlan,
+    empresa,
+    remanente,
+    f29Presentada,
+    conciliacionEstado,
   },
   piezas: { id, idOpcional, fecha, periodo, monto, montoPositivo, texto, booleano },
 };

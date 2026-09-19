@@ -643,12 +643,12 @@ export default function Honorarios() {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -661,7 +661,7 @@ const formularioBox = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
@@ -674,7 +674,7 @@ const gridFormulario = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginTop: "10px",
   marginBottom: "5px",
 };
@@ -682,7 +682,7 @@ const label = {
 const input = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   boxSizing: "border-box",
   height: "40px",
@@ -690,7 +690,7 @@ const input = {
 
 const botonGuardar = {
   marginTop: "18px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -712,7 +712,7 @@ const filtrosBox = {
 };
 
 const botonBuscar = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "10px 20px",
@@ -723,7 +723,7 @@ const botonBuscar = {
 };
 
 const botonExcel = {
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "10px 14px",
@@ -734,7 +734,7 @@ const botonExcel = {
 };
 
 const botonPDF = {
-  background: "#ef4444",
+  background: "var(--sc-danger)",
   color: "white",
   border: "none",
   padding: "10px 14px",
@@ -759,7 +759,7 @@ const card = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const listadoBox = {
@@ -781,8 +781,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -798,8 +798,8 @@ const thAccion = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
   verticalAlign: "top",
 };
 
@@ -833,24 +833,24 @@ const botonAccionBase = {
 
 const botonEliminar = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",
@@ -858,7 +858,7 @@ const alerta = {
 
 const botonContabilizar = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #10b981, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-teal), var(--sc-cian-medio))",
   marginRight: "6px",
 };
 
@@ -881,7 +881,7 @@ const badgePendiente = {
 };
 
 const textoSuave = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontSize: "13px",
   fontWeight: "bold",
 };

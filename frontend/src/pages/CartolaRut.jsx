@@ -828,12 +828,12 @@ function badge(estado) {
 
 const titulo = {
   fontSize: "34px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "5px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "18px",
 };
 
@@ -862,13 +862,13 @@ const campoBusqueda = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const input = {
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   minWidth: "145px",
   height: "40px",
@@ -892,7 +892,7 @@ const botonBase = {
 
 const botonBuscar = {
   ...botonBase,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
 };
 
 const botonSecundario = {
@@ -902,22 +902,22 @@ const botonSecundario = {
 
 const botonLimpiar = {
   ...botonBase,
-  background: "#475569",
+  background: "var(--sc-gris)",
 };
 
 const botonExcel = {
   ...botonBase,
-  background: "#10b981",
+  background: "var(--sc-teal)",
 };
 
 const botonPDF = {
   ...botonBase,
-  background: "#ef4444",
+  background: "var(--sc-danger)",
 };
 
 const botonImprimir = {
   ...botonBase,
-  background: "#0f172a",
+  background: "var(--sc-ink)",
 };
 
 const gridResumen = {
@@ -935,7 +935,7 @@ const card = {
   display: "flex",
   flexDirection: "column",
   gap: "8px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const accionesBox = {
@@ -957,14 +957,14 @@ const sugerenciaItem = {
   width: "100%",
   background: "white",
   border: "none",
-  borderBottom: "1px solid #e2e8f0",
+  borderBottom: "1px solid var(--sc-borde-claro)",
   padding: "11px 14px",
   display: "grid",
   gridTemplateColumns: "1.5fr 150px 180px",
   gap: "10px",
   textAlign: "left",
   cursor: "pointer",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
 };
 
 const checkBox = {
@@ -972,7 +972,7 @@ const checkBox = {
   alignItems: "center",
   gap: "8px",
   height: "40px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
 };
 
@@ -993,12 +993,12 @@ const tablaHeader = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const contador = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontWeight: "bold",
 };
 
@@ -1014,8 +1014,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -1031,8 +1031,8 @@ const thAccion = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
   verticalAlign: "top",
 };
 
@@ -1055,7 +1055,7 @@ const glosa = {
 };
 
 const botonVer = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   borderRadius: "8px",
@@ -1070,13 +1070,13 @@ const paginacionBox = {
   alignItems: "center",
   gap: "12px",
   paddingTop: "14px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
 };
 
 const botonPagina = {
   ...botonBase,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   height: "36px",
 };
 
@@ -1117,25 +1117,25 @@ const badgeAnulado = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const nota = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "25px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "16px",
   borderRadius: "14px",
   fontWeight: "bold",

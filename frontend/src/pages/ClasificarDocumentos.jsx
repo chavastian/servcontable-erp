@@ -255,7 +255,7 @@ export default function ClasificarDocumentos() {
               <span style={estilos.indicadorTexto}>Con cuenta sugerida por historial</span>
             </div>
             <div style={estilos.indicador}>
-              <span style={{ ...estilos.indicadorValor, color: "#9a3412" }}>
+              <span style={{ ...estilos.indicadorValor, color: "var(--sc-naranja-texto)" }}>
                 {numero(resumen.sin_historial)}
               </span>
               <span style={estilos.indicadorTexto}>Sin historial: van a mano</span>

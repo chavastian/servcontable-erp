@@ -171,7 +171,7 @@ export default function ControlRemanenteIVA() {
             }
           />
           {utm > 0 ? (
-            <span style={{ fontSize: 12, color: "#475569" }}>
+            <span style={{ fontSize: 12, color: "var(--sc-gris)" }}>
               {Number(resumen.remanente_anterior_utm || 0).toLocaleString("es-CL")} UTM a {utm.toLocaleString("es-CL")}
             </span>
           ) : null}
@@ -335,12 +335,12 @@ export default function ControlRemanenteIVA() {
 
 const titulo = {
   fontSize: "30px",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
   marginBottom: "4px",
 };
 
 const subtitulo = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   marginBottom: "14px",
 };
 
@@ -359,14 +359,14 @@ const filtrosBox = {
 const label = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "4px",
   fontSize: "14px",
 };
 
 const input = {
   padding: "9px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "9px",
   minWidth: "150px",
   width: "100%",
@@ -375,7 +375,7 @@ const input = {
 };
 
 const botonBuscar = {
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   color: "white",
   border: "none",
   padding: "10px 16px",
@@ -385,7 +385,7 @@ const botonBuscar = {
 };
 
 const botonGuardar = {
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "10px 16px",
@@ -409,7 +409,7 @@ const cardResumen = {
   display: "flex",
   flexDirection: "column",
   gap: "6px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const cardResumenOk = {
@@ -419,7 +419,7 @@ const cardResumenOk = {
 
 const cardResumenError = {
   ...cardResumen,
-  border: "2px solid #ef4444",
+  border: "2px solid var(--sc-danger)",
 };
 
 const determinacionBox = {
@@ -432,7 +432,7 @@ const determinacionBox = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
   fontSize: "22px",
 };
@@ -445,14 +445,14 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
 };
 
 const td = {
   padding: "10px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -463,20 +463,20 @@ const tdNumero = {
 const tdTotal = {
   ...td,
   fontWeight: "bold",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
 };
 
 const tdTotalNumero = {
   ...tdNumero,
   fontWeight: "bold",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
 };
 
 const tdFinal = {
   ...td,
   fontWeight: "bold",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
 };
 
 const tdFinalNumero = {
@@ -485,20 +485,20 @@ const tdFinalNumero = {
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 
 const alerta = {
   marginTop: "16px",
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "14px",
   borderRadius: "12px",
   fontWeight: "bold",

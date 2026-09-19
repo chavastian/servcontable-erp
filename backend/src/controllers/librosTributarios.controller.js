@@ -1,10 +1,14 @@
 const pool = require("../database/db");
+const { signoDocumento } = require("../helpers/documentoTributario.helper");
 
+// Las notas de crédito restan en el libro (artículo 57 del DL 825). Los
+// totales y el resumen por tipo las sumaban en positivo.
 function calcularResumenPorTipo(registros, campos) {
   const resumen = {};
 
   for (const item of registros) {
     const tipoDoc = item.sii_tipo_doc || item.tipo_documento || "Sin tipo";
+    const signo = signoDocumento(item);
 
     if (!resumen[tipoDoc]) {
       resumen[tipoDoc] = {
@@ -19,16 +23,20 @@ function calcularResumenPorTipo(registros, campos) {
     }
 
     resumen[tipoDoc].cantidad += 1;
-    resumen[tipoDoc].exento += Number(item[campos.exento] || 0);
-    resumen[tipoDoc].neto += Number(item[campos.neto] || 0);
-    resumen[tipoDoc].iva += Number(item[campos.iva] || 0);
-    resumen[tipoDoc].iva_no_recuperable += Number(
+    resumen[tipoDoc].exento += signo * Number(item[campos.exento] || 0);
+    resumen[tipoDoc].neto += signo * Number(item[campos.neto] || 0);
+    resumen[tipoDoc].iva += signo * Number(item[campos.iva] || 0);
+    resumen[tipoDoc].iva_no_recuperable += signo * Number(
       item[campos.iva_no_recuperable] || 0
     );
-    resumen[tipoDoc].total += Number(item[campos.total] || 0);
+    resumen[tipoDoc].total += signo * Number(item[campos.total] || 0);
   }
 
   return Object.values(resumen);
+}
+
+function conSigno(registros) {
+  return registros.map((item) => ({ ...item, signo: signoDocumento(item) }));
 }
 
 async function obtenerLibroVentas(req, res) {
@@ -67,14 +75,14 @@ async function obtenerLibroVentas(req, res) {
       [empresa_id, fecha_desde, fecha_hasta]
     );
 
-    const ventas = resultado.rows;
+    const ventas = conSigno(resultado.rows);
 
     const totales = ventas.reduce(
       (acc, item) => {
-        acc.exento += Number(item.exento || 0);
-        acc.neto += Number(item.neto || 0);
-        acc.iva += Number(item.iva || 0);
-        acc.total += Number(item.total || 0);
+        acc.exento += (item.signo || 1) * Number(item.exento || 0);
+        acc.neto += (item.signo || 1) * Number(item.neto || 0);
+        acc.iva += (item.signo || 1) * Number(item.iva || 0);
+        acc.total += (item.signo || 1) * Number(item.total || 0);
         return acc;
       },
       {
@@ -149,15 +157,15 @@ async function obtenerLibroCompras(req, res) {
       [empresa_id, fecha_desde, fecha_hasta]
     );
 
-    const compras = resultado.rows;
+    const compras = conSigno(resultado.rows);
 
     const totales = compras.reduce(
       (acc, item) => {
-        acc.exento += Number(item.exento || 0);
-        acc.neto += Number(item.neto || 0);
-        acc.iva_credito += Number(item.iva_credito || 0);
-        acc.iva_no_recuperable += Number(item.iva_no_recuperable || 0);
-        acc.total += Number(item.total || 0);
+        acc.exento += (item.signo || 1) * Number(item.exento || 0);
+        acc.neto += (item.signo || 1) * Number(item.neto || 0);
+        acc.iva_credito += (item.signo || 1) * Number(item.iva_credito || 0);
+        acc.iva_no_recuperable += (item.signo || 1) * Number(item.iva_no_recuperable || 0);
+        acc.total += (item.signo || 1) * Number(item.total || 0);
         return acc;
       },
       {

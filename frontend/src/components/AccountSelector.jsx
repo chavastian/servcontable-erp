@@ -241,7 +241,7 @@ const lista = {
   maxHeight: "220px",
   overflowY: "auto",
   background: "white",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "12px",
   boxShadow: "0 16px 32px rgba(15, 23, 42, 0.18)",
   zIndex: 50,
@@ -255,10 +255,10 @@ const opcion = {
   textAlign: "left",
   padding: "9px 11px",
   border: "none",
-  borderBottom: "1px solid #e2e8f0",
+  borderBottom: "1px solid var(--sc-borde-claro)",
   background: "white",
   cursor: "pointer",
-  color: "#0f172a",
+  color: "var(--sc-ink)",
 };
 
 const opcionActiva = {
@@ -268,7 +268,7 @@ const opcionActiva = {
 
 const codigo = {
   fontWeight: "bold",
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 

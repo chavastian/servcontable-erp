@@ -996,12 +996,12 @@ const cardResultado = {
 };
 
 const tituloSeccion = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   marginTop: 0,
 };
 
 const subtituloSeccion = {
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginTop: "20px",
   marginBottom: "10px",
 };
@@ -1023,11 +1023,11 @@ const bloqueHorasExtras = {
   padding: "14px",
   borderRadius: "14px",
   border: "1px solid #bae6fd",
-  background: "linear-gradient(135deg, #f0f9ff, #ecfeff)",
+  background: "linear-gradient(135deg, #f0f9ff, var(--sc-cian-fondo))",
 };
 
 const subtituloCompacto = {
-  color: "#0369a1",
+  color: "var(--sc-azul)",
   margin: "0 0 10px",
   fontSize: "18px",
 };
@@ -1049,28 +1049,28 @@ const checkLabel = {
   display: "flex",
   gap: "8px",
   alignItems: "center",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   fontWeight: "bold",
 };
 
 const notaCompacta = {
   display: "block",
   marginTop: "8px",
-  color: "#475569",
+  color: "var(--sc-gris)",
   lineHeight: 1.35,
 };
 
 const labelStyle = {
   display: "block",
   fontWeight: "bold",
-  color: "#1e293b",
+  color: "var(--sc-text)",
   marginBottom: "5px",
 };
 
 const inputStyle = {
   width: "100%",
   padding: "10px",
-  border: "1px solid #a9d8ef",
+  border: "1px solid var(--sc-celeste-borde)",
   borderRadius: "10px",
   height: "40px",
   boxSizing: "border-box",
@@ -1079,7 +1079,7 @@ const inputStyle = {
 const inputStyleDisabled = {
   ...inputStyle,
   background: "#eef7ff",
-  color: "#475569",
+  color: "var(--sc-gris)",
 };
 
 const label = labelStyle;
@@ -1087,7 +1087,7 @@ const input = inputStyle;
 
 const botonGuardar = {
   marginTop: "18px",
-  background: "#10b981",
+  background: "var(--sc-teal)",
   color: "white",
   border: "none",
   padding: "12px 18px",
@@ -1098,7 +1098,7 @@ const botonGuardar = {
 
 const botonBuscar = {
   ...botonGuardar,
-  background: "#0369a1",
+  background: "var(--sc-azul)",
   marginLeft: "10px",
 };
 
@@ -1110,30 +1110,30 @@ const botonContabilizar = {
 
 const botonCancelar = {
   ...botonGuardar,
-  background: "#475569",
+  background: "var(--sc-gris)",
   marginLeft: "10px",
 };
 
 const resumen = {
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
   padding: "14px",
   borderRadius: "12px",
   display: "flex",
   flexDirection: "column",
   gap: "6px",
-  color: "#1e293b",
+  color: "var(--sc-text)",
 };
 
 const detalleResumen = {
-  color: "#475569",
+  color: "var(--sc-gris)",
   fontSize: "12px",
   lineHeight: 1.4,
 };
 
 const resumenDestacado = {
   ...resumen,
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   fontWeight: "bold",
 };
 
@@ -1145,9 +1145,9 @@ const resumenDestacadoVerde = {
 };
 
 const advertencia = {
-  background: "#fff7ed",
+  background: "var(--sc-naranja-fondo)",
   border: "1px solid #fed7aa",
-  color: "#9a3412",
+  color: "var(--sc-naranja-texto)",
   padding: "12px",
   borderRadius: "12px",
   marginTop: "16px",
@@ -1179,7 +1179,7 @@ const totalesBox = {
   display: "flex",
   gap: "18px",
   flexWrap: "wrap",
-  background: "#f8fcff",
+  background: "var(--sc-fondo-claro)",
   borderRadius: "12px",
   padding: "14px",
   marginBottom: "14px",
@@ -1197,8 +1197,8 @@ const tabla = {
 const th = {
   textAlign: "left",
   padding: "10px",
-  background: "linear-gradient(135deg, #dff7ff, #ecfeff)",
-  color: "#0369a1",
+  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
+  color: "var(--sc-azul)",
   whiteSpace: "nowrap",
 };
 
@@ -1209,8 +1209,8 @@ const thNumero = {
 
 const td = {
   padding: "9px",
-  borderBottom: "1px solid #e2e8f0",
-  color: "#1e293b",
+  borderBottom: "1px solid var(--sc-borde-claro)",
+  color: "var(--sc-text)",
 };
 
 const tdNumero = {
@@ -1245,21 +1245,21 @@ const botonAccionBase = {
 
 const botonEditarIcono = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #0369a1, #06b6d4)",
+  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
 };
 
 const botonEliminarIcono = {
   ...botonAccionBase,
-  background: "linear-gradient(135deg, #ef4444, #f97316)",
+  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
 };
 
 const ok = {
-  color: "#10b981",
+  color: "var(--sc-teal)",
   fontWeight: "bold",
 };
 
 const err = {
-  color: "#ef4444",
+  color: "var(--sc-danger)",
   fontWeight: "bold",
 };
 

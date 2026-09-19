@@ -9,6 +9,8 @@ const {
 } = require("../controllers/ejercicios.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { validar, esquemas } = require("../middleware/validacion.middleware");
+
 const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   bloquearDemo,
@@ -25,21 +27,21 @@ router.post(
     tabla: "ejercicios_contables",
     limite: 1,
   }),
-  crearEjercicio
+  validar(esquemas.ejercicioCrear), crearEjercicio
 );
 router.put(
   "/:id/cerrar",
   verificarToken,
   exigirPermiso("CERRAR_EJERCICIO"),
   bloquearDemo("el cierre de a\u00f1o se habilita en la version contratada."),
-  cerrarEjercicio
+  validar(esquemas.conEmpresa), cerrarEjercicio
 );
 router.put(
   "/:id/reabrir",
   verificarToken,
   exigirPermiso("CERRAR_EJERCICIO"),
   bloquearDemo("la reapertura de a\u00f1o se habilita en la version contratada."),
-  reabrirEjercicio
+  validar(esquemas.ejercicioReabrir), reabrirEjercicio
 );
 
 module.exports = router;
