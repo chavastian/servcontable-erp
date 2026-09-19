@@ -15,6 +15,31 @@ import {
   tablaPDFClasica,
 } from "../utils/documentTheme";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import {
+  titulo,
+  subtitulo,
+  filtrosBox,
+  label,
+  input,
+  botonBuscar,
+  gridResumen,
+  card,
+  seccionBox,
+  seccionHeader,
+  tituloSeccion,
+  acciones,
+  botonExcel,
+  botonPDF,
+  tablaBox,
+  tabla,
+  th,
+  thNumero,
+  td,
+  tdNumero,
+  ok,
+  err,
+  alerta,
+} from "./LibrosCompraVenta.estilos";
 
 export default function LibrosCompraVenta() {
   const empresaActiva = obtenerEmpresaActiva();
@@ -806,174 +831,3 @@ function TablaCompras({ compras, formato, fechaCL }) {
     </div>
   );
 }
-
-const titulo = {
-  fontSize: "34px",
-  color: "var(--sc-ink)",
-  marginBottom: "5px",
-};
-
-const subtitulo = {
-  color: "var(--sc-gris)",
-  marginBottom: "18px",
-};
-
-const filtrosBox = {
-  display: "flex",
-  alignItems: "end",
-  gap: "12px",
-  background: "white",
-  padding: "18px",
-  borderRadius: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "18px",
-  flexWrap: "wrap",
-};
-
-const label = {
-  display: "block",
-  fontWeight: "bold",
-  color: "var(--sc-text)",
-  marginBottom: "5px",
-};
-
-const input = {
-  padding: "10px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "10px",
-  minWidth: "170px",
-  height: "40px",
-  boxSizing: "border-box",
-};
-
-const botonBuscar = {
-  background: "var(--sc-azul)",
-  color: "white",
-  border: "none",
-  padding: "10px 20px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  height: "40px",
-};
-
-const gridResumen = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "14px",
-  marginBottom: "18px",
-};
-
-const card = {
-  background: "white",
-  borderRadius: "16px",
-  padding: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  color: "var(--sc-text)",
-};
-
-const seccionBox = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "22px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "22px",
-};
-
-const seccionHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap",
-  marginBottom: "12px",
-};
-
-const tituloSeccion = {
-  color: "var(--sc-azul)",
-  margin: 0,
-};
-
-const acciones = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-};
-
-const botonExcel = {
-  background: "var(--sc-teal)",
-  color: "white",
-  border: "none",
-  padding: "10px 14px",
-  borderRadius: "9px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const botonPDF = {
-  background: "var(--sc-danger)",
-  color: "white",
-  border: "none",
-  padding: "10px 14px",
-  borderRadius: "9px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const tablaBox = {
-  overflowX: "auto",
-};
-
-const tabla = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
-
-const th = {
-  textAlign: "left",
-  padding: "10px",
-  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
-  color: "var(--sc-azul)",
-  whiteSpace: "nowrap",
-};
-
-const thNumero = {
-  ...th,
-  textAlign: "right",
-};
-
-const td = {
-  padding: "9px",
-  borderBottom: "1px solid var(--sc-borde-claro)",
-  color: "var(--sc-text)",
-  verticalAlign: "top",
-};
-
-const tdNumero = {
-  ...td,
-  textAlign: "right",
-  whiteSpace: "nowrap",
-};
-
-const ok = {
-  color: "var(--sc-teal)",
-  fontWeight: "bold",
-};
-
-const err = {
-  color: "var(--sc-danger)",
-  fontWeight: "bold",
-};
-
-const alerta = {
-  marginTop: "25px",
-  background: "var(--sc-naranja-fondo)",
-  border: "1px solid #fed7aa",
-  color: "var(--sc-naranja-texto)",
-  padding: "16px",
-  borderRadius: "14px",
-  fontWeight: "bold",
-};

@@ -628,6 +628,15 @@ async function anularComprobante(req, res) {
       [empresa_id, id]
     );
 
+    // El ajuste del IVA de uso común (bloque 9) se anula junto con su asiento,
+    // o el período quedaría bloqueado por el índice único sin ajuste vigente.
+    await client.query(
+      `UPDATE ajustes_iva_uso_comun
+       SET estado = 'anulado', actualizado_en = NOW()
+       WHERE empresa_id = $1 AND comprobante_id = $2 AND estado = 'vigente'`,
+      [empresa_id, id]
+    );
+
     // La depreciación del activo fijo (bloque 7) se anula junto con su asiento:
     // si la fila quedara vigente, el bien no se podría volver a depreciar en
     // ese período por el índice único, y el gasto se perdería.

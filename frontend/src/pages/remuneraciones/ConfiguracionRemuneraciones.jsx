@@ -1,9 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { listarCuentas } from "../../services/cuentaService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
 import PeriodoMesSelector from "../../components/PeriodoMesSelector";
 import IconoSistema from "../../components/IconoSistema";
+import {
+  hero,
+  titulo,
+  subtitulo,
+  filtrosHero,
+  labelHero,
+  inputHero,
+  botonHero,
+  card,
+  cardHeader,
+  tituloSeccion,
+  tituloSeccionSeparado,
+  tituloIcono,
+  textoMuted,
+  notaSalud,
+  importBox,
+  inputFile,
+  botonImportar,
+  grid,
+  gridAfp,
+  labelStyle,
+  inputStyle,
+  inputSoloLectura,
+  ayudaCampo,
+  botonGuardar,
+  botonCancelar,
+  botonIcono,
+  badgeInfo,
+  tablaBox,
+  tabla,
+  th,
+  thNumero,
+  thAccion,
+  td,
+  tdNumero,
+  tdAccion,
+  botonEditar,
+  botonEliminar,
+  ok,
+  err,
+} from "./ConfiguracionRemuneraciones.estilos";
 import {
   obtenerConfiguracionRemuneraciones,
   guardarConfiguracionRemuneraciones,
@@ -1636,10 +1677,18 @@ function Campo({
 }) {
   const textoLabel = etiqueta || label;
 
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+
+  // sin riesgo de repetir un id en la pagina.
+
+  const idCampo = useId();
+
+
   return (
     <div>
-      <label style={labelStyle}>{textoLabel}</label>
+      <label htmlFor={idCampo} style={labelStyle}>{textoLabel}</label>
       <input
+        id={idCampo}
         style={disabled || readOnly ? inputSoloLectura : inputStyle}
         type={type}
         step={type === "number" ? "0.0001" : undefined}
@@ -1657,10 +1706,17 @@ function Campo({
 function CampoCuenta({ etiqueta, label, name, value, onChange, opciones }) {
   const textoLabel = etiqueta || label;
 
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+
+  // sin riesgo de repetir un id en la pagina.
+
+  const idCampo = useId();
+
+
   return (
     <div>
-      <label style={labelStyle}>{textoLabel}</label>
-      <select style={inputStyle} name={name} value={value} onChange={onChange}>
+      <label htmlFor={idCampo} style={labelStyle}>{textoLabel}</label>
+      <select id={idCampo} style={inputStyle} name={name} value={value} onChange={onChange}>
         <option value="">Seleccionar cuenta</option>
         {opciones}
       </select>
@@ -1680,10 +1736,18 @@ function CampoSelect({
 }) {
   const textoLabel = etiqueta || label;
 
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+
+  // sin riesgo de repetir un id en la pagina.
+
+  const idCampo = useId();
+
+
   return (
     <div>
-      <label style={labelStyle}>{textoLabel}</label>
+      <label htmlFor={idCampo} style={labelStyle}>{textoLabel}</label>
       <select
+        id={idCampo}
         style={disabled ? inputSoloLectura : inputStyle}
         name={name}
         value={value}
@@ -1696,323 +1760,3 @@ function CampoSelect({
     </div>
   );
 }
-
-const hero = {
-  background: "linear-gradient(135deg, var(--sc-ink), var(--sc-azul), #0ea5e9)",
-  borderRadius: "22px",
-  padding: "28px",
-  color: "white",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "end",
-  gap: "20px",
-  flexWrap: "wrap",
-  marginBottom: "22px",
-  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.18)",
-};
-
-const titulo = {
-  margin: 0,
-  fontSize: "32px",
-};
-
-const subtitulo = {
-  color: "var(--sc-celeste-suave)",
-  marginBottom: 0,
-};
-
-const filtrosHero = {
-  display: "flex",
-  gap: "12px",
-  alignItems: "end",
-  flexWrap: "wrap",
-};
-
-const labelHero = {
-  display: "block",
-  fontWeight: "bold",
-  color: "var(--sc-celeste-suave)",
-  marginBottom: "5px",
-};
-
-const inputHero = {
-  width: "160px",
-  padding: "10px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "10px",
-  height: "40px",
-  boxSizing: "border-box",
-};
-
-const botonHero = {
-  background: "white",
-  color: "var(--sc-azul)",
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  height: "40px",
-};
-
-const card = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "22px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "20px",
-};
-
-const cardHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "16px",
-  alignItems: "center",
-  flexWrap: "wrap",
-};
-
-const tituloSeccion = {
-  color: "var(--sc-azul)",
-  marginTop: 0,
-  marginBottom: "5px",
-  display: "flex",
-  alignItems: "center",
-  gap: "9px",
-};
-
-const tituloSeccionSeparado = {
-  color: "var(--sc-azul)",
-  marginTop: "26px",
-  paddingTop: "18px",
-  borderTop: "1px solid var(--sc-borde-claro)",
-  display: "flex",
-  alignItems: "center",
-  gap: "9px",
-};
-
-const tituloIcono = {
-  width: "36px",
-  height: "36px",
-  borderRadius: "12px",
-  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
-  border: "1px solid #67e8f9",
-  color: "var(--sc-azul)",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  boxShadow: "0 8px 18px rgba(15, 76, 129, 0.12)",
-};
-
-const textoMuted = {
-  color: "var(--sc-gris)",
-  marginTop: 0,
-};
-
-const notaSalud = {
-  gridColumn: "1 / -1",
-  background: "var(--sc-cian-fondo)",
-  border: "1px solid #67e8f9",
-  color: "var(--sc-azul)",
-  padding: "12px",
-  borderRadius: "12px",
-  fontWeight: "bold",
-};
-
-const importBox = {
-  display: "grid",
-  gridTemplateColumns: "minmax(260px, 1fr) auto",
-  gap: "12px",
-  alignItems: "center",
-  marginTop: "14px",
-};
-
-const inputFile = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "10px",
-  boxSizing: "border-box",
-  height: "auto",
-  minHeight: "42px",
-  background: "var(--sc-fondo-claro)",
-};
-
-const botonImportar = {
-  background: "linear-gradient(135deg, #7c3aed, #a21caf)",
-  color: "white",
-  border: "none",
-  padding: "12px 18px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  minHeight: "42px",
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "14px",
-};
-
-const gridAfp = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "14px",
-};
-
-const labelStyle = {
-  display: "block",
-  fontWeight: "bold",
-  color: "var(--sc-text)",
-  marginBottom: "5px",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "10px",
-  height: "40px",
-  boxSizing: "border-box",
-};
-
-const inputSoloLectura = {
-  ...inputStyle,
-  background: "#f1f5f9",
-  color: "#334155",
-  cursor: "not-allowed",
-};
-
-const ayudaCampo = {
-  display: "block",
-  color: "#64748b",
-  fontSize: "12px",
-  lineHeight: "1.35",
-  marginTop: "5px",
-};
-
-const botonGuardar = {
-  marginTop: "18px",
-  background: "var(--sc-teal)",
-  color: "white",
-  border: "none",
-  padding: "12px 18px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "8px",
-};
-
-const botonCancelar = {
-  marginTop: "18px",
-  marginLeft: "10px",
-  background: "#f8fafc",
-  color: "#334155",
-  border: "1px solid #cbd5e1",
-  padding: "12px 18px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const botonIcono = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const badgeInfo = {
-  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
-  color: "var(--sc-azul)",
-  padding: "8px 12px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-};
-
-const tablaBox = {
-  overflowX: "auto",
-  marginTop: "18px",
-};
-
-const tabla = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
-
-const th = {
-  textAlign: "left",
-  padding: "10px",
-  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
-  color: "var(--sc-azul)",
-  whiteSpace: "nowrap",
-};
-
-const thNumero = {
-  ...th,
-  textAlign: "right",
-};
-
-const thAccion = {
-  ...th,
-  textAlign: "center",
-};
-
-const td = {
-  padding: "9px",
-  borderBottom: "1px solid var(--sc-borde-claro)",
-  color: "var(--sc-text)",
-};
-
-const tdNumero = {
-  ...td,
-  textAlign: "right",
-  whiteSpace: "nowrap",
-};
-
-const tdAccion = {
-  ...td,
-  textAlign: "center",
-  whiteSpace: "nowrap",
-};
-
-const botonEditar = {
-  background: "#e0f2fe",
-  color: "var(--sc-azul)",
-  border: "1px solid #7dd3fc",
-  height: "32px",
-  padding: "0 10px",
-  borderRadius: "9px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  marginRight: "8px",
-};
-
-const botonEliminar = {
-  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
-  color: "white",
-  border: "none",
-  width: "32px",
-  height: "32px",
-  padding: 0,
-  borderRadius: "9px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  fontSize: "15px",
-  lineHeight: 1,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const ok = {
-  color: "var(--sc-teal)",
-  fontWeight: "bold",
-};
-
-const err = {
-  color: "var(--sc-danger)",
-  fontWeight: "bold",
-};
-

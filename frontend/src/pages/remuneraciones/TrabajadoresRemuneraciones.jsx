@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { obtenerFechaHoyISO } from "../../services/periodoTrabajoService";
 import { listarCentrosCosto } from "../../services/centrosCostoService";
@@ -558,10 +558,15 @@ export default function TrabajadoresRemuneraciones() {
 }
 
 function Campo({ label, name, value, onChange, type = "text" }) {
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+  // sin riesgo de repetir un id en la pagina.
+  const idCampo = useId();
+
   return (
     <div>
-      <label style={labelStyle}>{label}</label>
+      <label htmlFor={idCampo} style={labelStyle}>{label}</label>
       <input
+        id={idCampo}
         style={inputStyle}
         type={type}
         name={name}
@@ -582,10 +587,17 @@ function CampoSelect({
 }) {
   const opciones = construirOpciones(options, value);
 
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+
+  // sin riesgo de repetir un id en la pagina.
+
+  const idCampo = useId();
+
+
   return (
     <div>
-      <label style={labelStyle}>{label}</label>
-      <select style={inputStyle} name={name} value={value} onChange={onChange}>
+      <label htmlFor={idCampo} style={labelStyle}>{label}</label>
+      <select id={idCampo} style={inputStyle} name={name} value={value} onChange={onChange}>
         <option value="">{placeholder}</option>
         {opciones.map((option) => (
           <option key={option} value={option}>

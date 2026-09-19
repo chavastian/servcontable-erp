@@ -9,6 +9,24 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloque 9
+
+- **El IVA de uso común ya no puede descuadrar un asiento.** Faltaba considerarlo al
+  contabilizar una compra: el total del documento lo incluía y el asiento no. Todavía no
+  le había pasado a nadie, pero le habría pasado a la primera importación con uso común.
+- **La parte del IVA de uso común que no se puede recuperar llega a gasto.** Antes se
+  informaba en el F29 y contablemente quedaba para siempre como crédito fiscal. El ajuste
+  se propone y alguien lo confirma: el momento de hacerlo es criterio del contador.
+- **Exportar a Excel y a PDF** en resumen IVA, compras, ventas y pagos y cobros, que no lo
+  tenían.
+- **Un solo selector de período** en todo el sistema. Se queda en el año del ejercicio,
+  salvo en las pantallas que cruzan el año a propósito —el F29 de enero declara diciembre,
+  el remanente se arrastra— donde el año se puede elegir y el selector explica por qué.
+- **Cada etiqueta de formulario apunta a su campo**, que es lo que necesita quien usa el
+  sistema con lector de pantalla o navegando con el teclado.
+- Cinco pantallas grandes quedaron más cortas: sus estilos se movieron a un archivo
+  propio. Nada cambia en lo que se ve.
+
 ### Revisión del 19-09-2026: bloque 8
 
 - **Declaraciones juradas 1879 y 1887 armadas por el sistema.** Los datos ya estaban ahí y

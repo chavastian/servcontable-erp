@@ -15,6 +15,7 @@ import EstadoPantalla from "../components/EstadoPantalla";
 import { obtenerPanelEstudio } from "../services/asistentesService";
 import { guardarEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 import {
   estilos,
   pildora,
@@ -119,12 +120,12 @@ export default function PanelEstudio({ alAbrirEmpresa }) {
           <label style={estilos.etiqueta} htmlFor="panel-periodo">
             Período
           </label>
-          <input
+          <PeriodoMesSelector
             id="panel-periodo"
-            type="month"
             style={estilos.input}
             value={periodo}
-            onChange={(evento) => setPeriodo(evento.target.value)}
+            onChange={setPeriodo}
+            permitirOtroAnio
           />
         </div>
 

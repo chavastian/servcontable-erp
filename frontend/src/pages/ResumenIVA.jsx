@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerResumenIVA } from "../services/resumenIVAService";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
+import BotonesExportar from "../components/BotonesExportar";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
 import { EstadoCargando } from "../components/EstadoPantalla";
 
@@ -74,6 +76,27 @@ export default function ResumenIVA() {
     remanente: 0,
   };
 
+  // Lo mismo que muestra la pantalla, en filas: el Excel y el PDF no pueden
+  // decir algo distinto de lo que se está viendo.
+  function filasExportables() {
+    if (!datos) return [];
+
+    return [
+      ["Ventas netas afectas", ventas.neto],
+      ["Ventas exentas", ventas.exento],
+      ["IVA débito fiscal", ventas.iva_debito],
+      ["Total ventas", ventas.total],
+      ["Compras netas afectas", compras.neto],
+      ["Compras exentas", compras.exento],
+      ["IVA crédito fiscal", compras.iva_credito],
+      ["IVA no recuperable", compras.iva_no_recuperable],
+      ["Total compras", compras.total],
+      ["IVA determinado", resumen.iva_determinado],
+      ["IVA a pagar", resumen.iva_pagar],
+      ["Remanente", resumen.remanente],
+    ];
+  }
+
   return (
     <div>
       <h1 style={titulo}>Resumen IVA</h1>
@@ -83,19 +106,31 @@ export default function ResumenIVA() {
 
       <div style={filtrosBox}>
         <div>
-          <label style={label}>Período</label>
-          <input
+          <label style={label} htmlFor="resumen-iva-periodo">
+            Período
+          </label>
+          {/* El mismo selector atado al ejercicio que el resto del módulo: antes
+              esta pantalla tenía un mes libre y podía consultar otro año. */}
+          <PeriodoMesSelector
+            id="resumen-iva-periodo"
             style={input}
-            type="month"
             value={periodo}
-            onChange={(e) => setPeriodo(e.target.value)}
-            placeholder={obtenerPeriodoTrabajo()}
+            onChange={setPeriodo}
           />
         </div>
 
         <button type="button" style={botonBuscar} onClick={cargarResumen}>
           Buscar
         </button>
+
+        <BotonesExportar
+          nombreArchivo={`Resumen_IVA_${periodo}`}
+          titulo={`Resumen IVA ${periodo}`}
+          columnas={["Concepto", "Monto"]}
+          filas={filasExportables()}
+          alFallar={setError}
+          compacto
+        />
       </div>
 
       {error && <p style={err}>{error}</p>}

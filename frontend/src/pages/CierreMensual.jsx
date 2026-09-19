@@ -14,6 +14,7 @@ import EstadoPantalla from "../components/EstadoPantalla";
 import { obtenerCierreMensual } from "../services/asistentesService";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 import {
   estilos,
   pildora,
@@ -93,12 +94,11 @@ export default function CierreMensual() {
           <label style={estilos.etiqueta} htmlFor="cierre-periodo">
             Período a revisar
           </label>
-          <input
+          <PeriodoMesSelector
             id="cierre-periodo"
-            type="month"
             style={estilos.input}
             value={periodo}
-            onChange={(evento) => setPeriodo(evento.target.value)}
+            onChange={setPeriodo}
           />
         </div>
 

@@ -163,6 +163,7 @@ function construirAsientoCompra(compra, configuracion = {}) {
     exento,
     iva_credito,
     iva_no_recuperable,
+    iva_uso_comun,
     otros_impuestos,
     total,
     cuenta_gasto_id,
@@ -188,6 +189,12 @@ function construirAsientoCompra(compra, configuracion = {}) {
   const exentoNum = Number(exento || 0);
   const ivaCreditoNum = Number(iva_credito || 0);
   const ivaNoRecNum = Number(iva_no_recuperable || 0);
+  // El IVA de uso comun entra completo como credito fiscal: la parte que no
+  // se puede recuperar se conoce con el factor de proporcionalidad del ano y
+  // se lleva a gasto despues, con un ajuste aparte. Sin esta linea el asiento
+  // quedaba descuadrado por el monto del uso comun, porque el total del
+  // documento si lo incluye.
+  const ivaUsoComunNum = Number(iva_uso_comun || 0);
   const otrosImpuestosNum = Number(otros_impuestos || 0);
   const totalNum = Number(
     total ||
@@ -195,6 +202,7 @@ function construirAsientoCompra(compra, configuracion = {}) {
         exentoNum +
         ivaCreditoNum +
         ivaNoRecNum +
+        ivaUsoComunNum +
         otrosImpuestosNum
   );
 
@@ -205,7 +213,7 @@ function construirAsientoCompra(compra, configuracion = {}) {
   }
 
   const totalDebe =
-    netoNum + exentoNum + ivaCreditoNum + ivaNoRecNum + otrosImpuestosNum;
+    netoNum + exentoNum + ivaCreditoNum + ivaNoRecNum + ivaUsoComunNum + otrosImpuestosNum;
   const folioDocumento = texto(folio);
   const rutAuxiliar = normalizarRutDocumentoOpcional(rut_proveedor);
   const signo = signoDocumento(compra);
@@ -233,7 +241,7 @@ function construirAsientoCompra(compra, configuracion = {}) {
       {
         cuenta_id: cuentaIvaCredito,
         glosa,
-        debe: ivaCreditoNum,
+        debe: ivaCreditoNum + ivaUsoComunNum,
         haber: 0,
         folio: folioDocumento,
       },

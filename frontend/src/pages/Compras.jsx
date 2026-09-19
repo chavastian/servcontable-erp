@@ -3,6 +3,7 @@ import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
 import AccountSelector from "../components/AccountSelector";
 import { EstadoCargando } from "../components/EstadoPantalla";
+import BotonesExportar from "../components/BotonesExportar";
 import {
   crearCompra,
   actualizarCompra,
@@ -642,6 +643,35 @@ export default function Compras() {
                 onChange={(e) => setFechaHasta(e.target.value)}
               />
             </div>
+
+            <BotonesExportar
+              nombreArchivo={`Compras_${fechaDesde}_${fechaHasta}`}
+              titulo="Registro de compras"
+              columnas={[
+                "Fecha",
+                "Tipo",
+                "Folio",
+                "RUT proveedor",
+                "Proveedor",
+                "Neto",
+                "Exento",
+                "IVA credito",
+                "Total",
+              ]}
+              filas={(compras || []).map((c) => [
+                String(c.fecha || "").substring(0, 10),
+                c.tipo_documento,
+                c.folio,
+                c.rut_proveedor,
+                c.razon_social_proveedor,
+                Number(c.neto || 0),
+                Number(c.exento || 0),
+                Number(c.iva_credito || 0),
+                Number(c.total || 0),
+              ])}
+              alFallar={setError}
+              compacto
+            />
 
             <button type="button" style={botonBuscar} onClick={buscarCompras}>
               Buscar

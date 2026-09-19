@@ -16,6 +16,7 @@ import { obtenerF29, registrarF29Presentada } from "../services/f29Service";
 import { obtenerPeriodoAnterior, obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
 import EstadoPantalla from "../components/EstadoPantalla";
 import { estilos, pesos, numero, fechaCorta } from "../utils/estilosAsistentes";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 
 function Fila({ etiqueta, valor, fuerte = false, nota = "" }) {
   return (
@@ -133,12 +134,12 @@ export default function ResumenF29() {
           <label style={estilos.etiqueta} htmlFor="f29-periodo">
             Período que se declara
           </label>
-          <input
+          <PeriodoMesSelector
             id="f29-periodo"
-            type="month"
             style={estilos.input}
             value={periodo}
-            onChange={(evento) => setPeriodo(evento.target.value)}
+            onChange={setPeriodo}
+            permitirOtroAnio
           />
         </div>
 

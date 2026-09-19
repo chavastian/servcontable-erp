@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useId } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { listarTrabajadores } from "../../services/trabajadoresService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
@@ -948,10 +948,15 @@ export default function LiquidacionesRemuneraciones() {
 }
 
 function Campo({ label, name, value, onChange, type = "text", disabled = false }) {
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+  // sin riesgo de repetir un id en la pagina.
+  const idCampo = useId();
+
   return (
     <div>
-      <label style={labelStyle}>{label}</label>
+      <label htmlFor={idCampo} style={labelStyle}>{label}</label>
       <input
+        id={idCampo}
         style={disabled ? inputStyleDisabled : inputStyle}
         type={type}
         step={type === "number" ? "any" : undefined}

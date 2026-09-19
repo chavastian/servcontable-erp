@@ -6,6 +6,7 @@ import {
   obtenerRangoPeriodoTrabajo,
 } from "../services/periodoTrabajoService";
 import ModuloHero from "../components/ModuloHero";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 
 export default function DashboardFinanciero({ irVista }) {
   const empresaActiva = obtenerEmpresaActiva();
@@ -84,12 +85,12 @@ export default function DashboardFinanciero({ irVista }) {
       >
         <div style={filtrosBox}>
           <div>
-          <label style={label}>Período</label>
-          <input
+          <label style={label} htmlFor="dashboard-financiero-periodo">Período</label>
+          <PeriodoMesSelector
+            id="dashboard-financiero-periodo"
             style={input}
-            type="month"
             value={periodo}
-            onChange={(e) => setPeriodo(e.target.value)}
+            onChange={setPeriodo}
           />
           </div>
 

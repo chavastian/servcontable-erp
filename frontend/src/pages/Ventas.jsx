@@ -3,6 +3,7 @@ import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
 import AccountSelector from "../components/AccountSelector";
 import { EstadoCargando } from "../components/EstadoPantalla";
+import BotonesExportar from "../components/BotonesExportar";
 import {
   crearVenta,
   actualizarVenta,
@@ -588,6 +589,35 @@ export default function Ventas() {
                 onChange={(e) => setFechaHasta(e.target.value)}
               />
             </div>
+
+            <BotonesExportar
+              nombreArchivo={`Ventas_${fechaDesde}_${fechaHasta}`}
+              titulo="Registro de ventas"
+              columnas={[
+                "Fecha",
+                "Tipo",
+                "Folio",
+                "RUT cliente",
+                "Cliente",
+                "Neto",
+                "Exento",
+                "IVA",
+                "Total",
+              ]}
+              filas={(ventas || []).map((v) => [
+                String(v.fecha || "").substring(0, 10),
+                v.tipo_documento,
+                v.folio,
+                v.rut_cliente,
+                v.razon_social_cliente,
+                Number(v.neto || 0),
+                Number(v.exento || 0),
+                Number(v.iva || 0),
+                Number(v.total || 0),
+              ])}
+              alFallar={setError}
+              compacto
+            />
 
             <button type="button" style={botonBuscar} onClick={buscarVentas}>
               Buscar

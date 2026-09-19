@@ -345,9 +345,7 @@ artefacto y sus bloques se cierran en este orden.
   115 fetch menos; un 502 ya muestra un mensaje legible). Las 34 páginas del panel se
   cargan bajo demanda: el paquete inicial bajó de 1,59 MB a 277 KB. La vista viaja en el
   hash de la URL (F5 y botón atrás). 993 colores literales pasaron a tokens `--sc-*`.
-- [ ] Pendiente del bloque: partir las diez páginas más grandes, etiquetas asociadas a
-  su campo, totales y exportación en las pantallas que no los tienen, un solo modelo de
-  período. Son cambios de pantalla sin efecto contable.
+- [x] Los cuatro puntos que quedaban se cerraron en el bloque 9.
 
 **Bloque 6 — Catálogos: proveedores, clientes y centros de costo  ✅ 19-09-2026**
 - [x] Módulo 12: tabla `terceros` por empresa, con las dos banderas (un RUT puede ser
@@ -427,9 +425,41 @@ artefacto y sus bloques se cierran en este orden.
 - [ ] Módulo 13: quedó cubierto en lo esencial por el bloque 3 (el factor acumulado anual
   ya se aplica y la parte no recuperable se informa en el F29). Falta contabilizar esa
   parte como gasto, que es una decisión de criterio.
-- [ ] Módulos 8 y 9 (corrección monetaria y capital propio tributario; renta anual, RLI
-  y F22). **Son los dos que el informe marca como imposibles de escribir sin definir
-  criterio tributario antes**: esperan decisión.
+
+**Bloque 9 — IVA de uso común contabilizado y deuda de pantalla  ✅ 19-09-2026**
+- [x] **Defecto latente encontrado y corregido:** `construirAsientoCompra` no miraba
+  `iva_uso_comun`, la columna que el bloque 3 agregó al registro de compras. El total del
+  documento sí la incluye, así que la primera importación real con uso común habría
+  generado un asiento descuadrado por ese monto. No llegó a pasar —ninguna compra con uso
+  común tenía comprobante y no había ningún comprobante descuadrado en la base— pero
+  habría pasado. Además la importación escribía esas columnas **después** de armar el
+  asiento, así que ni siquiera las veía: ahora van antes, en las dos ramas.
+- [x] Módulo 13 completado: el IVA de uso común entra completo como crédito fiscal y la
+  parte que la proporcionalidad deja sin recuperar se lleva a gasto con un ajuste propio
+  (`GET /api/iva-uso-comun`, `POST /api/iva-uso-comun/contabilizar`). No es automático: se
+  calcula, se muestra y alguien lo confirma, porque el momento del ajuste es criterio
+  contable. Un período se ajusta una sola vez, y anular el asiento libera el período.
+- [x] Exportación a Excel y PDF en las pantallas que no la tenían (resumen IVA, compras,
+  ventas, pagos y cobros), con un componente compartido que carga las librerías recién
+  cuando alguien exporta. De 7 pantallas con exportación a 17.
+- [x] **Un solo modelo de período.** Ya no queda ningún campo de mes libre: el selector
+  es uno y tiene dos modos, porque las dos conductas eran legítimas. Lo normal queda
+  atado al año del ejercicio; las pantallas que cruzan el año a propósito (F29 de enero
+  que declara diciembre, remanente que se arrastra, panel del estudio) lo hacen con
+  `permitirOtroAnio`, y el selector dice por qué.
+- [x] Etiquetas asociadas a su campo en los diez ayudantes de formulario, con `useId` de
+  React: no puede haber un id repetido ni una etiqueta que no apunte a nada.
+- [x] Cinco de las páginas más grandes se partieron: los estilos se fueron a su propio
+  módulo (`<Página>.estilos.js`). CartolaRut 1143→874, NuevoComprobante 1261→921,
+  ConfiguracionRemuneraciones 2042→1762, PagosCobros 1015→811, LibrosCompraVenta 980→833.
+  Dos se omitieron a propósito: su cola no era solo estilos y no vale el riesgo.
+- [x] Migración `1758201200000_bloque9-iva-uso-comun`. 7 pruebas nuevas.
+
+- [ ] Módulo 11 (boletas de honorarios electrónicas desde el SII). **Necesito un archivo
+  real de ejemplo.**
+- [ ] Módulos 8 y 9 del informe (corrección monetaria y capital propio tributario; renta
+  anual, RLI y F22). **Son los dos que el informe marca como imposibles de escribir sin
+  definir criterio tributario antes**: esperan decisión.
 
 ## Flujo de trabajo
 

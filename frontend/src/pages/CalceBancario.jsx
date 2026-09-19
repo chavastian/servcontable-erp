@@ -16,6 +16,7 @@ import { actualizarEstadoConciliacion } from "../services/conciliacionBancariaSe
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
 import { estilos, pildora, pesos, numero, fechaCorta } from "../utils/estilosAsistentes";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 
 const TEXTO_CONFIANZA = {
   alta: "Coincide monto, fecha y RUT",
@@ -131,12 +132,11 @@ export default function CalceBancario() {
           <label style={estilos.etiqueta} htmlFor="calce-periodo">
             Período de la cartola
           </label>
-          <input
+          <PeriodoMesSelector
             id="calce-periodo"
-            type="month"
             style={estilos.input}
             value={periodo}
-            onChange={(evento) => setPeriodo(evento.target.value)}
+            onChange={setPeriodo}
           />
         </div>
 

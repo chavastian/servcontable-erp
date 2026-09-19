@@ -2,6 +2,40 @@ import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
 import AccountSelector from "../components/AccountSelector";
+import BotonesExportar from "../components/BotonesExportar";
+import {
+  titulo,
+  subtitulo,
+  formularioBox,
+  tituloSeccion,
+  gridFormulario,
+  label,
+  input,
+  checkLabel,
+  bloqueModoComprobante,
+  textoAyuda,
+  botonGuardar,
+  filtrosBox,
+  botonBuscar,
+  gridResumen,
+  card,
+  listadoBox,
+  tablaBox,
+  tabla,
+  th,
+  thNumero,
+  thAccion,
+  td,
+  tdNumero,
+  tdAccion,
+  botonEliminar,
+  badgeOk,
+  badgePendiente,
+  textoSuave,
+  ok,
+  err,
+  alerta,
+} from "./PagosCobros.estilos";
 import {
   listarDocumentosPendientes,
   listarPagosCobros,
@@ -657,6 +691,24 @@ export default function PagosCobros() {
           />
         </div>
 
+        <BotonesExportar
+          nombreArchivo={`Pagos_y_cobros_${fechaDesde}_${fechaHasta}`}
+          titulo="Pagos y cobros"
+          columnas={["Fecha", "Movimiento", "Documento", "Folio", "RUT", "Tercero", "Monto", "Estado"]}
+          filas={(movimientos || []).map((m) => [
+            String(m.fecha || "").substring(0, 10),
+            m.tipo_movimiento,
+            m.tipo_documento,
+            m.folio,
+            m.rut_tercero,
+            m.nombre_tercero,
+            Number(m.monto || 0),
+            m.estado,
+          ])}
+          alFallar={setError}
+          compacto
+        />
+
         <button type="button" style={botonBuscar} onClick={cargarMovimientos}>
           Buscar
         </button>
@@ -757,239 +809,3 @@ export default function PagosCobros() {
     </div>
   );
 }
-
-const titulo = {
-  fontSize: "34px",
-  color: "var(--sc-ink)",
-  marginBottom: "5px",
-};
-
-const subtitulo = {
-  color: "var(--sc-gris)",
-  marginBottom: "18px",
-};
-
-const formularioBox = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "25px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "20px",
-};
-
-const tituloSeccion = {
-  color: "var(--sc-azul)",
-  marginTop: 0,
-};
-
-const gridFormulario = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-  gap: "14px",
-};
-
-const label = {
-  display: "block",
-  fontWeight: "bold",
-  color: "var(--sc-text)",
-  marginTop: "10px",
-  marginBottom: "5px",
-};
-
-const input = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "10px",
-  boxSizing: "border-box",
-  height: "40px",
-};
-
-const checkLabel = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  marginTop: "14px",
-  color: "var(--sc-text)",
-  fontWeight: "bold",
-};
-
-const bloqueModoComprobante = {
-  marginTop: "14px",
-  background: "var(--sc-fondo-claro)",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "12px",
-  padding: "12px",
-};
-
-const textoAyuda = {
-  display: "block",
-  marginTop: "8px",
-  color: "#155e75",
-};
-
-const botonGuardar = {
-  marginTop: "18px",
-  background: "var(--sc-teal)",
-  color: "white",
-  border: "none",
-  padding: "12px 18px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const filtrosBox = {
-  display: "flex",
-  alignItems: "end",
-  gap: "12px",
-  background: "white",
-  padding: "18px",
-  borderRadius: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "18px",
-  flexWrap: "wrap",
-};
-
-const botonBuscar = {
-  background: "var(--sc-azul)",
-  color: "white",
-  border: "none",
-  padding: "10px 20px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  height: "40px",
-};
-
-const gridResumen = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "14px",
-  marginBottom: "18px",
-};
-
-const card = {
-  background: "white",
-  borderRadius: "16px",
-  padding: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  color: "var(--sc-text)",
-};
-
-const listadoBox = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "22px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-};
-
-const tablaBox = {
-  overflowX: "auto",
-};
-
-const tabla = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
-
-const th = {
-  textAlign: "left",
-  padding: "10px",
-  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
-  color: "var(--sc-azul)",
-  whiteSpace: "nowrap",
-};
-
-const thNumero = {
-  ...th,
-  textAlign: "right",
-};
-
-const thAccion = {
-  ...th,
-  textAlign: "center",
-};
-
-const td = {
-  padding: "9px",
-  borderBottom: "1px solid var(--sc-borde-claro)",
-  color: "var(--sc-text)",
-  verticalAlign: "top",
-};
-
-const tdNumero = {
-  ...td,
-  textAlign: "right",
-  whiteSpace: "nowrap",
-};
-
-const tdAccion = {
-  ...td,
-  textAlign: "center",
-  whiteSpace: "nowrap",
-};
-
-const botonEliminar = {
-  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
-  color: "white",
-  border: "none",
-  borderRadius: "9px",
-  width: "32px",
-  height: "32px",
-  padding: 0,
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "15px",
-  lineHeight: 1,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const badgeOk = {
-  background: "#dcfce7",
-  color: "#166534",
-  padding: "5px 8px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-  fontSize: "12px",
-};
-
-const badgePendiente = {
-  background: "#fef3c7",
-  color: "#92400e",
-  padding: "5px 8px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-  fontSize: "12px",
-};
-
-const textoSuave = {
-  color: "var(--sc-gris)",
-  fontSize: "13px",
-  fontWeight: "bold",
-};
-
-const ok = {
-  color: "var(--sc-teal)",
-  fontWeight: "bold",
-};
-
-const err = {
-  color: "var(--sc-danger)",
-  fontWeight: "bold",
-};
-
-const alerta = {
-  marginTop: "25px",
-  background: "var(--sc-naranja-fondo)",
-  border: "1px solid #fed7aa",
-  color: "var(--sc-naranja-texto)",
-  padding: "16px",
-  borderRadius: "14px",
-  fontWeight: "bold",
-};

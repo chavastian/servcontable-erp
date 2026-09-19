@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { listarCuentas } from "../services/cuentaService";
 import {
@@ -403,11 +403,15 @@ export default function ConfiguracionContable() {
 }
 
 function CampoCuenta({ label, name, value, onChange, opciones }) {
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+  // sin riesgo de repetir un id en la pagina.
+  const idCampo = useId();
+
   return (
     <div>
-      <label style={labelStyle}>{label}</label>
+      <label htmlFor={idCampo} style={labelStyle}>{label}</label>
 
-      <select style={selectStyle} name={name} value={value} onChange={onChange}>
+      <select id={idCampo} style={selectStyle} name={name} value={value} onChange={onChange}>
         <option value="">Seleccionar cuenta</option>
         {opciones}
       </select>

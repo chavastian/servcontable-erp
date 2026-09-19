@@ -130,10 +130,15 @@ function calcularOtrosImpuestosMonto({
  * aparte del INSERT para no tocar las sentencias que la reimportacion
  * idempotente usa para decidir si un documento cambio.
  */
+/**
+ * Escribe las columnas del registro de compras del SII y devuelve la fila ya
+ * actualizada: el asiento automatico necesita verlas, sobre todo el IVA de uso
+ * comun, que forma parte del total del documento.
+ */
 async function guardarColumnasRcv(client, compraId, extras) {
-  if (!extras) return;
+  if (!extras) return null;
 
-  await client.query(
+  const { rows } = await client.query(
     `UPDATE compras
      SET tipo_compra = $2,
          codigo_iva_no_rec = $3,
@@ -144,7 +149,8 @@ async function guardarColumnasRcv(client, compraId, extras) {
          codigo_otro_impuesto = $8,
          tasa_otro_impuesto = $9,
          fecha_recepcion = COALESCE($10, fecha_recepcion)
-     WHERE id = $1`,
+     WHERE id = $1
+     RETURNING *`,
     [
       compraId,
       extras.tipo_compra,
@@ -158,6 +164,8 @@ async function guardarColumnasRcv(client, compraId, extras) {
       extras.fecha_recepcion,
     ]
   );
+
+  return rows[0] || null;
 }
 
 async function crearCompra(req, res) {
@@ -757,6 +765,15 @@ async function importarComprasSII(req, res) {
           const compraExistente = compraActualizadaResult.rows[0];
           actualizadas += 1;
 
+          // Igual que al insertar: las columnas del RCV antes del asiento.
+          const extrasActualizados = await guardarColumnasRcv(
+            client,
+            compraExistente.id,
+            extrasRcv
+          );
+
+          if (extrasActualizados) Object.assign(compraExistente, extrasActualizados);
+
           if (generarComprobante && !faltaCuentaOtrosImpuestos) {
             if (compraExistente.comprobante_id) {
               const comprobanteActualizado =
@@ -797,7 +814,6 @@ async function importarComprasSII(req, res) {
             }
           }
 
-          await guardarColumnasRcv(client, compraExistente.id, extrasRcv);
           return compraExistente;
         }
 
@@ -861,6 +877,13 @@ async function importarComprasSII(req, res) {
         const compra = compraResult.rows[0];
         insertadas += 1;
 
+        // Las columnas del registro de compras se escriben antes de armar el
+        // asiento: el IVA de uso comun es una de ellas y el asiento tiene que
+        // verlo, o queda descuadrado por ese monto.
+        const extrasGuardados = await guardarColumnasRcv(client, compra.id, extrasRcv);
+
+        if (extrasGuardados) Object.assign(compra, extrasGuardados);
+
           if (generarComprobante && !faltaCuentaOtrosImpuestos) {
             const comprobante = await crearComprobanteAutomaticoCompra(
               client,
@@ -878,7 +901,6 @@ async function importarComprasSII(req, res) {
           comprobantesCreados += 1;
         }
 
-        await guardarColumnasRcv(client, compra.id, extrasRcv);
         return compra;
       },
       {

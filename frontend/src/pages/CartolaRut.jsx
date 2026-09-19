@@ -4,6 +4,52 @@ import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
 import { EstadoCargando } from "../components/EstadoPantalla";
 import {
+  titulo,
+  subtitulo,
+  filtrosBox,
+  filtrosAvanzados,
+  campoBusqueda,
+  label,
+  input,
+  inputBusqueda,
+  botonBuscar,
+  botonSecundario,
+  botonLimpiar,
+  botonExcel,
+  botonPDF,
+  botonImprimir,
+  gridResumen,
+  card,
+  accionesBox,
+  sugerenciasBox,
+  sugerenciaItem,
+  checkBox,
+  seccionBox,
+  tablaHeader,
+  tituloSeccion,
+  contador,
+  tablaBox,
+  tabla,
+  th,
+  thNumero,
+  thAccion,
+  td,
+  tdNumero,
+  tdAccion,
+  glosa,
+  botonVer,
+  paginacionBox,
+  botonPagina,
+  badgeOk,
+  badgePendiente,
+  badgeParcial,
+  badgeAnulado,
+  ok,
+  err,
+  nota,
+  alerta,
+} from "./CartolaRut.estilos";
+import {
   buscarTercerosCartola,
   obtenerCartolaRut,
 } from "../services/cartolaRutService";
@@ -825,318 +871,3 @@ function badge(estado) {
   }
   return badgePendiente;
 }
-
-const titulo = {
-  fontSize: "34px",
-  color: "var(--sc-ink)",
-  marginBottom: "5px",
-};
-
-const subtitulo = {
-  color: "var(--sc-gris)",
-  marginBottom: "18px",
-};
-
-const filtrosBox = {
-  display: "flex",
-  alignItems: "end",
-  gap: "12px",
-  background: "white",
-  padding: "18px",
-  borderRadius: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "12px",
-  flexWrap: "wrap",
-};
-
-const filtrosAvanzados = {
-  ...filtrosBox,
-  marginBottom: "18px",
-};
-
-const campoBusqueda = {
-  minWidth: "320px",
-  flex: "1 1 340px",
-};
-
-const label = {
-  display: "block",
-  fontWeight: "bold",
-  color: "var(--sc-text)",
-  marginBottom: "5px",
-};
-
-const input = {
-  padding: "10px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "10px",
-  minWidth: "145px",
-  height: "40px",
-  boxSizing: "border-box",
-};
-
-const inputBusqueda = {
-  ...input,
-  width: "100%",
-};
-
-const botonBase = {
-  color: "white",
-  border: "none",
-  padding: "10px 16px",
-  borderRadius: "9px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  height: "40px",
-};
-
-const botonBuscar = {
-  ...botonBase,
-  background: "var(--sc-azul)",
-};
-
-const botonSecundario = {
-  ...botonBase,
-  background: "#0891b2",
-};
-
-const botonLimpiar = {
-  ...botonBase,
-  background: "var(--sc-gris)",
-};
-
-const botonExcel = {
-  ...botonBase,
-  background: "var(--sc-teal)",
-};
-
-const botonPDF = {
-  ...botonBase,
-  background: "var(--sc-danger)",
-};
-
-const botonImprimir = {
-  ...botonBase,
-  background: "var(--sc-ink)",
-};
-
-const gridResumen = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "14px",
-  marginBottom: "18px",
-};
-
-const card = {
-  background: "white",
-  borderRadius: "16px",
-  padding: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  color: "var(--sc-text)",
-};
-
-const accionesBox = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-  marginBottom: "14px",
-};
-
-const sugerenciasBox = {
-  background: "white",
-  border: "1px solid #bae6fd",
-  borderRadius: "14px",
-  marginBottom: "14px",
-  overflow: "hidden",
-};
-
-const sugerenciaItem = {
-  width: "100%",
-  background: "white",
-  border: "none",
-  borderBottom: "1px solid var(--sc-borde-claro)",
-  padding: "11px 14px",
-  display: "grid",
-  gridTemplateColumns: "1.5fr 150px 180px",
-  gap: "10px",
-  textAlign: "left",
-  cursor: "pointer",
-  color: "var(--sc-ink)",
-};
-
-const checkBox = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  height: "40px",
-  color: "var(--sc-text)",
-  fontWeight: "bold",
-};
-
-const seccionBox = {
-  background: "white",
-  borderRadius: "18px",
-  padding: "22px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  marginBottom: "22px",
-};
-
-const tablaHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "10px",
-  flexWrap: "wrap",
-};
-
-const tituloSeccion = {
-  color: "var(--sc-azul)",
-  marginTop: 0,
-};
-
-const contador = {
-  color: "var(--sc-gris)",
-  fontWeight: "bold",
-};
-
-const tablaBox = {
-  overflowX: "auto",
-};
-
-const tabla = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
-
-const th = {
-  textAlign: "left",
-  padding: "10px",
-  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
-  color: "var(--sc-azul)",
-  whiteSpace: "nowrap",
-};
-
-const thNumero = {
-  ...th,
-  textAlign: "right",
-};
-
-const thAccion = {
-  ...th,
-  textAlign: "center",
-};
-
-const td = {
-  padding: "9px",
-  borderBottom: "1px solid var(--sc-borde-claro)",
-  color: "var(--sc-text)",
-  verticalAlign: "top",
-};
-
-const tdNumero = {
-  ...td,
-  textAlign: "right",
-  whiteSpace: "nowrap",
-};
-
-const tdAccion = {
-  ...td,
-  textAlign: "center",
-  whiteSpace: "nowrap",
-};
-
-const glosa = {
-  display: "block",
-  color: "#64748b",
-  marginTop: "3px",
-};
-
-const botonVer = {
-  background: "var(--sc-azul)",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "6px 10px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const paginacionBox = {
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: "12px",
-  paddingTop: "14px",
-  color: "var(--sc-text)",
-  fontWeight: "bold",
-};
-
-const botonPagina = {
-  ...botonBase,
-  background: "var(--sc-azul)",
-  height: "36px",
-};
-
-const badgeOk = {
-  background: "#dcfce7",
-  color: "#166534",
-  padding: "5px 8px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-  fontSize: "12px",
-};
-
-const badgePendiente = {
-  background: "#fef3c7",
-  color: "#92400e",
-  padding: "5px 8px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-  fontSize: "12px",
-};
-
-const badgeParcial = {
-  background: "#e0f2fe",
-  color: "#075985",
-  padding: "5px 8px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-  fontSize: "12px",
-};
-
-const badgeAnulado = {
-  background: "#fee2e2",
-  color: "#991b1b",
-  padding: "5px 8px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-  fontSize: "12px",
-};
-
-const ok = {
-  color: "var(--sc-teal)",
-  fontWeight: "bold",
-};
-
-const err = {
-  color: "var(--sc-danger)",
-  fontWeight: "bold",
-};
-
-const nota = {
-  color: "var(--sc-gris)",
-  fontWeight: "bold",
-};
-
-const alerta = {
-  marginTop: "25px",
-  background: "var(--sc-naranja-fondo)",
-  border: "1px solid #fed7aa",
-  color: "var(--sc-naranja-texto)",
-  padding: "16px",
-  borderRadius: "14px",
-  fontWeight: "bold",
-};

@@ -20,6 +20,7 @@ import { listarCuentas } from "../services/cuentaService";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
 import { estilos, pesos, numero, fechaCorta } from "../utils/estilosAsistentes";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 
 export default function ClasificarDocumentos() {
   const empresa = obtenerEmpresaActiva();
@@ -190,13 +191,11 @@ export default function ClasificarDocumentos() {
           <label style={estilos.etiqueta} htmlFor="clasificar-periodo">
             Período
           </label>
-          <input
+          <PeriodoMesSelector
             id="clasificar-periodo"
-            type="month"
             style={estilos.input}
             value={periodo}
-            disabled={todoElHistorial}
-            onChange={(evento) => setPeriodo(evento.target.value)}
+            onChange={setPeriodo}
           />
         </div>
 

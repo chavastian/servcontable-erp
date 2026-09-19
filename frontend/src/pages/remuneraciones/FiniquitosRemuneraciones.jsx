@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { listarTrabajadores } from "../../services/trabajadoresService";
 import { obtenerPeriodoTrabajo } from "../../services/periodoTrabajoService";
@@ -1356,10 +1356,15 @@ function ModalConcepto({
 }
 
 function Campo({ label, name, value, onChange, type = "number" }) {
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+  // sin riesgo de repetir un id en la pagina.
+  const idCampo = useId();
+
   return (
     <div>
-      <label style={labelStyle}>{label}</label>
+      <label htmlFor={idCampo} style={labelStyle}>{label}</label>
       <input
+        id={idCampo}
         style={inputStyle}
         type={type}
         step={type === "number" ? "0.0001" : undefined}
@@ -1372,10 +1377,15 @@ function Campo({ label, name, value, onChange, type = "number" }) {
 }
 
 function CampoTexto({ label, name, value, onChange }) {
+  // El id lo genera React: asi la etiqueta queda asociada al campo
+  // sin riesgo de repetir un id en la pagina.
+  const idCampo = useId();
+
   return (
     <div style={{ marginTop: "14px" }}>
-      <label style={labelStyle}>{label}</label>
+      <label htmlFor={idCampo} style={labelStyle}>{label}</label>
       <textarea
+        id={idCampo}
         style={textarea}
         name={name}
         value={value}

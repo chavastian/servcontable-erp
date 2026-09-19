@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 import {
   obtenerControlRemanenteIVA,
   guardarControlRemanenteIVA,
@@ -142,13 +143,13 @@ export default function ControlRemanenteIVA() {
 
       <form style={filtrosBox} onSubmit={guardarControl}>
         <div>
-          <label style={label}>Período</label>
-          <input
+          <label style={label} htmlFor="remanente-periodo">Período</label>
+          <PeriodoMesSelector
+            id="remanente-periodo"
             style={input}
-            type="month"
             value={periodo}
-            onChange={(e) => setPeriodo(e.target.value)}
-            placeholder={obtenerPeriodoTrabajo()}
+            onChange={setPeriodo}
+            permitirOtroAnio
           />
         </div>
 

@@ -63,6 +63,8 @@ async function guardarConfiguracionContable(req, res) {
       previred_electronico,
       // Contrapartida del cierre de resultados al cerrar el año.
       cuenta_resultado_ejercicio_id,
+      // Gasto del IVA de uso común que la proporcionalidad deja sin recuperar.
+      cuenta_iva_uso_comun_no_rec_id,
     } = req.body;
 
     const tasaPpm = Number(tasa_ppm || 0);
@@ -107,6 +109,7 @@ async function guardarConfiguracionContable(req, res) {
           facturador_electronico = $14,
           previred_electronico = $15,
           cuenta_resultado_ejercicio_id = $16,
+          cuenta_iva_uso_comun_no_rec_id = $17,
           actualizado_en = NOW()
         WHERE empresa_id = $1
         RETURNING *
@@ -128,6 +131,7 @@ async function guardarConfiguracionContable(req, res) {
           esFacturadorElectronico,
           pagaEnPrevired,
           cuenta_resultado_ejercicio_id || null,
+          cuenta_iva_uso_comun_no_rec_id || null,
         ]
       );
     } else {
@@ -150,10 +154,11 @@ async function guardarConfiguracionContable(req, res) {
           tasa_ppm,
           facturador_electronico,
           previred_electronico,
-          cuenta_resultado_ejercicio_id
+          cuenta_resultado_ejercicio_id,
+          cuenta_iva_uso_comun_no_rec_id
         )
         VALUES
-        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, $13, $14, $15, $16)
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, $13, $14, $15, $16, $17)
         RETURNING *
         `,
         [
@@ -173,6 +178,7 @@ async function guardarConfiguracionContable(req, res) {
           esFacturadorElectronico,
           pagaEnPrevired,
           cuenta_resultado_ejercicio_id || null,
+          cuenta_iva_uso_comun_no_rec_id || null,
         ]
       );
     }

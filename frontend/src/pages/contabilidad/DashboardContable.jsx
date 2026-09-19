@@ -6,6 +6,7 @@ import {
   obtenerRangoPeriodoTrabajo,
 } from "../../services/periodoTrabajoService";
 import ModuloHero from "../../components/ModuloHero";
+import PeriodoMesSelector from "../../components/PeriodoMesSelector";
 
 export default function DashboardContable({ irVista }) {
   const empresaActiva = obtenerEmpresaActiva();
@@ -73,12 +74,12 @@ export default function DashboardContable({ irVista }) {
       >
         <div style={filtrosHero}>
           <div>
-            <label style={labelHero}>Período</label>
-            <input
+            <label style={labelHero} htmlFor="dashboard-contable-periodo">Período</label>
+            <PeriodoMesSelector
+              id="dashboard-contable-periodo"
               style={inputHero}
-              type="month"
               value={periodo}
-              onChange={(e) => setPeriodo(e.target.value)}
+              onChange={setPeriodo}
             />
           </div>
 

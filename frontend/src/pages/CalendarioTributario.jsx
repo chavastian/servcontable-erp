@@ -12,6 +12,7 @@ import { obtenerCalendarioTributario, obtenerPanelEstudio } from "../services/as
 import { obtenerEmpresaActiva } from "../services/empresaService";
 import { obtenerPeriodoAnterior, obtenerPeriodoTrabajo } from "../services/periodoTrabajoService";
 import { estilos, pildora, pesos, numero, fechaCorta } from "../utils/estilosAsistentes";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 
 const ESTADO_VISUAL = {
   vencida: { pildora: "error", texto: "Vencida" },
@@ -107,12 +108,11 @@ export default function CalendarioTributario() {
           <label style={estilos.etiqueta} htmlFor="calendario-periodo">
             Período que se declara
           </label>
-          <input
+          <PeriodoMesSelector
             id="calendario-periodo"
-            type="month"
             style={estilos.input}
             value={periodo}
-            onChange={(evento) => setPeriodo(evento.target.value)}
+            onChange={setPeriodo}
           />
         </div>
 

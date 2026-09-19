@@ -17,6 +17,59 @@ import {
 } from "../services/periodoTrabajoService";
 import { imprimirComprobantePDF } from "../utils/comprobantePdf";
 import { EstadoCargando } from "../components/EstadoPantalla";
+import {
+  titulo,
+  subtitulo,
+  formularioBox,
+  tituloSeccion,
+  gridCabecera,
+  label,
+  input,
+  inputGlosaCompacta,
+  ayuda,
+  tablaBox,
+  tablaBoxEdicion,
+  tablaEdicion,
+  tablaComprobantes,
+  th,
+  thMonto,
+  thAccion,
+  thCompacto,
+  thNumeroCompacto,
+  thAccionCompacto,
+  td,
+  tdGlosa,
+  tdMonto,
+  tdAccion,
+  tdCompacto,
+  tdAccionCompacto,
+  inputTablaCompacto,
+  inputCuentaCompacto,
+  inputNumeroCompacto,
+  botonEliminarCompacto,
+  botonSecundario,
+  botonCancelar,
+  totalesBox,
+  diferenciaOk,
+  diferenciaError,
+  botonGuardar,
+  botonBloqueado,
+  listadoBox,
+  botonEditar,
+  botonImprimir,
+  botonAccionDeshabilitado,
+  botonEliminarAsiento,
+  ok,
+  err,
+  alerta,
+  accionesFila,
+  botonDetalle,
+  tdDetalleContenedor,
+  detalleComprobanteBox,
+  tituloDetalleComprobante,
+  textoSuave,
+  tablaDetalleComprobante,
+} from "./NuevoComprobante.estilos";
 
 function detalleVacio() {
   return {
@@ -864,397 +917,3 @@ export default function NuevoComprobante() {
     </div>
   );
 }
-
-const titulo = {
-  fontSize: "28px",
-  color: "var(--sc-ink)",
-  marginBottom: "5px",
-};
-
-const subtitulo = {
-  color: "var(--sc-gris)",
-  marginBottom: "12px",
-};
-
-const formularioBox = {
-  background: "white",
-  borderRadius: "14px",
-  padding: "16px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-};
-
-const tituloSeccion = {
-  color: "var(--sc-azul)",
-  marginTop: "0",
-  marginBottom: "8px",
-  fontSize: "22px",
-};
-
-const gridCabecera = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-  gap: "10px",
-};
-
-const label = {
-  display: "block",
-  fontWeight: "bold",
-  color: "var(--sc-text)",
-  marginTop: "8px",
-  marginBottom: "4px",
-  fontSize: "13px",
-};
-
-const input = {
-  width: "100%",
-  padding: "8px 10px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "8px",
-  boxSizing: "border-box",
-  fontSize: "13px",
-};
-
-const inputGlosaCompacta = {
-  ...input,
-  height: "34px",
-};
-
-const ayuda = {
-  fontSize: "12px",
-  color: "var(--sc-gris)",
-  marginTop: "5px",
-};
-
-const tablaBox = {
-  overflowX: "auto",
-  marginTop: "15px",
-};
-
-const tablaBoxEdicion = {
-  overflowX: "hidden",
-  marginTop: "8px",
-  width: "100%",
-};
-
-const tablaEdicion = {
-  width: "100%",
-  tableLayout: "fixed",
-  borderCollapse: "collapse",
-};
-
-const tablaComprobantes = {
-  width: "100%",
-  borderCollapse: "collapse",
-  tableLayout: "fixed",
-};
-
-const th = {
-  textAlign: "left",
-  padding: "12px",
-  background: "linear-gradient(135deg, var(--sc-celeste-suave), var(--sc-cian-fondo))",
-  color: "var(--sc-azul)",
-  whiteSpace: "nowrap",
-};
-
-const thMonto = {
-  ...th,
-  textAlign: "right",
-};
-
-const thAccion = {
-  ...th,
-  textAlign: "center",
-};
-
-const thCompacto = {
-  ...th,
-  padding: "6px 8px",
-  fontSize: "12px",
-};
-
-const thNumeroCompacto = {
-  ...thCompacto,
-  textAlign: "right",
-};
-
-const thAccionCompacto = {
-  ...thCompacto,
-  textAlign: "center",
-};
-
-const td = {
-  padding: "10px",
-  borderBottom: "1px solid var(--sc-borde-claro)",
-  color: "var(--sc-text)",
-  verticalAlign: "top",
-};
-
-const tdGlosa = {
-  ...td,
-  whiteSpace: "normal",
-  wordBreak: "break-word",
-};
-
-const tdMonto = {
-  ...td,
-  textAlign: "right",
-  whiteSpace: "nowrap",
-};
-
-const tdAccion = {
-  ...td,
-  textAlign: "center",
-};
-
-const tdCompacto = {
-  ...td,
-  padding: "4px 5px",
-  verticalAlign: "middle",
-};
-
-const tdAccionCompacto = {
-  ...tdCompacto,
-  textAlign: "center",
-};
-
-const inputTabla = {
-  width: "100%",
-  minWidth: "140px",
-  padding: "9px",
-  border: "1px solid var(--sc-celeste-borde)",
-  borderRadius: "8px",
-  boxSizing: "border-box",
-};
-
-const inputTablaCompacto = {
-  ...inputTabla,
-  minWidth: 0,
-  width: "100%",
-  height: "32px",
-  padding: "6px 8px",
-  fontSize: "12px",
-  borderRadius: "7px",
-};
-
-const inputCuentaCompacto = {
-  ...inputTablaCompacto,
-  minWidth: 0,
-};
-
-const inputNumeroCompacto = {
-  ...inputTablaCompacto,
-  textAlign: "right",
-};
-
-const botonEliminar = {
-  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "8px 10px",
-  cursor: "pointer",
-};
-
-const botonEliminarCompacto = {
-  ...botonEliminar,
-  width: "30px",
-  minWidth: "30px",
-  height: "30px",
-  padding: "0",
-  borderRadius: "7px",
-  fontSize: "12px",
-};
-
-const botonSecundario = {
-  marginTop: "15px",
-  background: "#0ea5e9",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  padding: "10px 14px",
-  cursor: "pointer",
-  fontWeight: "bold",
-};
-
-const botonCancelar = {
-  ...botonSecundario,
-  background: "var(--sc-gris)",
-  marginLeft: "10px",
-};
-
-const totalesBox = {
-  marginTop: "20px",
-  display: "flex",
-  gap: "20px",
-  flexWrap: "wrap",
-  background: "var(--sc-fondo-claro)",
-  padding: "16px",
-  borderRadius: "14px",
-};
-
-const diferenciaOk = {
-  color: "var(--sc-teal)",
-};
-
-const diferenciaError = {
-  color: "var(--sc-danger)",
-};
-
-const botonGuardar = {
-  width: "100%",
-  marginTop: "20px",
-  background: "var(--sc-teal)",
-  color: "white",
-  border: "none",
-  padding: "14px",
-  borderRadius: "12px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const botonBloqueado = {
-  ...botonGuardar,
-  background: "#94a3b8",
-  cursor: "not-allowed",
-};
-
-const listadoBox = {
-  marginTop: "25px",
-  background: "white",
-  borderRadius: "18px",
-  padding: "25px",
-  boxShadow: "0 14px 32px rgba(3, 105, 161, 0.12)",
-  overflowX: "auto",
-};
-
-const botonEditar = {
-  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
-  color: "white",
-  border: "none",
-  borderRadius: "9px",
-  width: "32px",
-  height: "32px",
-  padding: 0,
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "15px",
-  lineHeight: 1,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const botonImprimir = {
-  background: "linear-gradient(135deg, #0f766e, #14b8a6)",
-  color: "white",
-  border: "none",
-  borderRadius: "9px",
-  width: "32px",
-  height: "32px",
-  padding: 0,
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "15px",
-  lineHeight: 1,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const botonAccionDeshabilitado = {
-  ...botonImprimir,
-  background: "#94a3b8",
-  cursor: "not-allowed",
-  opacity: 0.7,
-};
-
-const botonEliminarAsiento = {
-  background: "linear-gradient(135deg, var(--sc-danger), var(--sc-warning))",
-  color: "white",
-  border: "none",
-  borderRadius: "9px",
-  width: "32px",
-  height: "32px",
-  padding: 0,
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "15px",
-  lineHeight: 1,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const ok = {
-  color: "var(--sc-teal)",
-  fontWeight: "bold",
-};
-
-const err = {
-  color: "var(--sc-danger)",
-  fontWeight: "bold",
-};
-
-const alerta = {
-  marginTop: "25px",
-  background: "var(--sc-naranja-fondo)",
-  border: "1px solid #fed7aa",
-  color: "var(--sc-naranja-texto)",
-  padding: "16px",
-  borderRadius: "14px",
-  fontWeight: "bold",
-};
-
-const accionesFila = {
-  display: "flex",
-  justifyContent: "center",
-  gap: "6px",
-  flexWrap: "nowrap",
-  alignItems: "center",
-};
-
-const botonDetalle = {
-  background: "linear-gradient(135deg, var(--sc-azul), var(--sc-cian-medio))",
-  color: "white",
-  border: "none",
-  borderRadius: "9px",
-  width: "32px",
-  height: "32px",
-  padding: 0,
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "15px",
-  lineHeight: 1,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const tdDetalleContenedor = {
-  padding: "0",
-  borderBottom: "1px solid var(--sc-borde-claro)",
-};
-
-const detalleComprobanteBox = {
-  background: "var(--sc-fondo-claro)",
-  border: "1px solid #dbeafe",
-  borderRadius: "14px",
-  padding: "16px",
-  margin: "10px",
-};
-
-const tituloDetalleComprobante = {
-  color: "var(--sc-azul)",
-  marginTop: 0,
-  marginBottom: "12px",
-};
-
-const textoSuave = {
-  color: "var(--sc-gris)",
-};
-
-const tablaDetalleComprobante = {
-  width: "100%",
-  minWidth: "1050px",
-  borderCollapse: "collapse",
-};
