@@ -9,6 +9,21 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloque 6
+
+- **Proveedores y clientes son una ficha, no un texto repetido en cada factura.** Guardan
+  la condición de pago, la cuenta en que se imputan habitualmente, el giro y con quién
+  hablar. Un mismo RUT puede ser proveedor y cliente.
+- **El vencimiento de una factura sale de la condición de pago pactada.** Si no hay
+  condición registrada, no se inventa una fecha.
+- **Al importar el registro del SII, cada factura cae en la cuenta del proveedor,** si el
+  proveedor tiene una definida; antes solo se usaba el historial o la cuenta por defecto.
+- **Buscar "ferreteria" encuentra "Ferretería":** el buscador ignora las tildes.
+- **Centros de costo con código, y resultado por centro.** Es lo que pide una empresa con
+  más de un local: cada línea de asiento y cada trabajador se asignan a un centro, y el
+  informe muestra ingresos, costos, gastos y resultado de cada uno. Lo que quedó sin
+  centro se muestra aparte, no repartido.
+
 ### Revisión del 19-09-2026: bloque 5
 
 - **La aplicación carga en una fracción del tiempo:** cada pantalla se descarga cuando se

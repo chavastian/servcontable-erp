@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../services/empresaService";
+import { listarCentrosCosto } from "../services/centrosCostoService";
 import { listarCuentas } from "../services/cuentaService";
 import AccountSelector from "../components/AccountSelector";
 import {
@@ -22,6 +23,7 @@ function detalleVacio() {
     cuenta_id: "",
     folio: "",
     centro_costo: "",
+    centro_costo_id: "",
     rut_auxiliar: "",
     glosa: "",
     debe: 0,
@@ -40,6 +42,9 @@ export default function NuevoComprobante() {
   const [comprobantes, setComprobantes] = useState([]);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  // El centro de costo dejo de ser texto libre (modulo 14): se elige del
+  // catalogo, que es lo que permite sacar el resultado por local.
+  const [centrosCosto, setCentrosCosto] = useState([]);
   const [detalleVisibleId, setDetalleVisibleId] = useState(null);
   const [detalleComprobante, setDetalleComprobante] = useState([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
@@ -127,6 +132,24 @@ export default function NuevoComprobante() {
     });
   }
 
+  useEffect(() => {
+    if (!empresaActiva?.id) return;
+
+    let vigente = true;
+
+    listarCentrosCosto(empresaActiva.id, "vigente")
+      .then((datos) => {
+        if (vigente) setCentrosCosto(datos.centros || []);
+      })
+      .catch(() => {
+        if (vigente) setCentrosCosto([]);
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [empresaActiva?.id]);
+
   function actualizarLinea(index, campo, valor) {
     const nuevasLineas = [...detalle];
 
@@ -203,6 +226,7 @@ export default function NuevoComprobante() {
         cuenta_id: item.cuenta_id || "",
         folio: item.folio || "",
         centro_costo: item.centro_costo || "",
+        centro_costo_id: item.centro_costo_id || "",
         rut_auxiliar: item.rut_auxiliar || "",
         glosa: item.glosa || "",
         debe: Number(item.debe || 0),
@@ -290,6 +314,7 @@ export default function NuevoComprobante() {
           cuenta_id: Number(item.cuenta_id),
           folio: item.folio || "",
           centro_costo: item.centro_costo || "",
+          centro_costo_id: item.centro_costo_id ? Number(item.centro_costo_id) : null,
           rut_auxiliar: item.rut_auxiliar || "",
           glosa: item.glosa || "",
           debe: Number(item.debe || 0),
@@ -548,14 +573,32 @@ export default function NuevoComprobante() {
                   </td>
 
                   <td style={tdCompacto}>
-                    <input
-                      style={inputTablaCompacto}
-                      value={linea.centro_costo}
-                      onChange={(e) =>
-                        actualizarLinea(index, "centro_costo", e.target.value)
-                      }
-                      placeholder="Centro costo"
-                    />
+                    {centrosCosto.length > 0 ? (
+                      <select
+                        style={inputTablaCompacto}
+                        value={linea.centro_costo_id || ""}
+                        onChange={(e) =>
+                          actualizarLinea(index, "centro_costo_id", e.target.value)
+                        }
+                        aria-label="Centro de costo"
+                      >
+                        <option value="">Sin centro</option>
+                        {centrosCosto.map((centro) => (
+                          <option key={centro.id} value={centro.id}>
+                            {centro.codigo} - {centro.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        style={inputTablaCompacto}
+                        value={linea.centro_costo}
+                        onChange={(e) =>
+                          actualizarLinea(index, "centro_costo", e.target.value)
+                        }
+                        placeholder="Centro costo"
+                      />
+                    )}
                   </td>
 
                   <td style={tdCompacto}>

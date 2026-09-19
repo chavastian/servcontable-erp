@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { resolverTercero } = require("../helpers/terceros.helper");
 const {
   leerPaginacion,
   aplicarPaginacion,
@@ -68,6 +69,14 @@ async function crearHonorario(req, res) {
     const liquidoNum = brutoNum - retencionNum;
     const periodo = obtenerPeriodo(fecha_emision);
 
+    // El prestador tambien es un tercero del catalogo: asi aparece su historial
+    // completo en una sola ficha.
+    const tercero = await resolverTercero(pool, empresa_id, {
+      rut: rutPrestadorNormalizado,
+      razon_social: nombrePrestador,
+      tipo: "proveedor",
+    });
+
     const resultado = await pool.query(
       `
       INSERT INTO honorarios
@@ -86,10 +95,11 @@ async function crearHonorario(req, res) {
         retencion,
         liquido,
         estado,
-        contabilizado
+        contabilizado,
+        tercero_id
       )
       VALUES
-      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'vigente', false)
+      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'vigente', false, $14)
       RETURNING *
       `,
       [
@@ -106,6 +116,7 @@ async function crearHonorario(req, res) {
         tasaNum,
         retencionNum,
         liquidoNum,
+        tercero?.id || null,
       ]
     );
 

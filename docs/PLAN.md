@@ -348,8 +348,35 @@ artefacto y sus bloques se cierran en este orden.
 - [ ] Pendiente del bloque: partir las diez páginas más grandes, etiquetas asociadas a
   su campo, totales y exportación en las pantallas que no los tienen, un solo modelo de
   período. Son cambios de pantalla sin efecto contable.
-- [ ] Módulos 7 a 14 del informe (activo fijo, corrección monetaria, renta anual, DJ,
-  boletas SII, proveedores y clientes, proporcionalidad completa, centros de costo).
+
+**Bloque 6 — Catálogos: proveedores, clientes y centros de costo  ✅ 19-09-2026**
+- [x] Módulo 12: tabla `terceros` por empresa, con las dos banderas (un RUT puede ser
+  proveedor y cliente), condición de pago, cuenta habitual de gasto e ingreso, giro y
+  contacto. `compras`, `ventas` y `honorarios` quedaron enlazados; las columnas de texto
+  del documento se conservan porque una factura registra el nombre con que fue emitida.
+  Registrar o importar resuelve el tercero y lo crea si no existe.
+- [x] El vencimiento sale de la condición de pago cuando el documento no lo trae; en
+  blanco no se inventa nada y el flujo de caja sigue usando su plazo convencional. La
+  cuenta del catálogo manda sobre el historial por RUT y sobre la cuenta por defecto.
+- [x] Módulo 14: tabla `centros_costo` con código único por empresa; las líneas de
+  asiento y la ficha del trabajador se enlazan por id (y por nombre, para lo que ya
+  estaba escrito). Un centro de otra empresa se rechaza con 400.
+- [x] Informe de resultado por centro de costo (`GET /api/centros-costo/informe`): solo
+  cuentas de resultado, y lo que quedó sin centro se informa aparte en lugar de
+  repartirse, porque repartir un gasto común es criterio del contador.
+- [x] Pantallas: proveedores y clientes con búsqueda insensible a tildes y ficha con lo
+  comprado, vendido y honorarios; centros de costo con el informe y exportación a Excel;
+  selector de centro en comprobantes y en la ficha del trabajador.
+- [x] Migración `1758201000000_bloque6-catalogos`, con traspaso de los datos que ya
+  existían: 234 terceros y los 431 documentos de compra, 158 de venta y 29 honorarios
+  enlazados sin quedar ninguno huérfano.
+
+- [ ] Módulos 7, 10, 11 y 13 del informe (activo fijo y depreciación, declaraciones
+  juradas, boletas de honorarios desde el SII, proporcionalidad completa del IVA de uso
+  común).
+- [ ] Módulos 8 y 9 (corrección monetaria y capital propio tributario; renta anual, RLI
+  y F22). **Son los dos que el informe marca como imposibles de escribir sin definir
+  criterio tributario antes**: esperan decisión.
 
 ## Flujo de trabajo
 

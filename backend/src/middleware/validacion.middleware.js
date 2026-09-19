@@ -122,7 +122,10 @@ const lineaComprobante = z.object({
   debe: montoPositivo.default(0),
   haber: montoPositivo.default(0),
   folio: texto(100).optional(),
+  // El centro de costo es un catálogo desde el bloque 6: se acepta por id y
+  // también por nombre, que es lo que mandaban las pantallas antiguas.
   centro_costo: texto(100).optional(),
+  centro_costo_id: idOpcional,
   rut_auxiliar: texto(30).optional().nullable(),
 });
 
@@ -367,6 +370,50 @@ const f29Presentada = z
   })
   .passthrough();
 
+const tercero = z
+  .object({
+    empresa_id: id,
+    rut: texto(20).min(1, "es obligatorio"),
+    razon_social: texto(200).min(1, "es obligatoria"),
+    email: correo,
+    // Vacío es "no se sabe"; 0 es contado. El controlador distingue los dos.
+    condicion_pago_dias: z
+      .union([z.coerce.number().int().min(0, "no puede ser negativo").max(365, "no puede superar 365"), z.literal(""), z.null()])
+      .optional(),
+    cuenta_gasto_id: idOpcional,
+    cuenta_ingreso_id: idOpcional,
+  })
+  .passthrough();
+
+// Al editar, el RUT no viaja: no se cambia una vez que hay documentos.
+const terceroActualizar = z
+  .object({
+    empresa_id: id,
+    razon_social: texto(200).min(1, "es obligatoria"),
+    email: correo,
+    condicion_pago_dias: z
+      .union([z.coerce.number().int().min(0, "no puede ser negativo").max(365, "no puede superar 365"), z.literal(""), z.null()])
+      .optional(),
+    cuenta_gasto_id: idOpcional,
+    cuenta_ingreso_id: idOpcional,
+  })
+  .passthrough();
+
+const terceroEstado = z
+  .object({
+    empresa_id: id,
+    estado: z.enum(["vigente", "inactivo"], { message: "debe ser vigente o inactivo" }),
+  })
+  .passthrough();
+
+const centroCosto = z
+  .object({
+    empresa_id: id,
+    codigo: texto(30).min(1, "es obligatorio"),
+    nombre: texto(150).min(1, "es obligatorio"),
+  })
+  .passthrough();
+
 const conciliacionEstado = z
   .object({
     empresa_id: id,
@@ -402,6 +449,10 @@ module.exports = {
     remanente,
     f29Presentada,
     conciliacionEstado,
+    tercero,
+    terceroActualizar,
+    terceroEstado,
+    centroCosto,
   },
   piezas: { id, idOpcional, fecha, periodo, monto, montoPositivo, texto, booleano },
 };

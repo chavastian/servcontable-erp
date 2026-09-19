@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { obtenerEmpresaActiva } from "../../services/empresaService";
 import { obtenerFechaHoyISO } from "../../services/periodoTrabajoService";
+import { listarCentrosCosto } from "../../services/centrosCostoService";
 import {
   listarTrabajadores,
   crearTrabajador,
@@ -86,6 +87,7 @@ export default function TrabajadoresRemuneraciones() {
     nacionalidad: "Chilena",
     cargo: "",
     centro_costo: "",
+    centro_costo_id: "",
     fecha_ingreso: obtenerFechaHoyISO(),
     fecha_termino: "",
     tipo_contrato: "Indefinido",
@@ -109,12 +111,34 @@ export default function TrabajadoresRemuneraciones() {
   const [formulario, setFormulario] = useState(crearEstadoInicial);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  // El centro de costo dejó de ser texto libre (módulo 14): se elige del
+  // catálogo de la empresa. Mientras no haya centros creados se sigue
+  // aceptando texto, para no bloquear a quien todavía no los usa.
+  const [centrosCosto, setCentrosCosto] = useState([]);
 
   useEffect(() => {
     if (empresaActiva) {
       cargarTrabajadores();
     }
   }, []);
+
+  useEffect(() => {
+    if (!empresaActiva?.id) return;
+
+    let vigente = true;
+
+    listarCentrosCosto(empresaActiva.id, "vigente")
+      .then((datos) => {
+        if (vigente) setCentrosCosto(datos.centros || []);
+      })
+      .catch(() => {
+        if (vigente) setCentrosCosto([]);
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [empresaActiva?.id]);
 
   async function cargarTrabajadores() {
     try {
@@ -161,6 +185,7 @@ export default function TrabajadoresRemuneraciones() {
         cargas: Number(formulario.cargas || 0),
         plan_salud_uf: Number(formulario.plan_salud_uf || 0),
         anios_cotizados_previos: Number(formulario.anios_cotizados_previos || 0),
+        centro_costo_id: formulario.centro_costo_id || null,
       };
 
       const data = editandoId
@@ -188,6 +213,7 @@ export default function TrabajadoresRemuneraciones() {
       nacionalidad: item.nacionalidad || "Chilena",
       cargo: item.cargo || "",
       centro_costo: item.centro_costo || "",
+      centro_costo_id: item.centro_costo_id ? String(item.centro_costo_id) : "",
       fecha_ingreso: item.fecha_ingreso?.substring(0, 10) || "",
       fecha_termino: item.fecha_termino?.substring(0, 10) || "",
       tipo_contrato: item.tipo_contrato || "Indefinido",
@@ -296,12 +322,34 @@ export default function TrabajadoresRemuneraciones() {
             value={formulario.cargo}
             onChange={cambiarFormulario}
           />
-          <Campo
-            label="Centro costo"
-            name="centro_costo"
-            value={formulario.centro_costo}
-            onChange={cambiarFormulario}
-          />
+          {centrosCosto.length > 0 ? (
+            <div>
+              <label style={labelStyle} htmlFor="trabajador-centro-costo">
+                Centro de costo
+              </label>
+              <select
+                id="trabajador-centro-costo"
+                style={inputStyle}
+                name="centro_costo_id"
+                value={formulario.centro_costo_id}
+                onChange={cambiarFormulario}
+              >
+                <option value="">Sin centro</option>
+                {centrosCosto.map((centro) => (
+                  <option key={centro.id} value={centro.id}>
+                    {centro.codigo} - {centro.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <Campo
+              label="Centro costo"
+              name="centro_costo"
+              value={formulario.centro_costo}
+              onChange={cambiarFormulario}
+            />
+          )}
           <Campo
             label="Fecha ingreso"
             type="date"

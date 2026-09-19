@@ -1,4 +1,5 @@
 const pool = require("../database/db");
+const { exigirDeEmpresa } = require("../helpers/empresa.helper");
 
 async function crearTrabajador(req, res) {
   try {
@@ -41,7 +42,14 @@ async function crearTrabajador(req, res) {
       // anteriores a esta empresa, para el feriado progresivo.
       plan_salud_uf,
       anios_cotizados_previos,
+      // Centro de costo del catálogo (módulo 14).
+      centro_costo_id,
     } = req.body;
+
+    // Un centro de costo de otra empresa mezclaría los informes por local.
+    const centroCostoId = centro_costo_id
+      ? (await exigirDeEmpresa(pool, "centros_costo", centro_costo_id, empresa_id, "id")).id
+      : null;
 
     if (!empresa_id || !rut || !nombres || !fecha_ingreso) {
       return res.status(400).json({
@@ -89,6 +97,7 @@ async function crearTrabajador(req, res) {
         fecha_movimiento_hasta,
         plan_salud_uf,
         anios_cotizados_previos,
+        centro_costo_id,
 
         estado
       )
@@ -97,7 +106,7 @@ async function crearTrabajador(req, res) {
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
         $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,
-        $31,$32,$33,$34,$35,'activo'
+        $31,$32,$33,$34,$35,$36,'activo'
       )
       RETURNING *
       `,
@@ -138,6 +147,7 @@ async function crearTrabajador(req, res) {
         fecha_movimiento_hasta || null,
         Number(plan_salud_uf || 0),
         Math.max(0, Math.trunc(Number(anios_cotizados_previos || 0))),
+        centroCostoId,
       ]
     );
 
@@ -248,7 +258,14 @@ async function actualizarTrabajador(req, res) {
       // anteriores a esta empresa, para el feriado progresivo.
       plan_salud_uf,
       anios_cotizados_previos,
+      // Centro de costo del catálogo (módulo 14).
+      centro_costo_id,
     } = req.body;
+
+    // Un centro de costo de otra empresa mezclaría los informes por local.
+    const centroCostoId = centro_costo_id
+      ? (await exigirDeEmpresa(pool, "centros_costo", centro_costo_id, empresa_id, "id")).id
+      : null;
 
     if (!empresa_id || !rut || !nombres || !fecha_ingreso) {
       return res.status(400).json({
@@ -295,7 +312,8 @@ async function actualizarTrabajador(req, res) {
         fecha_movimiento_desde = $32,
         fecha_movimiento_hasta = $33,
         plan_salud_uf = $36,
-        anios_cotizados_previos = $37
+        anios_cotizados_previos = $37,
+        centro_costo_id = $38
 
       WHERE id = $34
         AND empresa_id = $35
@@ -341,6 +359,7 @@ async function actualizarTrabajador(req, res) {
         empresa_id,
         Number(plan_salud_uf || 0),
         Math.max(0, Math.trunc(Number(anios_cotizados_previos || 0))),
+        centroCostoId,
       ]
     );
 

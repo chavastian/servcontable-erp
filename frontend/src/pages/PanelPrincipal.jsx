@@ -36,6 +36,8 @@ const CalceBancario = lazy(() => import("./CalceBancario"));
 const ClasificarDocumentos = lazy(() => import("./ClasificarDocumentos"));
 const CalendarioTributario = lazy(() => import("./CalendarioTributario"));
 const FlujoCaja = lazy(() => import("./FlujoCaja"));
+const Terceros = lazy(() => import("./Terceros"));
+const CentrosCosto = lazy(() => import("./CentrosCosto"));
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 const LOGO_SRC = "/servcontable-logo.png";
@@ -292,6 +294,8 @@ function vistaInicialPorModulo(moduloActivo) {
 }
 
 const VISTAS_VALIDAS = new Set([
+  "terceros",
+  "centrosCosto",
   "adminSuscripciones",
   "adminSuscripcionesAuditoria",
   "adminSuscripcionesClientes",
@@ -473,6 +477,7 @@ export default function PanelPrincipal({
         { id: "boletas", label: "Registro de Boletas" },
         { id: "compras", label: "Registro de Compras" },
         { id: "honorarios", label: "Honorarios Recibidos" },
+        { id: "terceros", label: "Proveedores y clientes" },
         { id: "pagosCobros", label: "Pagar / Cobrar Documento" },
         { id: "cuentasPendientes", label: "Cuentas por Cobrar/Pagar" },
         { id: "cartolaRut", label: "Cartola por RUT" },
@@ -509,6 +514,7 @@ export default function PanelPrincipal({
         { id: "configuracionContable", label: "Configuración Contable" },
         { id: "empresas", label: "Empresas" },
         { id: "planCuentas", label: "Plan de cuentas" },
+        { id: "centrosCosto", label: "Centros de costo" },
         { id: "auditoria", label: "Auditoría del sistema" },
       ],
     },
@@ -720,6 +726,8 @@ export default function PanelPrincipal({
             {vistaActiva === "clasificarDocumentos" && <ClasificarDocumentos />}
             {vistaActiva === "calendarioTributario" && <CalendarioTributario />}
             {vistaActiva === "flujoCaja" && <FlujoCaja />}
+            {vistaActiva === "terceros" && <Terceros />}
+            {vistaActiva === "centrosCosto" && <CentrosCosto />}
             {vistaActiva === "inicio" && <DashboardFinanciero irVista={irVista} />}
             {vistaActiva === "dashboardContable" && <DashboardContable irVista={irVista} />}
             {vistaActiva === "empresas" && <Empresas />}

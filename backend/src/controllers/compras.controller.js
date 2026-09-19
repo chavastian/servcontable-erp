@@ -21,6 +21,12 @@ const {
   normalizarNombreTercero,
 } = require("../helpers/trazabilidadRut.helper");
 const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
+const {
+  resolverTercero,
+  resolverTercerosEnLote,
+  claveRut,
+  vencimientoSegunCondicion,
+} = require("../helpers/terceros.helper");
 
 const { parse } = require("csv-parse/sync");
 const {
@@ -219,10 +225,27 @@ async function crearCompra(req, res) {
 
     await client.query("BEGIN");
 
-    if (cuentaGastoId) {
+    // El proveedor es una entidad del catalogo (modulo 12). Si no existe, se
+    // crea: registrar una compra no puede detenerse a dar de alta un
+    // proveedor. El documento conserva el RUT y el nombre con que fue emitido.
+    const tercero = await resolverTercero(client, empresa_id, {
+      rut: rutProveedorNormalizado,
+      razon_social: razonSocialProveedor,
+      tipo: "proveedor",
+    });
+
+    // La cuenta del catalogo la fijo una persona para este proveedor: manda
+    // sobre la cuenta por defecto de la empresa.
+    const cuentaGastoFinal = cuentaGastoId || tercero?.cuenta_gasto_id || null;
+
+    // Sin vencimiento en el documento, el de la condicion de pago pactada.
+    const vencimientoFinal =
+      fecha_vencimiento || vencimientoSegunCondicion(fecha, tercero?.condicion_pago_dias);
+
+    if (cuentaGastoFinal) {
       await validarCuentaOperativa(client, {
         empresaId: empresa_id,
-        cuentaId: cuentaGastoId,
+        cuentaId: cuentaGastoFinal,
         etiqueta: "cuenta de gasto/activo",
       });
     }
@@ -244,9 +267,10 @@ async function crearCompra(req, res) {
        (empresa_id, periodo, fecha, tipo_documento, folio, rut_proveedor,
          razon_social_proveedor, neto, exento, iva_credito, iva_no_recuperable,
          otros_impuestos, total, cuenta_gasto_id, cuenta_otros_impuestos_id,
-         sii_tipo_doc, fecha_vencimiento, ref_sii_tipo_doc, ref_folio, ref_fecha)
+         sii_tipo_doc, fecha_vencimiento, ref_sii_tipo_doc, ref_folio, ref_fecha,
+         tercero_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-               $17, $18, $19, $20)
+               $17, $18, $19, $20, $21)
        RETURNING *`,
       [
         empresa_id,
@@ -262,13 +286,14 @@ async function crearCompra(req, res) {
         ivaNoRecNum,
         otrosImpuestosNum,
         totalNum,
-        cuentaGastoId,
+        cuentaGastoFinal,
         cuentaOtrosImpuestosId,
         siiTipoDocManual,
-        fecha_vencimiento || null,
+        vencimientoFinal || null,
         ref_sii_tipo_doc || null,
         ref_folio || null,
         ref_fecha || null,
+        tercero?.id || null,
       ]
     );
 
@@ -550,6 +575,18 @@ async function importarComprasSII(req, res) {
     );
     let clasificadasPorHistorial = 0;
 
+    // Los proveedores del archivo, resueltos de una vez: el catalogo aporta la
+    // cuenta habitual y la condicion de pago de cada uno.
+    const tercerosPorRut = await resolverTercerosEnLote(
+      client,
+      empresa_id,
+      registros.map((fila) => ({
+        rut: fila["RUT Proveedor"],
+        razon_social: fila["Razon Social"] || fila["Razón Social"],
+      })),
+      "proveedor"
+    );
+
     await client.query("BEGIN");
 
     let insertadas = 0;
@@ -777,13 +814,27 @@ async function importarComprasSII(req, res) {
           clasificadasPorHistorial += 1;
         }
 
+        // Orden de preferencia: la cuenta que una persona fijo en el catalogo,
+        // despues lo que la empresa hizo antes con este RUT, y al final la
+        // cuenta por defecto.
+        const terceroCompra = tercerosPorRut[claveRut(rutProveedorNormalizado)] || null;
+        const cuentaGastoImportada =
+          terceroCompra?.cuenta_gasto_id ||
+          cuentaGastoDelHistorial ||
+          configuracion.cuenta_gasto_defecto_id ||
+          null;
+        const vencimientoImportado = vencimientoSegunCondicion(
+          fecha,
+          terceroCompra?.condicion_pago_dias
+        );
+
         const compraResult = await client.query(
           `INSERT INTO compras
            (empresa_id, periodo, fecha, tipo_documento, sii_tipo_doc, folio,
              rut_proveedor, razon_social_proveedor, neto, exento,
             iva_credito, iva_no_recuperable, otros_impuestos, total, cuenta_gasto_id,
-            cuenta_otros_impuestos_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+            cuenta_otros_impuestos_id, tercero_id, fecha_vencimiento)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
            RETURNING *`,
           [
             empresa_id,
@@ -800,8 +851,10 @@ async function importarComprasSII(req, res) {
             ivaNoRecuperable,
             otrosImpuestos,
             total,
-            cuentaGastoDelHistorial || configuracion.cuenta_gasto_defecto_id || null,
+            cuentaGastoImportada,
             cuentaOtrosImpuestosConfig,
+            terceroCompra?.id || null,
+            vencimientoImportado || null,
           ]
         );
 

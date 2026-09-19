@@ -315,17 +315,73 @@ async function insertarDetallesComprobante(client, comprobanteId, detalles = [])
     throw error;
   }
 
+  // El centro de costo es un catalogo desde el bloque 6 (modulo 14). Se acepta
+  // por id, y tambien por nombre para no romper lo que ya manda texto: el
+  // nombre se resuelve contra el catalogo de la empresa.
+  const centrosPorNombre = {};
+  const nombresCentro = [
+    ...new Set(
+      conMonto
+        .map((detalle) => texto(detalle.centro_costo).trim().toUpperCase())
+        .filter(Boolean)
+    ),
+  ];
+
+  if (nombresCentro.length > 0) {
+    const { rows } = await client.query(
+      `SELECT id, nombre, codigo FROM centros_costo
+       WHERE empresa_id = $1
+         AND (UPPER(TRIM(nombre)) = ANY($2::text[]) OR UPPER(TRIM(codigo)) = ANY($2::text[]))`,
+      [empresaId, nombresCentro]
+    );
+
+    for (const centro of rows) {
+      centrosPorNombre[String(centro.nombre).trim().toUpperCase()] = centro.id;
+      centrosPorNombre[String(centro.codigo).trim().toUpperCase()] = centro.id;
+    }
+  }
+
+  const centrosIndicados = [
+    ...new Set(
+      conMonto
+        .map((detalle) => Number(detalle.centro_costo_id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    ),
+  ];
+
+  if (centrosIndicados.length > 0) {
+    const { rows } = await client.query(
+      `SELECT id FROM centros_costo WHERE id = ANY($1::int[]) AND empresa_id = $2`,
+      [centrosIndicados, empresaId]
+    );
+
+    if (rows.length !== centrosIndicados.length) {
+      const error = new Error("Algun centro de costo no pertenece a la empresa del comprobante");
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  function centroDe(detalle) {
+    const porId = Number(detalle.centro_costo_id);
+
+    if (Number.isInteger(porId) && porId > 0) return porId;
+
+    return centrosPorNombre[texto(detalle.centro_costo).trim().toUpperCase()] || null;
+  }
+
   // Una sentencia por asiento en lugar de una por linea.
   await client.query(
     `
     INSERT INTO comprobante_detalle
-      (comprobante_id, cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar)
+      (comprobante_id, cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar,
+       centro_costo_id)
     SELECT $1, linea.cuenta_id, linea.glosa, linea.debe, linea.haber,
-           linea.folio, linea.centro_costo, linea.rut_auxiliar
+           linea.folio, linea.centro_costo, linea.rut_auxiliar, linea.centro_costo_id
     FROM UNNEST(
       $2::int[], $3::text[], $4::numeric[], $5::numeric[],
-      $6::text[], $7::text[], $8::text[]
-    ) AS linea(cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar)
+      $6::text[], $7::text[], $8::text[], $9::int[]
+    ) AS linea(cuenta_id, glosa, debe, haber, folio, centro_costo, rut_auxiliar, centro_costo_id)
     `,
     [
       comprobanteId,
@@ -336,6 +392,7 @@ async function insertarDetallesComprobante(client, comprobanteId, detalles = [])
       conMonto.map((detalle) => texto(detalle.folio)),
       conMonto.map((detalle) => texto(detalle.centro_costo)),
       conMonto.map((detalle) => normalizarRutDocumentoOpcional(detalle.rut_auxiliar)),
+      conMonto.map((detalle) => centroDe(detalle)),
     ]
   );
 }

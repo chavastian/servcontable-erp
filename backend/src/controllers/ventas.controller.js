@@ -9,6 +9,12 @@ const {
 const {
   crearComprobanteAutomaticoVenta,
 } = require("../helpers/comprobante.helper");
+const {
+  resolverTercero,
+  resolverTercerosEnLote,
+  claveRut,
+  vencimientoSegunCondicion,
+} = require("../helpers/terceros.helper");
 
 const { parse } = require("csv-parse/sync");
 const {
@@ -111,6 +117,18 @@ async function crearVenta(req, res) {
 
     await client.query("BEGIN");
 
+    // El cliente como entidad del catalogo (modulo 12), igual que el proveedor
+    // en compras.
+    const tercero = await resolverTercero(client, empresa_id, {
+      rut: rutClienteNormalizado,
+      razon_social: razonSocialCliente,
+      tipo: "cliente",
+    });
+
+    const cuentaIngresoFinal = cuentaIngresoId || tercero?.cuenta_ingreso_id || null;
+    const vencimientoFinal =
+      fecha_vencimiento || vencimientoSegunCondicion(fecha, tercero?.condicion_pago_dias);
+
     if (cuentaIngresoId) {
       await validarCuentaOperativa(client, {
         empresaId: empresa_id,
@@ -123,8 +141,9 @@ async function crearVenta(req, res) {
       `INSERT INTO ventas
        (empresa_id, periodo, fecha, tipo_documento, folio, rut_cliente,
         razon_social_cliente, neto, exento, iva, total, cuenta_ingreso_id,
-        sii_tipo_doc, fecha_vencimiento, ref_sii_tipo_doc, ref_folio, ref_fecha)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        sii_tipo_doc, fecha_vencimiento, ref_sii_tipo_doc, ref_folio, ref_fecha,
+        tercero_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        RETURNING *`,
       [
         empresa_id,
@@ -138,14 +157,15 @@ async function crearVenta(req, res) {
         exentoNum,
         ivaNum,
         totalNum,
-        cuentaIngresoId,
+        cuentaIngresoFinal,
         // Igual que en compras: el codigo SII sale del texto del tipo para que
         // el signo tributario y la unicidad no dependan de como se escribio.
         codigoSiiDesdeTipoDocumento(tipo_documento),
-        fecha_vencimiento || null,
+        vencimientoFinal || null,
         ref_sii_tipo_doc || null,
         ref_folio || null,
         ref_fecha || null,
+        tercero?.id || null,
       ]
     );
 
@@ -370,6 +390,17 @@ async function importarVentasSII(req, res) {
 
     await client.query("BEGIN");
 
+    // Los clientes del archivo, resueltos de una vez.
+    const tercerosPorRut = await resolverTercerosEnLote(
+      client,
+      empresa_id,
+      registros.map((fila) => ({
+        rut: fila["RUT cliente"] || fila["RUT Cliente"],
+        razon_social: fila["Razon Social"] || fila["Razón Social"],
+      })),
+      "cliente"
+    );
+
     let insertadas = 0;
     let actualizadas = 0;
     let omitidas = 0;
@@ -471,12 +502,14 @@ async function importarVentasSII(req, res) {
         const iva = convertirNumeroSII(fila["Monto IVA"]);
         const total = convertirNumeroSII(fila["Monto total"]);
 
+        const terceroVenta = tercerosPorRut[claveRut(rutClienteNormalizado)] || null;
+
         const ventaResult = await client.query(
           `INSERT INTO ventas
            (empresa_id, periodo, fecha, tipo_documento, sii_tipo_doc, folio,
             rut_cliente, razon_social_cliente, neto, exento, iva, total,
-            cuenta_ingreso_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+            cuenta_ingreso_id, tercero_id, fecha_vencimiento)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
            RETURNING *`,
           [
             empresa_id,
@@ -491,7 +524,9 @@ async function importarVentasSII(req, res) {
             exento,
             iva,
             total,
-            configuracion.cuenta_ingreso_defecto_id || null,
+            terceroVenta?.cuenta_ingreso_id || configuracion.cuenta_ingreso_defecto_id || null,
+            terceroVenta?.id || null,
+            vencimientoSegunCondicion(fecha, terceroVenta?.condicion_pago_dias) || null,
           ]
         );
 
