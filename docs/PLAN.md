@@ -186,8 +186,16 @@ las reglas de cada una y sus límites, está en `docs/ASISTENTES.md`.
   `DATE` como objetos `Date`, no como texto. Los cálculos que las trataban como
   texto dejaban el calce sin candidatos y rompían la proyección de caja.
   `helpers/fecha.helper.js` normaliza antes de cualquier resta.
-- [x] 33 pruebas nuevas (163 en total) y 9 endpoints agregados al chequeo de humo
+- [x] **Incoherencia corregida en lo recién construido:** el panel miraba seis de
+  las nueve revisiones, así que pintaba verde una empresa que el cierre marcaba en
+  rojo por el IVA descuadrado. Ahora corre las nueve con la misma gravedad, y una
+  prueba compara los dos estados y falla si se separan.
+- [x] 35 pruebas nuevas (165 en total) y 9 endpoints agregados al chequeo de humo
   (47 en total).
+- [x] **Sobre datos reales de la copia,** el cierre encontró que el IVA de los
+  libros de ESTRUCTURAS JYJ no coincide con el contabilizado en enero de 2026, y un
+  folio de venta faltante. El flujo de caja mostró 4.043.479 pesos por cobrar con
+  más de noventa días.
 - [ ] **Paso siguiente natural:** agregar fecha de vencimiento a compras y ventas,
   para que el flujo de caja deje de estimar.
 

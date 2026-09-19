@@ -37,8 +37,15 @@ actividad registrada.
 
 **Detalle de implementación que importa:** la consulta es por concepto y no por
 empresa. Una consulta trae los documentos sin cuenta de *todas* las empresas, otra
-los asientos descuadrados de todas, y así. Con veinte empresas son ocho consultas,
-no ciento sesenta.
+los asientos descuadrados de todas, y así. Con veinte empresas son once consultas,
+no ciento noventa.
+
+**El panel corre las mismas nueve revisiones que el cierre mensual, con la misma
+gravedad.** La primera versión miraba solo seis, y el resultado fue que el panel
+pintaba verde una empresa que el cierre marcaba en rojo: el IVA de los libros
+podía no coincidir con lo contabilizado y el panel no lo miraba. Un semáforo que
+contradice al detalle no se vuelve a mirar. Hay una prueba que compara los dos
+estados y falla si se separan.
 
 ## 2. Cierre mensual asistido
 
@@ -213,6 +220,18 @@ correr el día según el huso.
 ```
 cd backend
 DATABASE_URL=<staging> node --test test/asistentesContables.test.js
-DATABASE_URL=<staging> npm test          # 163 pruebas
+DATABASE_URL=<staging> npm test          # 165 pruebas
 DATABASE_URL=<staging> npm run smoke:api # 47 endpoints
 ```
+
+## Lo que encontró en datos reales
+
+Corriendo el cierre mensual sobre `servcontable_staging`, que es una copia de los
+datos de producción, para ESTRUCTURAS JYJ en enero de 2026:
+
+- **El IVA de los libros no coincide con el IVA contabilizado.** Es un error que
+  nadie había visto porque nada comparaba las dos cifras.
+- **Falta un folio en la serie de ventas.** Puede ser un documento sin registrar.
+
+Y el flujo de caja informa 4.043.479 pesos por cobrar, **todos con más de noventa
+días**. El sistema tenía el dato; no tenía dónde mostrarlo.

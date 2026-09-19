@@ -24,14 +24,29 @@ import {
   fechaCorta,
 } from "../utils/estilosAsistentes";
 
+// Las mismas nueve revisiones que corre el cierre mensual, con la misma
+// gravedad. Si el panel mirara menos cosas, pintaria verde una empresa que el
+// cierre marca en rojo, y un semaforo que contradice al detalle no se vuelve a
+// mirar.
 const PENDIENTES = [
   { clave: "asientos_descuadrados", texto: "Asientos descuadrados", gravedad: "error" },
   { clave: "documentos_duplicados", texto: "Documentos duplicados", gravedad: "error" },
   { clave: "documentos_sin_cuenta", texto: "Sin cuenta asignada", gravedad: "error" },
+  { clave: "iva_descuadrado", texto: "IVA del libro no cuadra con lo contabilizado", gravedad: "error" },
   { clave: "documentos_sin_asiento", texto: "Sin contabilizar", gravedad: "aviso" },
   { clave: "movimientos_banco_sin_conciliar", texto: "Banco sin conciliar", gravedad: "aviso" },
   { clave: "liquidaciones_faltantes", texto: "Liquidaciones faltantes", gravedad: "aviso" },
+  { clave: "folios_de_venta_faltantes", texto: "Folios de venta faltantes", gravedad: "aviso" },
+  { clave: "montos_atipicos", texto: "Compras fuera de lo habitual", gravedad: "aviso" },
+  {
+    clave: "cuentas_de_iva_sin_configurar",
+    texto: "Falta configurar las cuentas de IVA: no se pudo comparar",
+    gravedad: "aviso",
+  },
 ];
+
+// Los contadores que no tienen sentido mostrar como cantidad: son un si o un no.
+const SIN_CANTIDAD = ["iva_descuadrado", "cuentas_de_iva_sin_configurar"];
 
 export default function PanelEstudio({ irVista }) {
   const [periodo, setPeriodo] = useState(obtenerPeriodoTrabajo());
@@ -210,7 +225,10 @@ export default function PanelEstudio({ irVista }) {
                                       falta.gravedad === "error" ? "#991b1b" : "#9a3412",
                                   }}
                                 >
-                                  {falta.texto}: {numero(fila.pendientes[falta.clave])}
+                                  {falta.texto}
+                                  {SIN_CANTIDAD.includes(falta.clave)
+                                    ? ""
+                                    : `: ${numero(fila.pendientes[falta.clave])}`}
                                 </li>
                               ))}
                             </ul>

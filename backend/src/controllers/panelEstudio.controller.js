@@ -203,6 +203,93 @@ async function obtenerPanelEstudio(req, res) {
       ),
     ]);
 
+    // Las tres revisiones que faltaban para que el semáforo del panel diga lo
+    // mismo que el cierre mensual.
+    //
+    // Sin ellas el panel pintaba verde una empresa que el cierre marcaba en
+    // rojo: el IVA de los libros podía no coincidir con lo contabilizado y el
+    // panel no lo miraba. Un semáforo que contradice al detalle no se vuelve a
+    // mirar. Siguen siendo una consulta por concepto para todas las empresas.
+    const [ivaContable, folios, atipicos] = await Promise.all([
+      // IVA contabilizado en las cuentas que cada empresa declaró como sus
+      // cuentas de IVA. Las cuentas salen de la configuración de cada una, así
+      // que el CASE compara contra la columna, no contra un parámetro.
+      pool.query(
+        `
+        SELECT cc.empresa_id,
+               (cc.cuenta_iva_debito_id IS NOT NULL
+                AND cc.cuenta_iva_credito_id IS NOT NULL) AS configurado,
+               COALESCE(SUM(CASE WHEN cd.cuenta_id = cc.cuenta_iva_debito_id
+                                 THEN cd.haber - cd.debe ELSE 0 END), 0) AS debito_contable,
+               COALESCE(SUM(CASE WHEN cd.cuenta_id = cc.cuenta_iva_credito_id
+                                 THEN cd.debe - cd.haber ELSE 0 END), 0) AS credito_contable
+        FROM configuracion_contable cc
+        LEFT JOIN comprobantes c
+          ON c.empresa_id = cc.empresa_id
+         AND c.periodo = $2
+         AND c.estado = 'vigente'
+        LEFT JOIN comprobante_detalle cd ON cd.comprobante_id = c.id
+        WHERE cc.empresa_id = ANY($1::int[])
+        GROUP BY cc.empresa_id, cc.cuenta_iva_debito_id, cc.cuenta_iva_credito_id
+        `,
+        [ids, periodo]
+      ),
+
+      // Saltos en la numeración de ventas, por empresa y tipo de documento.
+      pool.query(
+        `
+        WITH numeradas AS (
+          SELECT empresa_id, tipo_documento, folio::bigint AS folio
+          FROM ventas
+          WHERE empresa_id = ANY($1::int[])
+            AND periodo = $2
+            AND estado = 'vigente'
+            AND folio ~ '^[0-9]+$'
+        ),
+        saltos AS (
+          SELECT empresa_id, folio,
+                 LAG(folio) OVER (PARTITION BY empresa_id, tipo_documento ORDER BY folio) AS anterior
+          FROM numeradas
+        )
+        SELECT empresa_id, COALESCE(SUM(folio - anterior - 1), 0)::int AS faltan
+        FROM saltos
+        WHERE anterior IS NOT NULL AND folio - anterior > 1
+        GROUP BY empresa_id
+        `,
+        [ids, periodo]
+      ),
+
+      // Compras muy por encima del promedio histórico de su proveedor.
+      pool.query(
+        `
+        WITH historia AS (
+          SELECT empresa_id, rut_proveedor,
+                 AVG(total) AS promedio,
+                 COUNT(*)::int AS documentos
+          FROM compras
+          WHERE empresa_id = ANY($1::int[])
+            AND estado = 'vigente'
+            AND periodo < $2
+            AND COALESCE(rut_proveedor, '') <> ''
+          GROUP BY empresa_id, rut_proveedor
+          HAVING COUNT(*) >= 3
+        )
+        SELECT c.empresa_id, COUNT(*)::int AS atipicos
+        FROM compras c
+        JOIN historia h
+          ON h.empresa_id = c.empresa_id
+         AND h.rut_proveedor = c.rut_proveedor
+        WHERE c.empresa_id = ANY($1::int[])
+          AND c.periodo = $2
+          AND c.estado = 'vigente'
+          AND h.promedio > 0
+          AND c.total > h.promedio * 5
+        GROUP BY c.empresa_id
+        `,
+        [ids, periodo]
+      ),
+    ]);
+
     // El crédito va aparte: viene de compras, no de ventas.
     const credito = await pool.query(
       `
@@ -223,6 +310,9 @@ async function obtenerPanelEstudio(req, res) {
     const mapaEjercicios = porEmpresa(ejercicios.rows);
     const mapaActividad = porEmpresa(actividad.rows);
     const mapaDuplicados = porEmpresa(duplicados.rows);
+    const mapaIvaContable = porEmpresa(ivaContable.rows);
+    const mapaFolios = porEmpresa(folios.rows);
+    const mapaAtipicos = porEmpresa(atipicos.rows);
 
     const filas = empresas.map((empresa) => {
       const id = Number(empresa.id);
@@ -244,11 +334,34 @@ async function obtenerPanelEstudio(req, res) {
       const creditoFiscal = Math.round(Number(mapaCredito[id]?.credito || 0));
       const ivaDeterminado = debito - creditoFiscal;
 
+      // El IVA del libro contra el contabilizado. Si la empresa no declaró sus
+      // cuentas de IVA no se puede comparar, y eso se informa como aviso en
+      // lugar de dar por bueno lo que no se revisó.
+      const contable = mapaIvaContable[id];
+      const ivaComparable = contable?.configurado === true;
+      const debitoContable = Math.round(Number(contable?.debito_contable || 0));
+      const creditoContable = Math.round(Number(contable?.credito_contable || 0));
+      const ivaDescuadrado =
+        ivaComparable && (debito !== debitoContable || creditoFiscal !== creditoContable);
+
+      const foliosFaltantes = Number(mapaFolios[id]?.faltan || 0);
+      const montosAtipicos = Number(mapaAtipicos[id]?.atipicos || 0);
+
       // Lo que hace que el panel sirva: un solo semáforo por empresa.
       // Rojo es algo que hace que lo declarado no cuadre; amarillo es algo que
       // conviene mirar; verde es que no hay nada pendiente.
-      const errores = descuadre + duplicado + sinCuenta;
-      const avisos = sinAsiento + pendienteBanco + remuneracionesPendientes;
+      //
+      // Son las mismas nueve revisiones del cierre mensual y con la misma
+      // gravedad: el panel y el detalle no pueden decir cosas distintas de la
+      // misma empresa.
+      const errores = descuadre + duplicado + sinCuenta + (ivaDescuadrado ? 1 : 0);
+      const avisos =
+        sinAsiento +
+        pendienteBanco +
+        remuneracionesPendientes +
+        foliosFaltantes +
+        montosAtipicos +
+        (ivaComparable ? 0 : 1);
 
       return {
         empresa_id: id,
@@ -265,6 +378,10 @@ async function obtenerPanelEstudio(req, res) {
           documentos_sin_asiento: sinAsiento,
           movimientos_banco_sin_conciliar: pendienteBanco,
           liquidaciones_faltantes: remuneracionesPendientes,
+          iva_descuadrado: ivaDescuadrado ? 1 : 0,
+          folios_de_venta_faltantes: foliosFaltantes,
+          montos_atipicos: montosAtipicos,
+          cuentas_de_iva_sin_configurar: ivaComparable ? 0 : 1,
         },
 
         documentos_del_periodo: Number(doc.total || 0),
@@ -275,6 +392,10 @@ async function obtenerPanelEstudio(req, res) {
           determinado: ivaDeterminado,
           a_pagar: ivaDeterminado > 0 ? ivaDeterminado : 0,
           remanente: ivaDeterminado < 0 ? Math.abs(ivaDeterminado) : 0,
+          comparable_con_contabilidad: ivaComparable,
+          debito_contabilizado: debitoContable,
+          credito_contabilizado: creditoContable,
+          cuadra_con_contabilidad: ivaComparable ? !ivaDescuadrado : null,
         },
 
         remuneraciones: {

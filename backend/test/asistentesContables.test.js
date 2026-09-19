@@ -98,6 +98,8 @@ test.before(async () => {
   ctx.luz = await cuenta("5101010", "Electricidad", "Gasto", "Deudora");
   ctx.arriendo = await cuenta("5101020", "Arriendos", "Gasto", "Deudora");
   ctx.ingresos = await cuenta("4101010", "Ventas", "Ingreso", "Acreedora");
+  ctx.ivaDebito = await cuenta("2101010", "IVA debito fiscal", "Pasivo", "Acreedora");
+  ctx.ivaCredito = await cuenta("1105010", "IVA credito fiscal", "Activo", "Deudora");
 
   // Historial del proveedor: tres facturas ya clasificadas en Electricidad. Es
   // la decisión que la empresa tomó y que la sugerencia debe repetir.
@@ -289,6 +291,65 @@ test("el panel de un usuario sin empresas no filtra datos de otros", async () =>
   assert.equal(respuesta.status, 200);
   assert.equal(datos.total_empresas, 0);
   assert.deepEqual(datos.empresas, []);
+});
+
+test("el panel y el cierre mensual no se contradicen", async () => {
+  const panel = await pedir(`/api/panel-estudio?periodo=${PERIODO}`);
+  const fila = panel.datos.empresas.find((e) => e.empresa_id === ctx.empresa);
+
+  const cierre = await pedir(
+    `/api/cierre-mensual?empresa_id=${ctx.empresa}&periodo=${PERIODO}`
+  );
+
+  // Es la comprobacion que importa: el semaforo del panel es lo unico que mira
+  // quien tiene veinte empresas, asi que no puede decir "al dia" de una empresa
+  // que el detalle marca con problemas.
+  assert.equal(
+    fila.estado,
+    cierre.datos.resumen.estado,
+    "el semaforo del panel tiene que coincidir con el del cierre mensual"
+  );
+});
+
+test("el panel mira el IVA del libro contra lo contabilizado", async () => {
+  // Con las cuentas de IVA sin configurar no se puede comparar, y eso se avisa
+  // en lugar de dar por bueno lo que no se reviso.
+  const { datos } = await pedir(`/api/panel-estudio?periodo=${PERIODO}`);
+  const fila = datos.empresas.find((e) => e.empresa_id === ctx.empresa);
+
+  assert.equal(fila.iva.comparable_con_contabilidad, false);
+  assert.equal(fila.pendientes.cuentas_de_iva_sin_configurar, 1);
+  assert.equal(fila.iva.cuadra_con_contabilidad, null);
+
+  // Ahora con las cuentas configuradas: el libro tiene 38.000 de debito y la
+  // contabilidad no tiene nada, asi que no cuadra y es un error.
+  await pool.query(
+    `INSERT INTO configuracion_contable
+       (empresa_id, cuenta_iva_debito_id, cuenta_iva_credito_id)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (empresa_id) DO UPDATE
+       SET cuenta_iva_debito_id = $2, cuenta_iva_credito_id = $3`,
+    [ctx.empresa, ctx.ivaDebito, ctx.ivaCredito]
+  );
+
+  const despues = await pedir(`/api/panel-estudio?periodo=${PERIODO}`);
+  const filaDespues = despues.datos.empresas.find((e) => e.empresa_id === ctx.empresa);
+
+  assert.equal(filaDespues.iva.comparable_con_contabilidad, true);
+  assert.equal(filaDespues.iva.debito_contabilizado, 0);
+  assert.equal(filaDespues.iva.cuadra_con_contabilidad, false);
+  assert.equal(filaDespues.pendientes.iva_descuadrado, 1);
+  assert.equal(filaDespues.estado, "error");
+
+  // Y el cierre mensual dice lo mismo.
+  const cierre = await pedir(
+    `/api/cierre-mensual?empresa_id=${ctx.empresa}&periodo=${PERIODO}`
+  );
+  const revision = cierre.datos.revisiones.find(
+    (r) => r.codigo === "iva_libro_contabilidad"
+  );
+
+  assert.equal(revision.estado, "error");
 });
 
 // ---------------------------------------------------------------------------
