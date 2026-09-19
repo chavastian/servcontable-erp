@@ -75,7 +75,7 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Límite de 1 MB al cuerpo JSON.
 - [ ] Validación por esquema con `zod` en cada endpoint. `zod` ya está instalado; se aplica junto con la Fase 4, donde se tocan los mismos controladores.
 
-### Fase 4 — Integridad contable  🔄 en curso
+### Fase 4 — Integridad contable  ✅ 2026-09-18
 - [x] **C6** Importaciones con punto de guardado por fila. Antes, si la fila 51 fallaba, PostgreSQL abortaba la transacción, el `COMMIT` final se volvía un `ROLLBACK` y la respuesta informaba 50 filas insertadas que nunca existieron. Seis pruebas nuevas contra base real.
 - [x] La respuesta de una importación ahora informa lo que de verdad quedó guardado, con resultado `completa`, `parcial` o `sin_cambios`.
 - [x] **A15** Reimportar no pisa correcciones manuales ni reconstruye el asiento si los montos no cambiaron, y un documento anulado no revive ni recibe un asiento nuevo.
@@ -83,10 +83,12 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] **A8** Ya resuelto: una sola implementación de numeración, con bloqueo por transacción.
 - [x] **A9** Ya resuelto: el asiento de venta abona el exento.
 - [x] **A16** 47 puntos donde el mensaje crudo de PostgreSQL volvía al cliente. Ahora los errores de validación conservan su código y mensaje, y el resto responde un texto genérico.
-- [ ] **A10** Signo de las notas de crédito en IVA, F29, libros y dashboards. REQUIERE VALIDACIÓN CONTABLE/TRIBUTARIA antes de tocarlo.
-- [ ] **A18** Reversas en lugar de anulación en cascada: eliminar una liquidación contabilizada anula el comprobante completo del período.
-- [ ] Enteros para CLP, `creado_por` y `actualizado_por`, auditoría solo de agregado.
-- [ ] Validación por esquema con `zod` en los endpoints de escritura.
+- [x] **A10** Signo tributario de las notas de crédito en resumen de IVA, F29 y remanente. Antes sumaban en positivo, así que una nota de crédito **aumentaba** el débito fiscal en lugar de rebajarlo. En producción hay una nota de crédito de compra guardada así, de modo que el efecto sobre lo declarado era real. El resumen informa aparte cuánto rebajaron. **REQUIERE VALIDACIÓN CONTABLE/TRIBUTARIA**: el tratamiento aplicado es el estándar (código 61 y 112 restan, 56 suma), pero debe revisarlo un contador antes de darlo por firme. Siete pruebas lo fijan.
+- [x] **A18** Eliminar una liquidación contabilizada marcaba como eliminado el comprobante completo del período y desvinculaba en silencio a todos los demás trabajadores: desaparecía la contabilidad de la nómina entera. Ahora se rechaza con explicación si el asiento cubre a varias liquidaciones, y si cubre solo a una queda anulado (visible) en lugar de eliminado.
+- [x] `creado_por`, `actualizado_por` y `actualizado_en` en las doce tablas contables, poblados al escribir.
+- [x] Auditoría solo de agregado: un disparador rechaza `UPDATE` y `DELETE` sobre `auditoria_movimientos`. Una auditoría que se puede editar no sirve como prueba.
+- [x] Validación por esquema con `zod` en asientos, login, registro e importaciones, con mensajes por campo en español. Incluye partida doble: el asiento tiene que cuadrar, no puede ser por cero y una línea no puede llevar debe y haber a la vez. Trece pruebas.
+- [ ] Unificar montos a enteros en pesos. Requiere revisar cada cálculo y se aborda como trabajo aparte: hoy conviven `NUMERIC(14,2)` y `NUMERIC(18,2)`.
 
 ### Fase 5 — Suscripciones, cobranza y bloqueo
 Diseño sobre lo existente (`subscriptions`, `subscription_settings`, middleware 402):

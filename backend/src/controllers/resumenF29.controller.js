@@ -1,4 +1,7 @@
 const pool = require("../database/db");
+const {
+  sumaConSigno,
+} = require("../helpers/documentoTributario.helper");
 
 async function obtenerResumenF29(req, res) {
   try {
@@ -20,10 +23,10 @@ async function obtenerResumenF29(req, res) {
 
     const ventasResult = await pool.query(
       `SELECT
-         COALESCE(SUM(neto), 0) AS ventas_neto,
-         COALESCE(SUM(exento), 0) AS ventas_exento,
-         COALESCE(SUM(iva), 0) AS iva_debito,
-         COALESCE(SUM(total), 0) AS ventas_total
+         ${sumaConSigno("neto")} AS ventas_neto,
+         ${sumaConSigno("exento")} AS ventas_exento,
+         ${sumaConSigno("iva")} AS iva_debito,
+         ${sumaConSigno("total")} AS ventas_total
        FROM ventas
        WHERE empresa_id = $1
          AND periodo = $2
@@ -33,11 +36,11 @@ async function obtenerResumenF29(req, res) {
 
     const comprasResult = await pool.query(
       `SELECT
-         COALESCE(SUM(neto), 0) AS compras_neto,
-         COALESCE(SUM(exento), 0) AS compras_exento,
-         COALESCE(SUM(iva_credito), 0) AS iva_credito,
-         COALESCE(SUM(iva_no_recuperable), 0) AS iva_no_recuperable,
-         COALESCE(SUM(total), 0) AS compras_total
+         ${sumaConSigno("neto")} AS compras_neto,
+         ${sumaConSigno("exento")} AS compras_exento,
+         ${sumaConSigno("iva_credito")} AS iva_credito,
+         ${sumaConSigno("iva_no_recuperable")} AS iva_no_recuperable,
+         ${sumaConSigno("total")} AS compras_total
        FROM compras
        WHERE empresa_id = $1
          AND periodo = $2

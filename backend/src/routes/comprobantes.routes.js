@@ -12,11 +12,20 @@ const {
 
 const { verificarToken } = require("../middleware/auth.middleware");
 const {
+  validar,
+  esquemas,
+} = require("../middleware/validacion.middleware");
+const {
   bloquearDemo,
   limitarCreacionDemoPorEmpresa,
 } = require("../middleware/demo.middleware");
 
-router.get("/", verificarToken, listarComprobantes);
+router.get(
+  "/",
+  verificarToken,
+  validar(esquemas.consultaPorEmpresa, "query"),
+  listarComprobantes
+);
 router.get("/siguiente-numero", verificarToken, obtenerSiguienteNumero);
 router.get("/:id", verificarToken, obtenerComprobante);
 router.post(
@@ -28,9 +37,15 @@ router.post(
     limite: 5,
     condicion: "COALESCE(estado, 'vigente') <> 'anulado'",
   }),
+  validar(esquemas.comprobante),
   crearComprobante
 );
-router.put("/:id", verificarToken, actualizarComprobante);
+router.put(
+  "/:id",
+  verificarToken,
+  validar(esquemas.comprobante),
+  actualizarComprobante
+);
 router.delete(
   "/:id",
   verificarToken,

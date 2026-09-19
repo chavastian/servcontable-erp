@@ -15,6 +15,10 @@ const {
   resetearPasswordConToken,
 } = require("../controllers/auth.controller");
 const {
+  validar,
+  esquemas,
+} = require("../middleware/validacion.middleware");
+const {
   limiteLogin,
   limiteRegistro,
   limiteRecuperacion,
@@ -24,8 +28,8 @@ const {
   exigirAdministradorUsuarios,
 } = require("../middleware/auth.middleware");
 
-router.post("/registro", limiteRegistro, registrarUsuario);
-router.post("/login", limiteLogin, loginUsuario);
+router.post("/registro", limiteRegistro, validar(esquemas.registro), registrarUsuario);
+router.post("/login", limiteLogin, validar(esquemas.login), loginUsuario);
 router.post("/recuperar-password", limiteRecuperacion, solicitarRecuperacionPassword);
 router.post("/resetear-password", limiteRecuperacion, resetearPasswordConToken);
 router.get("/me", verificarToken, obtenerSesion);

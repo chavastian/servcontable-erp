@@ -1,4 +1,8 @@
 const pool = require("../database/db");
+const {
+  sumaConSigno,
+  sumaNotasCredito,
+} = require("../helpers/documentoTributario.helper");
 
 async function obtenerResumenIVA(req, res) {
   try {
@@ -16,12 +20,18 @@ async function obtenerResumenIVA(req, res) {
       });
     }
 
+    // REQUIERE VALIDACIÓN CONTABLE/TRIBUTARIA: las notas de crédito restan.
+    // Antes se sumaba todo en positivo, de modo que una nota de crédito
+    // aumentaba el débito fiscal en lugar de rebajarlo.
     const ventasResult = await pool.query(
       `SELECT
-         COALESCE(SUM(neto), 0) AS ventas_neto,
-         COALESCE(SUM(exento), 0) AS ventas_exento,
-         COALESCE(SUM(iva), 0) AS iva_debito,
-         COALESCE(SUM(total), 0) AS ventas_total
+         ${sumaConSigno("neto")} AS ventas_neto,
+         ${sumaConSigno("exento")} AS ventas_exento,
+         ${sumaConSigno("iva")} AS iva_debito,
+         ${sumaConSigno("total")} AS ventas_total,
+         ${sumaNotasCredito("neto")} AS notas_credito_neto,
+         ${sumaNotasCredito("iva")} AS notas_credito_iva,
+         ${sumaNotasCredito("total")} AS notas_credito_total
        FROM ventas
        WHERE empresa_id = $1
          AND periodo = $2
@@ -31,11 +41,14 @@ async function obtenerResumenIVA(req, res) {
 
     const comprasResult = await pool.query(
       `SELECT
-         COALESCE(SUM(neto), 0) AS compras_neto,
-         COALESCE(SUM(exento), 0) AS compras_exento,
-         COALESCE(SUM(iva_credito), 0) AS iva_credito,
-         COALESCE(SUM(iva_no_recuperable), 0) AS iva_no_recuperable,
-         COALESCE(SUM(total), 0) AS compras_total
+         ${sumaConSigno("neto")} AS compras_neto,
+         ${sumaConSigno("exento")} AS compras_exento,
+         ${sumaConSigno("iva_credito")} AS iva_credito,
+         ${sumaConSigno("iva_no_recuperable")} AS iva_no_recuperable,
+         ${sumaConSigno("total")} AS compras_total,
+         ${sumaNotasCredito("neto")} AS notas_credito_neto,
+         ${sumaNotasCredito("iva_credito")} AS notas_credito_iva,
+         ${sumaNotasCredito("total")} AS notas_credito_total
        FROM compras
        WHERE empresa_id = $1
          AND periodo = $2
@@ -70,6 +83,12 @@ async function obtenerResumenIVA(req, res) {
         exento: ventasExento,
         iva_debito: ivaDebito,
         total: ventasTotal,
+        // Informado aparte para que se pueda revisar el efecto de las rebajas.
+        notas_credito: {
+          neto: Number(ventas.notas_credito_neto || 0),
+          iva: Number(ventas.notas_credito_iva || 0),
+          total: Number(ventas.notas_credito_total || 0),
+        },
       },
       compras: {
         neto: comprasNeto,
@@ -77,6 +96,11 @@ async function obtenerResumenIVA(req, res) {
         iva_credito: ivaCredito,
         iva_no_recuperable: ivaNoRecuperable,
         total: comprasTotal,
+        notas_credito: {
+          neto: Number(compras.notas_credito_neto || 0),
+          iva: Number(compras.notas_credito_iva || 0),
+          total: Number(compras.notas_credito_total || 0),
+        },
       },
       resumen: {
         iva_debito: ivaDebito,
@@ -85,6 +109,9 @@ async function obtenerResumenIVA(req, res) {
         iva_determinado: ivaDeterminado,
         iva_pagar: ivaPagar,
         remanente,
+        // Las notas de crédito ya vienen restadas en las cifras de arriba.
+        // REQUIERE VALIDACIÓN CONTABLE/TRIBUTARIA.
+        notas_credito_aplicadas: true,
       },
     });
   } catch (error) {

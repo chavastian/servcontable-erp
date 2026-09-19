@@ -1,4 +1,7 @@
 const pool = require("../database/db");
+const {
+  sumaConSigno,
+} = require("../helpers/documentoTributario.helper");
 
 async function obtenerControlRemanenteIVA(req, res) {
   try {
@@ -11,7 +14,7 @@ async function obtenerControlRemanenteIVA(req, res) {
     }
 
     const ventasResult = await pool.query(
-      `SELECT COALESCE(SUM(iva), 0) AS iva_debito
+      `SELECT ${sumaConSigno("iva")} AS iva_debito
        FROM ventas
        WHERE empresa_id = $1
          AND periodo = $2
@@ -20,7 +23,7 @@ async function obtenerControlRemanenteIVA(req, res) {
     );
 
     const comprasResult = await pool.query(
-      `SELECT COALESCE(SUM(iva_credito), 0) AS iva_credito
+      `SELECT ${sumaConSigno("iva_credito")} AS iva_credito
        FROM compras
        WHERE empresa_id = $1
          AND periodo = $2
@@ -84,7 +87,7 @@ async function guardarControlRemanenteIVA(req, res) {
     }
 
     const ventasResult = await pool.query(
-      `SELECT COALESCE(SUM(iva), 0) AS iva_debito
+      `SELECT ${sumaConSigno("iva")} AS iva_debito
        FROM ventas
        WHERE empresa_id = $1
          AND periodo = $2
@@ -93,7 +96,7 @@ async function guardarControlRemanenteIVA(req, res) {
     );
 
     const comprasResult = await pool.query(
-      `SELECT COALESCE(SUM(iva_credito), 0) AS iva_credito
+      `SELECT ${sumaConSigno("iva_credito")} AS iva_credito
        FROM compras
        WHERE empresa_id = $1
          AND periodo = $2

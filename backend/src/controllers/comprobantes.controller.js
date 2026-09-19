@@ -8,6 +8,10 @@ const {
 const { validarCuentaOperativa } = require("../helpers/cuentas.helper");
 const { usuarioPuedeAccederEmpresa } = require("../helpers/auth.helper");
 const { exigirPeriodoAbierto } = require("../helpers/periodo.helper");
+const {
+  marcarCreacion,
+  marcarActualizacion,
+} = require("../helpers/autoria.helper");
 
 async function crearComprobante(req, res) {
   const client = await pool.connect();
@@ -96,6 +100,7 @@ async function crearComprobante(req, res) {
     const comprobante = comprobanteResult.rows[0];
 
     await insertarDetallesComprobante(client, comprobante.id, detalles);
+    await marcarCreacion(client, "comprobantes", comprobante.id, req);
 
     await registrarAuditoria({
       client,
@@ -441,6 +446,7 @@ async function actualizarComprobante(req, res) {
     );
 
     await insertarDetallesComprobante(client, id, detalles);
+    await marcarActualizacion(client, "comprobantes", id, req);
 
     await registrarAuditoria({
       client,

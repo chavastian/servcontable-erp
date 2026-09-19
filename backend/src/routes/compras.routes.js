@@ -9,6 +9,10 @@ const {
 
 const { verificarToken } = require("../middleware/auth.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
+const {
+  validar,
+  esquemas,
+} = require("../middleware/validacion.middleware");
 const { limiteImportacion } = require("../middleware/seguridad.middleware");
 const {
   subidaArchivo,
@@ -42,6 +46,7 @@ router.post(
   // Despues de multer: antes de esta linea req.body esta vacio y la
   // membresia en la empresa no se puede comprobar.
   exigirEmpresa,
+  validar(esquemas.importacion),
   importarComprasSII
 );
 
