@@ -418,9 +418,17 @@ function calcularEstadoVigente(suscripcion, config) {
     return { status, days_remaining: null, grace_remaining: null };
   }
 
-  const hoy = new Date(new Date().toISOString().slice(0, 10));
-  const vence = new Date(`${expiresAt}T00:00:00`);
-  const diff = Math.ceil((vence.getTime() - hoy.getTime()) / 86400000);
+  // Las dos fechas se interpretan igual, en UTC.
+  //
+  // Antes `hoy` se construia desde un texto AAAA-MM-DD, que JavaScript lee como
+  // medianoche UTC, y `vence` desde AAAA-MM-DDT00:00:00, que lee como medianoche
+  // local. En Chile eso son 3 o 4 horas de diferencia, suficiente para que el
+  // redondeo hacia arriba diera un dia mas: toda suscripcion quedaba vigente un
+  // dia extra, "vence hoy" nunca ocurria y los avisos salian con un dia de
+  // desfase.
+  const hoy = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  const vence = Date.parse(`${expiresAt}T00:00:00Z`);
+  const diff = Math.round((vence - hoy) / 86400000);
 
   if (diff >= 0) {
     return {
@@ -456,15 +464,16 @@ function calcularDiasRestantesTrial(suscripcion, fechaReferencia = new Date()) {
 
   if (!trialEnd) return null;
 
+  // Ambas fechas en UTC, por el mismo motivo que en calcularEstadoVigente.
   const referenciaISO = fechaISO(fechaReferencia) || new Date().toISOString().slice(0, 10);
-  const referencia = new Date(`${referenciaISO}T00:00:00`);
-  const vence = new Date(`${trialEnd}T00:00:00`);
+  const referencia = Date.parse(`${referenciaISO}T00:00:00Z`);
+  const vence = Date.parse(`${trialEnd}T00:00:00Z`);
 
-  if (Number.isNaN(referencia.getTime()) || Number.isNaN(vence.getTime())) {
+  if (Number.isNaN(referencia) || Number.isNaN(vence)) {
     return null;
   }
 
-  return Math.ceil((vence.getTime() - referencia.getTime()) / 86400000);
+  return Math.round((vence - referencia) / 86400000);
 }
 
 function tieneAccesoOperativo(suscripcion, opciones = {}) {
@@ -696,6 +705,7 @@ module.exports = {
   calcularMontoSuscripcion,
   inicializarSuscripciones,
   obtenerConfiguracionSuscripcion,
+  obtenerSuscripcionUsuario,
   registrarHistoriaSuscripcion,
   registrarAuditoriaAdmin,
   normalizarEstadoSuscripcion,

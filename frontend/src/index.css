@@ -1026,3 +1026,59 @@ tbody tr:hover td {
     align-items: flex-start;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Aviso del estado de la suscripcion.
+   Aparece sobre la aplicacion cuando queda poco para el vencimiento, durante
+   los dias de gracia o en una prueba gratuita por terminar. Con la suscripcion
+   vigente y holgada no se muestra, para no volverse ruido que se ignora.
+--------------------------------------------------------------------------- */
+.sc-aviso-suscripcion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 11px 18px;
+  font-size: 13.5px;
+  color: #ffffff;
+  background: var(--sc-primary);
+}
+
+.sc-aviso-suscripcion--urgente {
+  background: #b23c17;
+}
+
+.sc-aviso-suscripcion__texto {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  text-align: center;
+}
+
+.sc-aviso-suscripcion__texto strong {
+  font-size: 14px;
+}
+
+.sc-aviso-suscripcion .sc-btn--claro {
+  background: #ffffff;
+  color: var(--sc-primary);
+  border: 0;
+  padding: 7px 16px;
+  font-weight: bold;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sc-aviso-suscripcion .sc-btn--claro:hover {
+  background: #eef6fc;
+}
+
+@media (max-width: 620px) {
+  .sc-aviso-suscripcion {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}

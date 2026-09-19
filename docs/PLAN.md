@@ -90,14 +90,20 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Validación por esquema con `zod` en asientos, login, registro e importaciones, con mensajes por campo en español. Incluye partida doble: el asiento tiene que cuadrar, no puede ser por cero y una línea no puede llevar debe y haber a la vez. Trece pruebas.
 - [ ] Unificar montos a enteros en pesos. Requiere revisar cada cálculo y se aborda como trabajo aparte: hoy conviven `NUMERIC(14,2)` y `NUMERIC(18,2)`.
 
-### Fase 5 — Suscripciones, cobranza y bloqueo
-Diseño sobre lo existente (`subscriptions`, `subscription_settings`, middleware 402):
-- Estados: `TRIAL` → `ACTIVE` → `PAST_DUE` (gracia `grace_days`, acceso operativo) → `EXPIRED` (bloqueo, solo pantalla de renovación) → `SUSPENDED`/`CANCELLED` (admin). Trials sin gracia salvo configuración.
-- Proceso diario en el propio servicio (Starter siempre encendido): transiciona por fecha, encola y envía avisos, registra en `subscription_history` y `subscription_notifications` con deduplicación por (usuario, tipo, fecha).
-- Avisos por correo según `expiry_notice_days` (10, 5, 2, 0), al entrar en gracia, al bloquear, al reactivar, al iniciar trial y como recibo de pago. Plantillas sin HTML inyectable.
-- Frontend: banner de días restantes y gracia; manejo global del `402` que lleva a la pantalla de renovación a mitad de sesión.
-- Flow: activación idempotente (transacción + único por `flow_order`), registro en `subscription_payments`, ruta de alta para cliente nuevo que paga desde la web, `usuarios.activo=true` al reactivar.
-- Superadmin: listado con estado y vencimiento, historial de avisos, acciones existentes; validación de entradas.
+### Fase 5 — Suscripciones, cobranza y bloqueo  ✅ 2026-09-19
+Sobre lo existente (`subscriptions`, `subscription_settings`, middleware 402), que ya traía la máquina de estados bien hecha.
+
+- [x] **A20** La activación por pago no era idempotente. Flow avisa por dos caminos, el webhook y el retorno del navegador, y ambos leían la marca de activación ausente: el cliente recibía **dos meses por un pago**. Ahora todo ocurre en una transacción con la contratación bloqueada, y el único por proveedor y transacción es la última red. Probado con dos avisos simultáneos de verdad.
+- [x] Los pagos quedan registrados en `subscription_payments`, que estaba vacía: no había historial de cobros ni con qué emitir un recibo.
+- [x] Un cliente nuevo que paga desde la web sin tener cuenta ahora recibe una, con invitación por correo para definir su contraseña. Antes pagaba y no recibía acceso.
+- [x] Pagar reactiva una cuenta desactivada por impago.
+- [x] **Error de zona horaria encontrado al probar**: el cálculo de días mezclaba medianoche local con medianoche UTC. En Chile eso daba un día de más, así que toda suscripción quedaba vigente un día extra, «vence hoy» nunca ocurría y los avisos salían desfasados.
+- [x] Proceso diario dentro del propio servicio: transiciona estados por fecha, encola y envía avisos, y registra en `subscription_history` y `subscription_notifications`. Se apaga con `COBRANZA_AUTOMATICA=false`.
+- [x] Avisos a los 10, 5, 2 y 0 días, al entrar en gracia, al bloquear y al terminar la prueba, con textos distintos para prueba e impago. Deduplicados por usuario, evento y día con un índice único: correr el proceso dos veces no manda dos correos.
+- [x] Plantillas de correo de cobranza y de recibo de pago, con el texto escapado. De paso se corrigió el correo de contacto, que inyectaba el mensaje del visitante sin escapar.
+- [x] Frontend: aviso del estado sobre todas las pantallas, con tono urgente en los últimos tres días, y un interceptor global que reacciona al `402` a mitad de sesión y al cierre de sesión por token revocado. Antes cada pantalla mostraba su propio error.
+- [x] **Otro error encontrado al probar**: un dato de días ausente se leía como cero y el aviso anunciaba falsamente que la suscripción vencía hoy.
+- [x] 27 pruebas nuevas: 15 de cobranza y activación contra base real, 12 de la lógica del aviso.
 
 ### Fase 6 — Frontend
 - `VITE_API_URL` por entorno, estados de carga, vacío y error, validaciones, responsive, accesibilidad básica. Sin rediseño.

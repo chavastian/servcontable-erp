@@ -1,5 +1,10 @@
-const pool = require("../database/db");
+const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const pool = require("../database/db");
+const { activarPorPago } = require("../helpers/activacionPago.helper");
+const {
+  enviarCorreoRecuperacionPassword,
+} = require("../helpers/mail.helper");
 const {
   NOMBRE_SERVICIO_UNICO,
   calcularMontoSuscripcion,
@@ -492,54 +497,154 @@ async function consultarEstadoFlow(token) {
   return llamarFlow("/payment/getStatus", { apiKey, token }, "GET");
 }
 
+/**
+ * Activa la suscripcion cuando Flow confirma el pago.
+ *
+ * Flow avisa por dos caminos: el webhook del servidor y el retorno del
+ * navegador. Ambos pueden llegar a la vez, asi que la activacion es idempotente
+ * por bloqueo de fila; ver helpers/activacionPago.helper.js.
+ *
+ * Si la contratacion no tiene usuario asociado, es alguien que compro desde la
+ * web sin cuenta: se le crea una y se le invita a definir su contrasena. Antes
+ * ese caso no activaba nada y la persona pagaba sin recibir acceso.
+ */
 async function activarSuscripcionSiCorresponde(contratacion, estadoFlow) {
   if (!contratacion || mapearEstadoFlow(estadoFlow.status) !== "activo") {
     return null;
   }
 
   const metadata = contratacion.metadata || {};
-  const usuarioId = metadata.usuario_id || metadata.renovacion?.usuario_id || null;
+  let usuarioId = metadata.usuario_id || metadata.renovacion?.usuario_id || null;
+  let altaNueva = null;
 
-  if (!usuarioId || metadata.suscripcion_activada_en) {
+  if (!usuarioId) {
+    altaNueva = await crearUsuarioDesdeContratacion(contratacion);
+    usuarioId = altaNueva?.usuarioId || null;
+  }
+
+  if (!usuarioId) {
+    console.error(
+      `Pago confirmado sin usuario para la contratacion ${contratacion.id}: revisar a mano`
+    );
     return null;
   }
 
-
-  const meses = normalizarEnteroPositivo(metadata.meses_cobrados) || 1;
-  const usuariosAdicionales = normalizarEnteroPositivo(metadata.usuarios_adicionales);
-  const externalReference = String(
-    estadoFlow.flowOrder ||
-      estadoFlow.commerceOrder ||
-      contratacion.flow_order ||
-      contratacion.id
-  );
-
-  const usuarioActualizado = await extenderSuscripcionUsuario(
-    pool,
+  const resultado = await activarPorPago(pool, {
+    contratacionId: contratacion.id,
     usuarioId,
-    meses,
-    contratacion.periodicidad,
-    usuariosAdicionales,
-    externalReference
-  );
+    meses: normalizarEnteroPositivo(metadata.meses_cobrados) || 1,
+    periodicidad: contratacion.periodicidad,
+    usuariosAdicionales: normalizarEnteroPositivo(metadata.usuarios_adicionales),
+    proveedor: "flow",
+    transaccionId: String(
+      estadoFlow.flowOrder || estadoFlow.commerceOrder || contratacion.flow_order || contratacion.id
+    ),
+    monto: contratacion.total,
+    payload: estadoFlow,
+  });
 
-  await pool.query(
-    `
-    UPDATE contrataciones_web
-    SET metadata = metadata || $1::jsonb,
-        actualizado_en = CURRENT_TIMESTAMP
-    WHERE id = $2;
-    `,
-    [
-      JSON.stringify({
-        suscripcion_activada_en: new Date().toISOString(),
-        suscripcion_usuario_id: usuarioId,
-      }),
-      contratacion.id,
-    ]
-  );
+  if (resultado.activado && altaNueva?.resetUrl) {
+    // La invitacion se envia fuera de la transaccion: que falle el correo no
+    // puede deshacer un pago cobrado.
+    try {
+      await enviarCorreoRecuperacionPassword({
+        nombre: contratacion.nombre,
+        email: contratacion.correo,
+        resetUrl: altaNueva.resetUrl,
+        minutosVigencia: altaNueva.minutosVigencia,
+        modo: "invitacion",
+      });
+    } catch (error) {
+      console.error("No se pudo enviar la invitacion tras el pago:", error.message);
+    }
+  }
 
-  return usuarioActualizado;
+  return resultado;
+}
+
+/**
+ * Crea la cuenta de quien compro desde la web sin tener usuario.
+ *
+ * Deja un token de recuperacion para que defina su contrasena; nunca se genera
+ * una clave que haya que comunicar por otro medio.
+ */
+async function crearUsuarioDesdeContratacion(contratacion) {
+  const correo = String(contratacion.correo || "").trim().toLowerCase();
+
+  if (!correo) {
+    return null;
+  }
+
+  const cliente = await pool.connect();
+
+  try {
+    await cliente.query("BEGIN");
+
+    const existente = await cliente.query(
+      "SELECT id FROM usuarios WHERE email = $1 LIMIT 1",
+      [correo]
+    );
+
+    let usuarioId = existente.rows[0]?.id || null;
+
+    if (!usuarioId) {
+      // Contrasena aleatoria que nadie conoce: se entra por el enlace del
+      // correo, no por una clave provisoria.
+      const passwordHash = await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 10);
+
+      usuarioId = (
+        await cliente.query(
+          `INSERT INTO usuarios (nombre, email, password_hash, rol, activo, rut, telefono)
+           VALUES ($1, $2, $3, 'admin_cliente', true, $4, $5)
+           RETURNING id`,
+          [
+            String(contratacion.nombre || "Cliente ServContable").trim(),
+            correo,
+            passwordHash,
+            contratacion.rut || null,
+            contratacion.telefono || null,
+          ]
+        )
+      ).rows[0].id;
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const minutosVigencia = Number(process.env.INVITACION_MINUTOS || 60 * 48);
+
+    await cliente.query(
+      `INSERT INTO password_reset_tokens (usuario_id, token_hash, vence_en)
+       VALUES ($1, $2, NOW() + ($3::int * INTERVAL '1 minute'))`,
+      [usuarioId, tokenHash, minutosVigencia]
+    );
+
+    await cliente.query(
+      `UPDATE contrataciones_web
+       SET metadata = metadata || $1::jsonb
+       WHERE id = $2`,
+      [JSON.stringify({ usuario_id: usuarioId, alta_automatica: true }), contratacion.id]
+    );
+
+    await cliente.query("COMMIT");
+
+    const base = (
+      process.env.PASSWORD_RESET_URL_BASE ||
+      process.env.FRONTEND_URL ||
+      "https://app.servcontablepro.cl"
+    ).replace(/\/+$/, "");
+
+    return {
+      usuarioId,
+      resetUrl: `${base}?resetToken=${encodeURIComponent(token)}`,
+      minutosVigencia,
+    };
+  } catch (error) {
+    await cliente.query("ROLLBACK");
+    console.error("No se pudo crear la cuenta tras el pago:", error.message);
+    return null;
+  } finally {
+    cliente.release();
+  }
 }
 
 async function actualizarContratacionConEstadoFlow(token, estadoFlow) {

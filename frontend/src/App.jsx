@@ -3,6 +3,11 @@ import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import PanelPrincipal from "./pages/PanelPrincipal";
 import RenovarSuscripcion from "./pages/RenovarSuscripcion";
+import AvisoSuscripcion from "./components/AvisoSuscripcion";
+import {
+  EVENTO_SESION_CERRADA,
+  EVENTO_SUSCRIPCION_BLOQUEADA,
+} from "./services/interceptorHttp";
 import SelectorModulo from "./pages/SelectorModulo";
 import SelectorEmpresaModulo from "./pages/SelectorEmpresaModulo";
 import SelectorEjercicio from "./pages/SelectorEjercicio";
@@ -195,6 +200,30 @@ function App() {
     };
   }, [usuario?.id]);
 
+  // La suscripcion puede vencer a mitad de sesion. Sin esto, cada pantalla
+  // mostraba su propio error de 402 y la persona no entendia que pasaba.
+  useEffect(() => {
+    if (!usuario) return undefined;
+
+    function alBloquearse() {
+      obtenerSesionActualizada()
+        .then(setUsuario)
+        .catch(() => cerrarSesionVisual());
+    }
+
+    function alCerrarseLaSesion() {
+      cerrarSesionVisual();
+    }
+
+    window.addEventListener(EVENTO_SUSCRIPCION_BLOQUEADA, alBloquearse);
+    window.addEventListener(EVENTO_SESION_CERRADA, alCerrarseLaSesion);
+
+    return () => {
+      window.removeEventListener(EVENTO_SUSCRIPCION_BLOQUEADA, alBloquearse);
+      window.removeEventListener(EVENTO_SESION_CERRADA, alCerrarseLaSesion);
+    };
+  }, [usuario?.id]);
+
   if (vista === "registro") {
     return <Registro irALogin={() => setVista("login")} />;
   }
@@ -223,13 +252,39 @@ function App() {
     );
   }
 
+  // El aviso de vencimiento acompaña a todas las pantallas con sesion abierta:
+  // el correo puede no llegar o no leerse, y quien esta trabajando tiene que
+  // enterarse antes de quedarse sin acceso.
+  const avisoSuscripcion = (
+    <AvisoSuscripcion
+      usuario={usuario}
+      alRenovar={() => setVista("renovarSuscripcion")}
+    />
+  );
+
+  if (vista === "renovarSuscripcion") {
+    return (
+      <RenovarSuscripcion
+        usuario={usuario}
+        alCerrarSesion={cerrarSesionVisual}
+        alSesionActualizada={(usuarioActualizado) => {
+          setUsuario(usuarioActualizado);
+          setVista("selectorModulo");
+        }}
+      />
+    );
+  }
+
   if (vista === "selectorModulo" || !moduloActivo) {
     return (
-      <SelectorModulo
-        usuario={usuario}
-        seleccionarModulo={seleccionarModulo}
-        alCerrarSesion={cerrarSesionVisual}
-      />
+      <>
+        {avisoSuscripcion}
+        <SelectorModulo
+          usuario={usuario}
+          seleccionarModulo={seleccionarModulo}
+          alCerrarSesion={cerrarSesionVisual}
+        />
+      </>
     );
   }
 
@@ -260,16 +315,19 @@ function App() {
   }
 
   return (
-    <PanelPrincipal
-      usuario={usuario}
-      moduloActivo={moduloActivo}
-      empresaActiva={empresaActiva}
-      ejercicioActivo={ejercicioActivo}
-      cambiarEmpresa={cambiarEmpresa}
-      cambiarEjercicio={cambiarEjercicio}
-      volverASeleccionModulo={volverASeleccionModulo}
-      alCerrarSesion={cerrarSesionVisual}
-    />
+    <>
+      {avisoSuscripcion}
+      <PanelPrincipal
+        usuario={usuario}
+        moduloActivo={moduloActivo}
+        empresaActiva={empresaActiva}
+        ejercicioActivo={ejercicioActivo}
+        cambiarEmpresa={cambiarEmpresa}
+        cambiarEjercicio={cambiarEjercicio}
+        volverASeleccionModulo={volverASeleccionModulo}
+        alCerrarSesion={cerrarSesionVisual}
+      />
+    </>
   );
 }
 

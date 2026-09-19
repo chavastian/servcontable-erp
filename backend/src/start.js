@@ -9,6 +9,7 @@ const {
 } = require("./config/env");
 const { inicializarAuth } = require("./helpers/auth.helper");
 const { inicializarSuscripciones } = require("./helpers/suscripcion.helper");
+const { programarCobranza } = require("./helpers/cobranza.helper");
 
 function resolverFrontendDist(opciones = {}) {
   if (opciones.frontendDist) {
@@ -53,6 +54,18 @@ async function iniciarServidor(opciones = {}) {
     app.habilitarFrontendEstatico(frontendDist);
   }
 
+  // Los avisos de vencimiento y las transiciones por fecha corren dentro del
+  // propio servicio: en el plan Starter esta siempre encendido, asi que no hace
+  // falta un programador externo. Se puede apagar con COBRANZA_AUTOMATICA=false,
+  // que es lo que hacen las pruebas.
+  let detenerCobranza = null;
+
+  if (process.env.COBRANZA_AUTOMATICA !== "false" && process.env.NODE_ENV !== "test") {
+    detenerCobranza = programarCobranza(pool, {
+      intervaloHoras: Number(process.env.COBRANZA_INTERVALO_HORAS || 24),
+    });
+  }
+
   const host = opciones.host || process.env.HOST || hostPorDefecto();
   const port = Number(opciones.port ?? process.env.PORT ?? 4000);
 
@@ -62,6 +75,11 @@ async function iniciarServidor(opciones = {}) {
   });
 
   const direccion = server.address();
+
+  if (detenerCobranza) {
+    server.once("close", detenerCobranza);
+  }
+
   return {
     server,
     host,

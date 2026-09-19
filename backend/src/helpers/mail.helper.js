@@ -59,12 +59,12 @@ ${solicitud.mensaje || "-"}
 
   const html = `
     <h2>Nueva solicitud desde servcontablepro.cl</h2>
-    <p><strong>Nombre:</strong> ${solicitud.nombre}</p>
-    <p><strong>Correo:</strong> ${solicitud.correo}</p>
-    <p><strong>Empresa:</strong> ${solicitud.empresa || "-"}</p>
-    <p><strong>Interes:</strong> ${solicitud.interes || "-"}</p>
+    <p><strong>Nombre:</strong> ${escaparHtml(solicitud.nombre)}</p>
+    <p><strong>Correo:</strong> ${escaparHtml(solicitud.correo)}</p>
+    <p><strong>Empresa:</strong> ${escaparHtml(solicitud.empresa || "-")}</p>
+    <p><strong>Interes:</strong> ${escaparHtml(solicitud.interes || "-")}</p>
     <p><strong>Mensaje:</strong></p>
-    <p>${(solicitud.mensaje || "-").replace(/\n/g, "<br>")}</p>
+    <p>${escaparHtml(solicitud.mensaje || "-").replace(/\n/g, "<br>")}</p>
   `;
 
   const transporter = crearTransporter();
@@ -152,7 +152,111 @@ Si no solicitaste este acceso, puedes ignorar este correo.`;
   return { enviado: true };
 }
 
+/**
+ * Aviso de cobranza: vencimiento proximo, gracia, bloqueo o fin de prueba.
+ *
+ * El titulo y el mensaje se escapan antes de ir al HTML. El correo de contacto
+ * del sistema inyectaba el mensaje del visitante sin escapar, y aca el texto
+ * viene armado por el propio sistema, pero incluye el nombre del cliente, que
+ * es dato de entrada.
+ */
+async function enviarCorreoCobranza({ email, nombre, titulo, mensaje } = {}) {
+  if (!correoHabilitado()) {
+    return { enviado: false, motivo: "SMTP no configurado" };
+  }
+
+  if (!email) {
+    return { enviado: false, motivo: "Sin correo de destino" };
+  }
+
+  const from = process.env.MAIL_FROM || `"ServContable PRO" <${process.env.SMTP_USER}>`;
+  const enlace = (
+    process.env.APP_URL ||
+    process.env.FRONTEND_URL ||
+    "https://app.servcontablepro.cl"
+  ).replace(/\/+$/, "");
+
+  const texto = `${mensaje}
+
+Ingresa a ${enlace}
+
+ServContable PRO`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.55;">
+      <h2 style="margin: 0 0 12px; color: #0f4c81;">${escaparHtml(titulo)}</h2>
+      <p>${escaparHtml(mensaje)}</p>
+      <p>
+        <a href="${escaparHtml(enlace)}" style="display: inline-block; padding: 12px 18px; background: #0f4c81; color: #ffffff; text-decoration: none; border-radius: 8px;">
+          Ir a ServContable PRO
+        </a>
+      </p>
+      <p style="font-size: 12.5px; color: #5b6b7d;">
+        Recibes este correo porque tienes una cuenta en ServContable PRO.
+      </p>
+    </div>
+  `;
+
+  const transporter = crearTransporter();
+
+  await transporter.sendMail({
+    from,
+    to: email,
+    subject: titulo,
+    text: texto,
+    html,
+  });
+
+  return { enviado: true };
+}
+
+/**
+ * Recibo de pago.
+ */
+async function enviarCorreoReciboPago({ email, nombre, monto, periodo, servicio, vence } = {}) {
+  if (!correoHabilitado()) {
+    return { enviado: false, motivo: "SMTP no configurado" };
+  }
+
+  if (!email) {
+    return { enviado: false, motivo: "Sin correo de destino" };
+  }
+
+  const from = process.env.MAIL_FROM || `"ServContable PRO" <${process.env.SMTP_USER}>`;
+  const montoTexto = new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(Number(monto || 0));
+
+  const titulo = "Pago recibido";
+  const cuerpo =
+    `Hola ${nombre || "cliente"}. Recibimos tu pago de ${montoTexto} por ${servicio || "ServContable PRO"}` +
+    `${periodo ? ` (periodo ${periodo})` : ""}. ` +
+    `${vence ? `Tu suscripcion queda vigente hasta el ${vence}.` : "Tu suscripcion quedo vigente."}`;
+
+  const transporter = crearTransporter();
+
+  await transporter.sendMail({
+    from,
+    to: email,
+    subject: titulo,
+    text: cuerpo,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.55;">
+        <h2 style="margin: 0 0 12px; color: #10b981;">${escaparHtml(titulo)}</h2>
+        <p>${escaparHtml(cuerpo)}</p>
+      </div>
+    `,
+  });
+
+  return { enviado: true };
+}
+
 module.exports = {
+  correoHabilitado,
   enviarCorreoSolicitudContacto,
   enviarCorreoRecuperacionPassword,
+  enviarCorreoCobranza,
+  enviarCorreoReciboPago,
 };
