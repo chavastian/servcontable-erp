@@ -9,6 +9,17 @@ const {
 } = require("../controllers/honorarios.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const {
+  revisarBhe,
+  importarBhe,
+  camposImportacion,
+} = require("../controllers/bheSii.controller");
+const { exigirEmpresa } = require("../middleware/tenant.middleware");
+const { limiteImportacion } = require("../middleware/seguridad.middleware");
+const {
+  subidaArchivo,
+  manejarErroresDeSubida,
+} = require("../middleware/upload.middleware");
 const { validar, esquemas } = require("../middleware/validacion.middleware");
 
 const { exigirPermiso } = require("../middleware/tenant.middleware");
@@ -18,6 +29,31 @@ const {
 } = require("../middleware/demo.middleware");
 
 router.get("/", verificarToken, listarHonorarios);
+
+// Boletas de honorarios electronicas del SII (modulo 11). La empresa se valida
+// despues de multer: antes del archivo req.body esta vacio.
+router.get("/bhe/campos", verificarToken, camposImportacion);
+router.post(
+  "/bhe/revisar",
+  limiteImportacion,
+  verificarToken,
+  subidaArchivo.single("archivo"),
+  manejarErroresDeSubida,
+  exigirEmpresa,
+  exigirPermiso("IMPORTAR"),
+  revisarBhe
+);
+router.post(
+  "/bhe/importar",
+  limiteImportacion,
+  verificarToken,
+  subidaArchivo.single("archivo"),
+  manejarErroresDeSubida,
+  exigirEmpresa,
+  exigirPermiso("IMPORTAR"),
+  bloquearDemo("la importacion de boletas del SII se habilita en la version contratada."),
+  importarBhe
+);
 router.post(
   "/",
   verificarToken,

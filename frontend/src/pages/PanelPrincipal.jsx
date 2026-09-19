@@ -40,6 +40,9 @@ const Terceros = lazy(() => import("./Terceros"));
 const CentrosCosto = lazy(() => import("./CentrosCosto"));
 const ActivoFijo = lazy(() => import("./ActivoFijo"));
 const DeclaracionesJuradas = lazy(() => import("./DeclaracionesJuradas"));
+const ImportarBhe = lazy(() => import("./ImportarBhe"));
+const CorreccionMonetaria = lazy(() => import("./CorreccionMonetaria"));
+const RentaAnual = lazy(() => import("./RentaAnual"));
 
 const ROLES_ADMIN_SISTEMA = ["admin", "superadmin", "super_admin", "administrador_sistema"];
 const LOGO_SRC = "/servcontable-logo.png";
@@ -110,6 +113,21 @@ const HEROES_CONTABLE = {
   honorarios: {
     titulo: "Honorarios Recibidos",
     descripcion: "Registra boletas de honorarios recibidas y su efecto contable y tributario.",
+  },
+  importarBhe: {
+    titulo: "Importar boletas de honorarios del SII",
+    descripcion:
+      "Lee el archivo del SII, muestra qué columna es qué y solo después importa las boletas nuevas.",
+  },
+  correccionMonetaria: {
+    titulo: "Corrección monetaria",
+    descripcion:
+      "Corrige las partidas no monetarias y el capital propio del artículo 41, con el IPC del año.",
+  },
+  rentaAnual: {
+    titulo: "Renta anual",
+    descripcion:
+      "Determina la renta líquida imponible desde el balance y propone los códigos del F22.",
   },
   pagosCobros: {
     titulo: "Pagar / Cobrar Documento",
@@ -296,6 +314,9 @@ function vistaInicialPorModulo(moduloActivo) {
 }
 
 const VISTAS_VALIDAS = new Set([
+  "importarBhe",
+  "correccionMonetaria",
+  "rentaAnual",
   "declaracionesJuradas",
   "activoFijo",
   "terceros",
@@ -481,6 +502,7 @@ export default function PanelPrincipal({
         { id: "boletas", label: "Registro de Boletas" },
         { id: "compras", label: "Registro de Compras" },
         { id: "honorarios", label: "Honorarios Recibidos" },
+        { id: "importarBhe", label: "Importar boletas de honorarios (SII)" },
         { id: "terceros", label: "Proveedores y clientes" },
         { id: "pagosCobros", label: "Pagar / Cobrar Documento" },
         { id: "cuentasPendientes", label: "Cuentas por Cobrar/Pagar" },
@@ -512,6 +534,8 @@ export default function PanelPrincipal({
         { id: "cierreMensual", label: "Cierre mensual" },
         { id: "calendarioTributario", label: "Calendario tributario" },
         { id: "declaracionesJuradas", label: "Declaraciones juradas" },
+        { id: "correccionMonetaria", label: "Corrección monetaria" },
+        { id: "rentaAnual", label: "Renta anual y F22" },
       ],
     },
     {
@@ -736,6 +760,9 @@ export default function PanelPrincipal({
             {vistaActiva === "centrosCosto" && <CentrosCosto />}
             {vistaActiva === "activoFijo" && <ActivoFijo />}
             {vistaActiva === "declaracionesJuradas" && <DeclaracionesJuradas />}
+            {vistaActiva === "importarBhe" && <ImportarBhe />}
+            {vistaActiva === "correccionMonetaria" && <CorreccionMonetaria />}
+            {vistaActiva === "rentaAnual" && <RentaAnual />}
             {vistaActiva === "inicio" && <DashboardFinanciero irVista={irVista} />}
             {vistaActiva === "dashboardContable" && <DashboardContable irVista={irVista} />}
             {vistaActiva === "empresas" && <Empresas />}

@@ -63,6 +63,8 @@ const centrosCostoRoutes = require("./routes/centrosCosto.routes");
 const activosFijosRoutes = require("./routes/activosFijos.routes");
 const declaracionesJuradasRoutes = require("./routes/declaracionesJuradas.routes");
 const ivaUsoComunRoutes = require("./routes/ivaUsoComun.routes");
+const correccionMonetariaRoutes = require("./routes/correccionMonetaria.routes");
+const rentaAnualRoutes = require("./routes/rentaAnual.routes");
 
 
 const app = express();
@@ -174,6 +176,8 @@ app.use("/api/centros-costo", centrosCostoRoutes);
 app.use("/api/activos-fijos", activosFijosRoutes);
 app.use("/api/declaraciones-juradas", declaracionesJuradasRoutes);
 app.use("/api/iva-uso-comun", ivaUsoComunRoutes);
+app.use("/api/correccion-monetaria", correccionMonetariaRoutes);
+app.use("/api/renta-anual", rentaAnualRoutes);
 app.use("/api/auditoria", auditoriaRoutes);
 app.use("/api/pagos-flow", pagosFlowRoutes);
 app.use("/api/contacto", contactoRoutes);

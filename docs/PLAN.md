@@ -455,11 +455,74 @@ artefacto y sus bloques se cierran en este orden.
   Dos se omitieron a propósito: su cola no era solo estilos y no vale el riesgo.
 - [x] Migración `1758201200000_bloque9-iva-uso-comun`. 7 pruebas nuevas.
 
-- [ ] Módulo 11 (boletas de honorarios electrónicas desde el SII). **Necesito un archivo
-  real de ejemplo.**
-- [ ] Módulos 8 y 9 del informe (corrección monetaria y capital propio tributario; renta
-  anual, RLI y F22). **Son los dos que el informe marca como imposibles de escribir sin
-  definir criterio tributario antes**: esperan decisión.
+**Bloque 10 — Boletas de honorarios electrónicas del SII (módulo 11)  ✅ 19-09-2026**
+- [x] El problema no era leer un CSV: era que no tengo un archivo real del SII y adivinar
+  los nombres de las columnas es exactamente el hallazgo C-10, el importador que entró con
+  todos los montos en cero cuando el SII cambió un encabezado. Así que el importador no
+  adivina: reconoce los nombres que conoce, **dice cuál leyó como qué**, y si falta una
+  columna esencial se niega a importar y devuelve los encabezados del archivo para que la
+  persona los asigne a mano. Un archivo nuevo del SII se resuelve en la pantalla, sin
+  tocar el sistema.
+- [x] Dos pasos separados: `POST /api/honorarios/bhe/revisar` no escribe nada y devuelve el
+  cruce contra lo ya registrado (nuevas, coinciden, difieren, solo en el sistema);
+  `POST /api/honorarios/bhe/importar` inserta **solo las nuevas**. Una boleta ya registrada
+  con un monto distinto al del SII no se modifica: se informa. Corregir un monto
+  contabilizado es criterio contable.
+- [x] **Defecto real encontrado al escribir las pruebas:** `05-03-2039` se leía como 3 de
+  mayo, porque la conversión genérica de fechas de JavaScript asume mes primero. Habría
+  archivado boletas de marzo en el F29 y en la DJ 1879 de mayo. El formato chileno
+  dd-mm-aaaa se reconoce ahora **antes** de intentar cualquier otra lectura.
+- [x] Migración `1758201300000_bloque10-bhe` (origen manual o SII, si el emisor retiene,
+  índice por RUT y folio). 10 pruebas nuevas. Pantalla «Importar boletas de honorarios
+  (SII)».
+
+**Bloque 11 — Corrección monetaria del artículo 41 (módulo 8)  ✅ 19-09-2026**
+- [x] El informe marcaba este módulo como imposible sin definir criterio antes. Lo que se
+  construyó es la mitad que no es criterio, con la otra mitad bloqueada de forma explícita:
+  el cálculo **se niega a correr** si falta el IPC de algún mes del año, y dice cuáles
+  faltan. La tabla de IPC quedó deliberadamente vacía: no se interpola, no se asume cero.
+- [x] Las cuentas se clasifican en monetarias, no monetarias y patrimonio. El sistema
+  propone según tipo y nombre, pero `POST /api/correccion-monetaria/contabilizar` **rechaza**
+  si alguna cuenta no monetaria tiene solo la clasificación sugerida. Y exige un criterio
+  escrito de al menos diez caracteres, que queda guardado junto al asiento: una corrección
+  monetaria que no se puede explicar no se puede defender ante el SII.
+- [x] El factor se acumula mes a mes hacia diciembre, así que una partida que nació en
+  diciembre no se corrige y una anterior al año usa el factor anual completo. El asiento va
+  al 31 de diciembre, cuadrado, y un año se corrige una sola vez.
+- [x] Migración `1758201400000_bloque11-correccion-monetaria`. Pantalla «Corrección
+  monetaria», que carga el IPC mes a mes y confirma clasificaciones en bloque.
+
+**Bloque 12 — Renta anual, RLI y propuesta de F22 (módulo 9)  ✅ 19-09-2026**
+- [x] La renta líquida imponible parte del resultado según balance y suma o resta partidas.
+  Cada línea dice de dónde viene: `sistema` cuando sale de datos propios, `manual` cuando
+  la escribió una persona. Las del sistema se recalculan en cada consulta; las manuales se
+  conservan, porque el sistema no las puede volver a deducir.
+- [x] Tres partidas el sistema las conoce con exactitud porque las calculó él mismo: la
+  diferencia entre depreciación acelerada y normal del bloque 7, el resultado por
+  corrección monetaria del bloque 11, y los gastos de cuentas marcadas como rechazadas.
+- [x] **Defecto real encontrado al escribir las pruebas:** la corrección monetaria entraba
+  dos veces. Al contabilizarla su efecto ya está dentro del resultado según balance, y
+  agregarla además como partida dejaba la RLI mal por el doble. Ahora solo entra como
+  partida si está calculada y **sin** asiento, que es el caso de quien lleva el balance bajo
+  IFRS y la corrección solo para el SII; si está contabilizada, se dice por qué no aparece.
+- [x] De los cuatro registros del artículo 14, solo el DDAN se lleva solo. RAI, REX y SAC
+  llevan escrito qué necesitan y por qué el sistema no puede determinarlos.
+- [x] La renta no se cierra sin régimen definido (14 A, 14 D N°3, 14 D N°8, renta presunta)
+  ni sin criterio escrito. Cerrada no se modifica: se reabre con motivo, y queda registrado.
+- [x] `GET /api/renta-anual/f22` propone códigos con el origen de cada uno, y dice en el
+  primer aviso que **no es un formulario listo para presentar**: los códigos del F22 cambian
+  año a año y el sistema no los sigue.
+- [x] Migración `1758201500000_bloque12-renta-anual`. 13 pruebas nuevas entre los bloques 11
+  y 12. Pantalla «Renta anual y F22».
+
+**Los 14 módulos del informe están construidos.** Lo que queda de ellos no es código:
+
+- Validación contable de todo lo marcado `REQUIERE VALIDACIÓN CONTABLE/TRIBUTARIA`, que es
+  la sección 8 del informe. Los módulos 8 y 9 en particular nacieron con supuestos
+  explícitos para que se corrijan encima, no para usarse a ciegas.
+- Un archivo real de boletas del SII para confirmar que los encabezados que el importador
+  reconoce son los que vienen. Mientras no exista, el mapeo manual cubre el caso.
+- El IPC mensual publicado por el INE, que lo carga quien administra el sistema.
 
 ## Flujo de trabajo
 

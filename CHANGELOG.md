@@ -9,6 +9,32 @@ por commit. Los códigos entre paréntesis remiten a los hallazgos de
 Nada de esto está en producción todavía. Se puede revisar en
 `servcontablepro-nueva.pages.dev`.
 
+### Revisión del 19-09-2026: bloques 10, 11 y 12 (los tres módulos que faltaban)
+
+- **Importar boletas de honorarios desde el archivo del SII.** Se hace en dos pasos: primero
+  se revisa, sin guardar nada, y la pantalla muestra qué columna del archivo leyó como qué;
+  después se importa. Si el SII cambia un encabezado, se asigna a mano en la misma pantalla
+  y no hay que tocar el sistema. Solo entran las boletas nuevas: una ya registrada con un
+  monto distinto al del SII no se modifica, se informa.
+- **Las fechas del archivo se leen en formato chileno.** Un 05-03-2039 se estaba leyendo
+  como 3 de mayo, porque así interpreta las fechas JavaScript. Habría archivado boletas de
+  marzo en el F29 y en la declaración jurada de mayo.
+- **Corrección monetaria del artículo 41.** Corrige las partidas no monetarias y el capital
+  propio inicial con el IPC del año. Si falta el IPC de un mes, no calcula y dice qué meses
+  faltan: no inventa una variación. Y no contabiliza hasta que alguien confirma qué cuentas
+  son monetarias y escribe el criterio aplicado, que queda guardado con el asiento.
+- **Renta anual y renta líquida imponible.** Parte del resultado según balance. Cada partida
+  dice si la calculó el sistema o la escribió una persona; las del sistema se recalculan, las
+  escritas se conservan. Tres salen de datos propios: la diferencia de depreciación
+  acelerada, la corrección monetaria y los gastos de cuentas marcadas como rechazadas.
+- **Propuesta de códigos del F22, que no es un formulario listo para presentar.** Lo dice en
+  el primer aviso de la pantalla. Cada código muestra de dónde sale, para poder cuadrarlo
+  contra el balance antes de declarar.
+- De los cuatro registros del artículo 14, el sistema lleva solo el DDAN, porque es el único
+  que sale de algo que él mismo calculó. Los otros tres dicen qué necesitan y por qué.
+- La renta no se cierra sin régimen tributario definido ni sin criterio escrito. Una vez
+  cerrada no se modifica: se reabre con motivo, y queda registrado.
+
 ### Revisión del 19-09-2026: bloque 9
 
 - **El IVA de uso común ya no puede descuadrar un asiento.** Faltaba considerarlo al
