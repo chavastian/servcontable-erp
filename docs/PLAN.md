@@ -36,7 +36,7 @@ Verificado el 2026-09-18 vía API de GitHub, Render y Cloudflare.
 - [x] Verificar respaldos en Render: PITR disponible desde 2026-09-15, sin exports. Falta programar export periódico y prueba de restauración (Fase 8).
 - [x] Entorno paralelo en línea (2026-09-18): API `servcontablepro-api-staging.onrender.com` en plan gratuito, aplicación `servcontablepro-nueva.pages.dev`, y página de acceso `servcontablepro-acceso.pages.dev` con un botón por versión. Producción no se toca.
 - [x] Repositorio de trabajo público para que Render pueda clonarlo. Verificado antes: ningún secreto versionado, ni en el árbol ni en los 54 commits del historial.
-- [ ] `CLAUDE.md` y skills de Claude Code.
+- [x] `CLAUDE.md` con las reglas que este proyecto aprendió a la fuerza, cada una con el motivo.
 
 ### Fase 1 — Base de datos reproducible  ✅ 2026-09-18
 - [x] `database/schema.sql` versionado, generado por introspección de producción (37 tablas, 76 claves foráneas). Verificado: construye el esquema completo desde una base vacía.
@@ -116,14 +116,36 @@ Sin rediseño: se usan los mismos tokens `--sc-*` y componentes `sc-*`.
 - [x] Las dos tablas que arrastraban la página en un teléfono quedaron con desplazamiento propio. Las otras 39 ya lo tenían.
 - [x] Interceptor global de respuestas, de la fase anterior, que resuelve el `402` a mitad de sesión.
 
-### Fase 7 — Multiempresa comercial
-- Roles OWNER/ADMIN/ACCOUNTANT/EDITOR/VIEWER por empresa, invitaciones por correo, proveedores y clientes como entidades, adjuntos (Cloudflare R2 u otro con capa gratuita).
+### Fase 7 — Multiempresa comercial  ✅ 2026-09-19 (con dos puntos aplazados)
+- [x] **A1** El rol dentro de la empresa no se consultaba en **ninguna** operación contable: quien tenía acceso podía crear asientos, anularlos y cerrar ejercicios por igual. Un estudio que da acceso a un asistente solo para consultar no podía hacerlo.
+- [x] Cinco roles con jerarquía y permisos declarados en `helpers/roles.helper.js`: OWNER, ADMIN, CONTADOR, EDITOR y CONSULTA. Las rutas declaran el permiso que necesitan (`REGISTRAR`, `ANULAR`, `CERRAR_EJERCICIO`, `CONFIGURAR`, `REMUNERACIONES`), no el rol, así que agregar un rol no obliga a repasar las rutas.
+- [x] `exigirPermiso` aplicado en 31 rutas de escritura. En las importaciones va después de multer, porque antes la empresa todavía no está resuelta.
+- [x] Migración que traduce los valores heredados (`admin`, `usuario`) y agrega una restricción en la base: un rol inválido ya no entra. Antes era texto libre y un valor inesperado caía en cualquier lado según la comparación que tocara.
+- [x] Un rol desconocido cae en el permiso más bajo, y un permiso mal escrito en una ruta no concede nada: falla cerrado.
+- [x] Invitaciones por correo: ya existían. Se crea el usuario con una clave aleatoria que nadie conoce y se invita a definirla por enlace.
+- [x] 14 pruebas, incluidas las que comprueban que un editor no anula ni cierra ejercicios y que la base rechaza un rol inventado.
+- [ ] **Aplazado:** proveedores y clientes como entidades propias. Hoy viven como texto en cada documento, lo que funciona pero duplica datos. Es una función nueva que cambia el modelo y varias pantallas, no una corrección: conviene decidirla como producto.
+- [ ] **Aplazado:** adjuntos por documento. Requiere un servicio de almacenamiento (Cloudflare R2 u otro) y por lo tanto una decisión de costo, que según los principios de este plan no se toma sin aprobación.
 
-### Fase 8 — Operación
-- Respaldos verificados con prueba de restauración en staging; monitoreo de disponibilidad; health check; checklist de deploy; `README`, `ARCHITECTURE`, `SECURITY`, `DEPLOYMENT`, `BACKUP_STRATEGY`, `COST_MODEL`, `CHANGELOG`.
+### Fase 8 — Operación  ✅ 2026-09-19
+- [x] **Respaldos verificados de verdad.** `scripts/probar-restauracion.js` toma el respaldo, crea una base descartable, lleva el esquema al punto del respaldo, restaura, compara tabla por tabla contra el manifiesto, aplica las migraciones pendientes **sobre los datos reales**, levanta la API, recorre los endpoints y borra la base.
+- [x] **Hallazgo de esa prueba:** un respaldo tomado antes de una migración no se podía restaurar en una base que ya la tenía. Los roles antiguos chocaban con la nueva restricción y una recuperación real habría fallado justo cuando más se necesita. El manifiesto ahora registra hasta qué migración estaba la base de origen, y la restauración lleva el esquema a ese punto antes de cargar los datos.
+- [x] **Chequeo de salud** en `/api/salud`, que comprueba la base, mide su latencia e informa la última migración. Responde 503 si algo esencial falta, para que un vigilante externo lo detecte. Antes `/api/estado` decía «Activo» con la base caída.
+- [x] El endpoint privado ya no devuelve el token decodificado completo.
+- [x] Documentación: `docs/ARQUITECTURA.md`, `docs/SEGURIDAD.md`, `docs/DESPLIEGUE.md`, `docs/RESPALDOS.md`, `docs/COSTOS.md`, `CHANGELOG.md` y `CLAUDE.md`.
+- [x] Lista de pasos antes de desplegar, con la vuelta atrás en tres niveles.
+- [ ] **Falta:** programar el respaldo automático y guardarlo fuera de la máquina. Hoy se toma a mano y vive donde se tomó. Necesita decidir dónde guardarlo; cualquier servicio con costo requiere aprobación.
+- [ ] **Falta:** registro centralizado y alertas. Hoy los errores quedan en el registro de Render y hay que ir a mirarlos.
 
-### Fase 9 — Lanzamiento
-- Términos de uso y política de datos, flujo de contratación probado de punta a punta, onboarding, soporte.
+### Fase 9 — Lanzamiento  🔄 lo técnico listo, faltan decisiones del negocio
+- [x] `docs/TERMINOS_Y_DATOS.md`: borrador que describe con exactitud qué hace el sistema con los datos, para que un abogado lo convierta en texto vinculante. **REQUIERE REVISIÓN LEGAL.**
+- [x] `docs/ONBOARDING.md`: el camino del cliente nuevo, y dónde el sistema lo deja solo.
+- [x] Flujo de contratación probado de punta a punta con pruebas automatizadas: prueba gratuita, pago, activación idempotente, alta de cliente sin cuenta, reactivación por pago, avisos y bloqueo.
+- [ ] **Decisiones del negocio, antes de publicar:** política de devoluciones, compromiso de disponibilidad, procedimiento y plazo de eliminación de datos, y en qué casos el soporte accede a datos de un cliente.
+- [ ] **Revisión legal** de los términos, incluida la transferencia internacional de datos: los servidores están en Estados Unidos.
+- [ ] **Revisión contable** del tratamiento de las notas de crédito.
+- [ ] Exportación completa de los datos de un cliente, antes de prometerla en los términos.
+- [ ] Soporte: horario, tiempo de respuesta y quién atiende.
 
 ## Flujo de trabajo
 

@@ -6,6 +6,7 @@ const {
   importarBoletasSII,
 } = require("../controllers/boletas.controller");
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
 const {
   validar,
@@ -29,6 +30,7 @@ router.post(
   // Despues de multer: antes de esta linea req.body esta vacio y la
   // membresia en la empresa no se puede comprobar.
   exigirEmpresa,
+  exigirPermiso("IMPORTAR"),
   validar(esquemas.importacion),
   importarBoletasSII
 );

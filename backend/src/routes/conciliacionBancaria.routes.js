@@ -7,6 +7,7 @@ const {
   actualizarEstado,
 } = require("../controllers/conciliacionBancaria.controller");
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { exigirEmpresa } = require("../middleware/tenant.middleware");
 const { limiteImportacion } = require("../middleware/seguridad.middleware");
 const {
@@ -26,6 +27,7 @@ router.post(
   // Despues de multer: antes de esta linea req.body esta vacio y la
   // membresia en la empresa no se puede comprobar.
   exigirEmpresa,
+  exigirPermiso("IMPORTAR"),
   importarCartola
 );
 router.put(

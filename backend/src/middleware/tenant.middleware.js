@@ -23,6 +23,11 @@ const {
   esAdminSistema,
   usuarioPuedeAccederEmpresa,
 } = require("../helpers/auth.helper");
+const {
+  ROLES,
+  normalizarRolEmpresa,
+  rolTienePermiso,
+} = require("../helpers/roles.helper");
 
 const CLAVES = ["empresa_id", "empresaId"];
 
@@ -122,11 +127,30 @@ async function resolverEmpresaSiViene(req, res, next) {
 }
 
 /**
- * Exige un rol dentro de la empresa. El administrador del sistema pasa siempre.
+ * Lee el rol del usuario en la empresa de la petición y lo deja en req.
+ */
+async function leerRolEnEmpresa(req) {
+  if (esAdminSistema(req.usuario?.rol)) {
+    return ROLES.OWNER;
+  }
+
+  const { rows } = await pool.query(
+    `SELECT rol_empresa
+     FROM usuarios_empresas
+     WHERE usuario_id = $1 AND empresa_id = $2 AND activo = true
+     LIMIT 1`,
+    [req.usuario?.id, req.empresaId]
+  );
+
+  return rows.length > 0 ? normalizarRolEmpresa(rows[0].rol_empresa) : null;
+}
+
+/**
+ * Exige un rol concreto dentro de la empresa.
  * Requiere que exigirEmpresa haya corrido antes.
  */
 function exigirRolEmpresa(...rolesPermitidos) {
-  const roles = rolesPermitidos.map((rol) => String(rol).toLowerCase());
+  const roles = rolesPermitidos.map((rol) => normalizarRolEmpresa(rol));
 
   return async (req, res, next) => {
     try {
@@ -140,19 +164,60 @@ function exigirRolEmpresa(...rolesPermitidos) {
         });
       }
 
-      const { rows } = await pool.query(
-        `SELECT LOWER(rol_empresa) AS rol
-         FROM usuarios_empresas
-         WHERE usuario_id = $1 AND empresa_id = $2 AND activo = true
-         LIMIT 1`,
-        [req.usuario?.id, req.empresaId]
-      );
-
-      const rol = rows[0]?.rol;
+      const rol = await leerRolEnEmpresa(req);
 
       if (!rol || !roles.includes(rol)) {
         return res.status(403).json({
           error: "No tienes permisos suficientes en esta empresa",
+        });
+      }
+
+      req.rolEmpresa = rol;
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  };
+}
+
+/**
+ * Exige un permiso, no un rol.
+ *
+ * Es la forma preferida: las rutas declaran lo que hacen ("ANULAR",
+ * "CERRAR_EJERCICIO") y el modelo de roles decide quién alcanza. Así agregar un
+ * rol no obliga a repasar las rutas una por una.
+ *
+ * Sin esto, cualquiera con acceso a una empresa podía crear asientos, anular
+ * documentos y cerrar ejercicios: el rol no se consultaba en ninguna operación
+ * contable.
+ */
+function exigirPermiso(permiso) {
+  return async (req, res, next) => {
+    try {
+      if (esAdminSistema(req.usuario?.rol)) {
+        req.rolEmpresa = ROLES.OWNER;
+        return next();
+      }
+
+      if (!req.tenantValidado) {
+        return res.status(400).json({ error: "Debe indicar empresa_id" });
+      }
+
+      const rol = await leerRolEnEmpresa(req);
+
+      if (!rol) {
+        return res.status(403).json({
+          error: "No tienes acceso a la empresa solicitada",
+        });
+      }
+
+      req.rolEmpresa = rol;
+
+      if (!rolTienePermiso(rol, permiso)) {
+        return res.status(403).json({
+          error: `Tu rol en esta empresa (${rol}) no permite esta accion`,
+          rol,
+          permiso_requerido: permiso,
         });
       }
 
@@ -167,4 +232,6 @@ module.exports = {
   exigirEmpresa,
   resolverEmpresaSiViene,
   exigirRolEmpresa,
+  exigirPermiso,
+  leerRolEnEmpresa,
 };

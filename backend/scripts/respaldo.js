@@ -181,7 +181,30 @@ async function main() {
   await escribir("-- (npm run migrate), o usar scripts/restaurar.js.\n\n");
   await escribir("BEGIN;\n\n");
 
-  const manifiesto = { base, generado_en: new Date().toISOString(), version, tablas: {} };
+  // Hasta que migracion estaba la base cuando se tomo el respaldo.
+  //
+  // Importa para restaurar: los datos corresponden al esquema de ese momento.
+  // Restaurarlos en una base con migraciones posteriores puede chocar con una
+  // restriccion que entonces no existia. Con esta lista, quien restaura sabe a
+  // que punto llevar el esquema antes de cargar los datos.
+  let migraciones = [];
+
+  try {
+    migraciones = (
+      await consulta("SELECT name FROM pgmigrations ORDER BY id")
+    ).map((fila) => fila.name);
+  } catch {
+    migraciones = [];
+  }
+
+  const manifiesto = {
+    base,
+    generado_en: new Date().toISOString(),
+    version,
+    migraciones,
+    migraciones_aplicadas: migraciones.length,
+    tablas: {},
+  };
   let totalFilas = 0;
 
   for (const tabla of orden) {

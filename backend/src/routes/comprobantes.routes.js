@@ -11,6 +11,7 @@ const {
 } = require("../controllers/comprobantes.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirPermiso } = require("../middleware/tenant.middleware");
 const {
   validar,
   esquemas,
@@ -31,6 +32,7 @@ router.get("/:id", verificarToken, obtenerComprobante);
 router.post(
   "/",
   verificarToken,
+  exigirPermiso("REGISTRAR"),
   limitarCreacionDemoPorEmpresa({
     modulo: "comprobantes de prueba",
     tabla: "comprobantes",
@@ -43,12 +45,14 @@ router.post(
 router.put(
   "/:id",
   verificarToken,
+  exigirPermiso("REGISTRAR"),
   validar(esquemas.comprobante),
   actualizarComprobante
 );
 router.delete(
   "/:id",
   verificarToken,
+  exigirPermiso("ANULAR"),
   bloquearDemo("la anulacion de comprobantes se habilita en la version contratada."),
   anularComprobante
 );

@@ -107,7 +107,7 @@ test.before(async () => {
 
   await pool.query(
     `INSERT INTO usuarios_empresas (usuario_id, empresa_id, rol_empresa, activo)
-     VALUES ($1, $2, 'admin', true)`,
+     VALUES ($1, $2, 'OWNER', true)`,
     [usuarioId, ctx.empresa]
   );
 

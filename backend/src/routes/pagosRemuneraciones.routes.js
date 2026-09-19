@@ -8,12 +8,14 @@ const {
 } = require("../controllers/pagosRemuneraciones.controller");
 
 const { verificarToken } = require("../middleware/auth.middleware");
+const { exigirPermiso } = require("../middleware/tenant.middleware");
 const { bloquearDemo } = require("../middleware/demo.middleware");
 
 router.get("/", verificarToken, obtenerResumenPagosRemuneraciones);
 router.post(
   "/",
   verificarToken,
+  exigirPermiso("REMUNERACIONES"),
   bloquearDemo("el pago de remuneraciones se habilita en la version contratada."),
   registrarPagoRemuneracion
 );

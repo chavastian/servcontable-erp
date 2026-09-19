@@ -67,8 +67,8 @@ async function main() {
 
   await pool.query(
     `INSERT INTO usuarios_empresas (usuario_id, empresa_id, rol_empresa, activo)
-     VALUES ($1, $2, 'admin', true)
-     ON CONFLICT (usuario_id, empresa_id) DO UPDATE SET activo = true, rol_empresa = 'admin'`,
+     VALUES ($1, $2, 'OWNER', true)
+     ON CONFLICT (usuario_id, empresa_id) DO UPDATE SET activo = true, rol_empresa = 'OWNER'`,
     [usuario.id, empresa.id]
   );
 

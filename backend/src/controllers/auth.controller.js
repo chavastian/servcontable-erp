@@ -21,6 +21,10 @@ const {
 } = require("../helpers/suscripcion.helper");
 const { normalizarRut, pareceRut } = require("../helpers/rut.helper");
 const { rechazarPasswordInvalida } = require("../helpers/password.helper");
+const {
+  ROLES,
+  normalizarRolEmpresa: normalizarRolDeEmpresa,
+} = require("../helpers/roles.helper");
 const { firmarToken, revocarSesiones } = require("../helpers/sesion.helper");
 const { enviarCorreoRecuperacionPassword } = require("../helpers/mail.helper");
 
@@ -40,15 +44,9 @@ function normalizarEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
-function normalizarRolEmpresa(rolEmpresa = "") {
-  const valor = String(rolEmpresa || "").trim().toLowerCase();
-
-  if (["admin", "administrador"].includes(valor)) {
-    return "admin";
-  }
-
-  return "usuario";
-}
+// La normalización de roles por empresa vive en helpers/roles.helper.js. Acá
+// había una copia que solo conocía "admin" y "usuario", así que cualquier otro
+// rol quedaba silenciosamente como usuario común.
 
 function normalizarActivo(valor, valorActual = true) {
   if (typeof valor === "boolean") {
@@ -715,7 +713,12 @@ async function crearUsuarioCliente(req, res) {
         client,
         usuario.rows[0].id,
         empresaAsignadaId,
-        rol_empresa || (rolNormalizado === "admin_cliente" ? "admin" : "usuario")
+        // El rol dentro de la empresa decide que puede hacer la persona en la
+        // contabilidad. Si no se indica, un administrador de cliente entra como
+        // ADMIN y el resto como CONSULTA: lo minimo, que siempre se puede subir.
+        normalizarRolDeEmpresa(
+          rol_empresa || (rolNormalizado === "admin_cliente" ? ROLES.ADMIN : ROLES.CONSULTA)
+        )
       );
     }
 
@@ -1024,8 +1027,8 @@ async function actualizarUsuarioCliente(req, res) {
           client,
           usuarioId,
           empresaAsignadaId,
-          normalizarRolEmpresa(
-            rol_empresa || (rolNormalizado === "admin_cliente" ? "admin" : "usuario")
+          normalizarRolDeEmpresa(
+            rol_empresa || (rolNormalizado === "admin_cliente" ? ROLES.ADMIN : ROLES.CONSULTA)
           )
         );
       }
