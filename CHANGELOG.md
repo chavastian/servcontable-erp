@@ -35,6 +35,11 @@ con sus reglas y sus límites, en `docs/ASISTENTES.md`.
   marcada como estimación: el sistema no guarda fecha de vencimiento, así que el
   plazo lo pone quien consulta.
 
+Probando el cierre mensual sobre la copia de los datos reales apareció una
+diferencia que conviene revisar: en ESTRUCTURAS JYJ, enero de 2026, una factura está
+en el libro de compras con los montos en cero mientras su asiento registra 177.248,
+con 28.110 de IVA crédito. El detalle está en `docs/ASISTENTES.md`.
+
 ### Datos que ya no se filtran entre clientes
 
 - **Cualquier usuario podía marcar como conciliado un movimiento bancario de otro

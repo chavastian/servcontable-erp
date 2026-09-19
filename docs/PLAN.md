@@ -198,9 +198,14 @@ las reglas de cada una y sus límites, está en `docs/ASISTENTES.md`.
   asientos, y hay una prueba que contabiliza un pago de F29 para fijarlo.
 - [x] 36 pruebas nuevas (166 en total) y 9 endpoints agregados al chequeo de humo
   (47 en total).
-- [x] **Sobre datos reales de la copia,** el cierre encontró un folio de venta
-  faltante en ESTRUCTURAS JYJ en enero de 2026, y el flujo de caja mostró 4.043.479
-  pesos por cobrar con más de noventa días.
+- [x] **Hallazgo real sobre la copia de producción.** En ESTRUCTURAS JYJ, enero de
+  2026, la factura 79386404 de ADMIN. DE SUPERMERCADOS HIPER LIMITADA está en el
+  libro de compras con neto, IVA y total en cero, pero su asiento registra 149.138
+  de gasto, 28.110 de IVA crédito y 177.248 al proveedor. Las dos cifras no pueden
+  ser correctas a la vez. **REQUIERE REVISIÓN CONTABLE:** hay que decidir cuál vale
+  y corregir la otra, porque si el asiento tiene razón el F29 declara 28.110 menos
+  de crédito fiscal. También apareció un folio de venta faltante, y el flujo de caja
+  mostró 4.043.479 pesos por cobrar con más de noventa días.
 - [ ] **Paso siguiente natural:** agregar fecha de vencimiento a compras y ventas,
   para que el flujo de caja deje de estimar.
 

@@ -244,13 +244,31 @@ DATABASE_URL=<staging> npm run smoke:api # 47 endpoints
 ## Lo que encontró en datos reales
 
 Corriendo el cierre mensual sobre `servcontable_staging`, que es una copia de los
-datos de producción, para ESTRUCTURAS JYJ en enero de 2026:
+datos de producción, para ESTRUCTURAS JYJ en enero de 2026.
 
-- **Falta un folio en la serie de ventas.** Puede ser un documento sin registrar, y
-  conviene revisarlo antes de declarar.
-- Y algo que no era un hallazgo sino un defecto de la revisión: el descuadre de IVA
-  que denunció resultó ser el asiento de pago del F29. Eso llevó a corregir cómo se
-  compara el IVA, descrito más arriba.
+**Una compra con los montos en cero y un asiento con montos.** La factura 79386404
+de ADMIN. DE SUPERMERCADOS HIPER LIMITADA, del 11 de enero, está registrada en el
+libro de compras con neto 0, IVA 0 y total 0. Su asiento, en cambio, tiene tres
+líneas:
+
+| Cuenta | Debe | Haber |
+|---|---|---|
+| 3101025 ALOJAMIENTO | 149.138 | |
+| 1300901 IVA CREDITO FISCAL | 28.110 | |
+| 2101005 PROVEEDORES NACIONALES | | 177.248 |
+
+Las dos cifras no pueden ser las dos correctas. Si el asiento tiene razón, el libro
+de compras y el F29 declaran 28.110 menos de crédito fiscal del que la contabilidad
+registra. **Esto requiere revisión contable:** hay que decidir cuál de las dos
+versiones es la buena y corregir la otra.
+
+**Falta un folio en la serie de ventas.** Puede ser un documento sin registrar, y
+conviene revisarlo antes de declarar.
+
+Y algo que no era un hallazgo sino un defecto de la revisión: el primer descuadre de
+IVA que denunció resultó ser el asiento de pago del F29. Eso llevó a corregir cómo
+se compara el IVA, descrito más arriba. Después de corregirlo, el débito cuadra al
+peso y lo único que queda es la diferencia real de esa factura.
 
 El flujo de caja informa 4.043.479 pesos por cobrar, **todos con más de noventa
 días**. El sistema tenía el dato; no tenía dónde mostrarlo.
