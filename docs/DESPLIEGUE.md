@@ -42,6 +42,30 @@ pasos es opcional.
    DATABASE_URL=<produccion> npm run migrate:status
    ```
 
+   **Revisión del 19-09-2026, hecha:** de los 16 archivos de `database/migrations`
+   el primero es la línea base, que describe el esquema que producción ya tiene.
+   Quedan **15 pendientes**. Se leyeron todas y se comparó cada escritura de
+   `estado` del código que hoy corre en producción (commit `4a7a44b` de
+   `contacto983/servcontable-pro`) contra las restricciones nuevas. Aparecieron dos
+   cosas que conviene tener presentes:
+
+   - **Un choque real, ya corregido.** El bloque 2 admite en
+     `comprobantes.estado` solo 'vigente' y 'anulado'. El código de producción, al
+     eliminar una liquidación ya contabilizada, escribe 'eliminado'
+     (`liquidaciones.controller.js`, rama de `estaContabilizada`). Entre migrar y
+     desplegar, ese borrado le habría fallado a un cliente haciendo
+     remuneraciones. La migración `1758201600000_bloque13-compatibilidad-estado-eliminado`
+     traduce el valor viejo al nuevo con un disparador, que nunca se activa una vez
+     desplegado el código nuevo. **Es la única de las 15 que no se puede omitir si
+     la base se migra antes que el código.**
+   - **El código de producción todavía ejecuta DDL en caliente** (16 archivos con
+     `CREATE TABLE` o `ALTER TABLE` dentro de peticiones). Es lo que esta revisión
+     eliminó. Contra un esquema ya migrado no es predecible: conviene no dejar
+     producción mucho tiempo con la base nueva y el código viejo.
+
+   Por eso, en este despliegue, el paso 1 y el paso 2 de «Desplegar» van seguidos,
+   sin días de por medio.
+
 ## Desplegar
 
 El orden importa: primero la base, después el código que la usa.
@@ -78,8 +102,13 @@ En orden, del menos al más invasivo:
 
 1. **Volver a la versión anterior del código.** En el panel de Render, en
    Deploys, `Rollback` al despliegue previo. La base queda como está: las
-   migraciones aplicadas hasta ahora son aditivas y el código anterior funciona
-   con ellas, porque agregan columnas e índices y no quitan nada.
+   migraciones agregan tablas, columnas e índices y no quitan nada, así que el
+   código anterior sigue funcionando sobre ellas. Con una salvedad, encontrada el
+   19-09-2026: el único punto donde el código viejo escribía un valor que el
+   esquema nuevo ya no admite (`comprobantes.estado = 'eliminado'`) está cubierto
+   por el disparador de
+   `1758201600000_bloque13-compatibilidad-estado-eliminado`. **No revertir esa
+   migración mientras producción pueda volver al código anterior.**
 
 2. **Revertir la última migración**, solo si el problema es del esquema.
 
