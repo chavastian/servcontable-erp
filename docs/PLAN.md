@@ -190,12 +190,17 @@ las reglas de cada una y sus límites, está en `docs/ASISTENTES.md`.
   las nueve revisiones, así que pintaba verde una empresa que el cierre marcaba en
   rojo por el IVA descuadrado. Ahora corre las nueve con la misma gravedad, y una
   prueba compara los dos estados y falla si se separan.
-- [x] 35 pruebas nuevas (165 en total) y 9 endpoints agregados al chequeo de humo
+- [x] **Falso positivo corregido, encontrado probando sobre datos reales:** la
+  revisión de IVA comparaba los libros contra todo el movimiento del mes en las
+  cuentas de IVA, así que en una empresa que contabiliza el pago del F29 (que debita
+  la cuenta de IVA débito para dejarla en cero) denunciaba un descuadre inexistente.
+  Ahora compara el IVA de los documentos que tienen asiento contra el IVA de esos
+  asientos, y hay una prueba que contabiliza un pago de F29 para fijarlo.
+- [x] 36 pruebas nuevas (166 en total) y 9 endpoints agregados al chequeo de humo
   (47 en total).
-- [x] **Sobre datos reales de la copia,** el cierre encontró que el IVA de los
-  libros de ESTRUCTURAS JYJ no coincide con el contabilizado en enero de 2026, y un
-  folio de venta faltante. El flujo de caja mostró 4.043.479 pesos por cobrar con
-  más de noventa días.
+- [x] **Sobre datos reales de la copia,** el cierre encontró un folio de venta
+  faltante en ESTRUCTURAS JYJ en enero de 2026, y el flujo de caja mostró 4.043.479
+  pesos por cobrar con más de noventa días.
 - [ ] **Paso siguiente natural:** agregar fecha de vencimiento a compras y ventas,
   para que el flujo de caja deje de estimar.
 

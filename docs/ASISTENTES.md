@@ -27,7 +27,7 @@ El color significa siempre lo mismo:
 
 | Color | Qué contiene |
 |---|---|
-| Rojo | Asientos descuadrados, documentos duplicados, documentos sin cuenta asignada, IVA del libro que no cuadra con lo contabilizado. Cosas que hacen que lo declarado no cuadre. |
+| Rojo | Asientos descuadrados, documentos duplicados, documentos sin cuenta asignada, IVA de los documentos que no cuadra con el de sus asientos. Cosas que hacen que lo declarado no cuadre. |
 | Amarillo | Documentos sin contabilizar, movimientos de banco sin conciliar, liquidaciones faltantes, folios de venta faltantes, compras fuera de lo habitual, cuentas de IVA sin configurar. |
 | Verde | Nada pendiente en el período. |
 
@@ -59,7 +59,7 @@ juntas, y una respuesta clara arriba: se puede declarar o no.
 2. Documentos sin cuenta asignada.
 3. Documentos sin asiento generado.
 4. Documentos duplicados (mismo tipo, folio y RUT).
-5. IVA del libro contra el IVA contabilizado.
+5. IVA que declaran los documentos contra el IVA de sus propios asientos.
 6. Movimientos de banco sin conciliar.
 7. Folios faltantes en la serie de ventas.
 8. Montos atípicos: más de cinco veces el promedio histórico de ese proveedor.
@@ -75,6 +75,23 @@ indicador sin traer las listas.
 La revisión 5 necesita `cuenta_iva_debito_id` y `cuenta_iva_credito_id`
 configuradas; si faltan, lo dice en lugar de callarse. La 8 necesita al menos tres
 documentos previos del mismo proveedor para tener un promedio.
+
+### Cómo se compara el IVA, y por qué así
+
+La primera versión comparaba el IVA de los libros contra **todo el movimiento del
+mes** en las cuentas de IVA. Probándola sobre la copia de los datos reales apareció
+el problema: una empresa que contabiliza el pago del F29 debita la cuenta de IVA
+débito para dejarla en cero, así que el movimiento neto del mes quedaba negativo y
+la revisión denunciaba un descuadre de 645.598 contra −486.820 que no existía.
+
+Ahora la comparación es entre cosas del mismo tipo: el IVA que declaran los
+documentos **que tienen asiento**, contra el IVA de **esos mismos asientos**. Así la
+pregunta que responde es la única que sirve: ¿el asiento de este documento lleva el
+IVA que el documento declara? Los documentos sin asiento los informa la revisión 3,
+y contarlos también acá haría que el mismo problema apareciera dos veces.
+
+Hay una prueba que contabiliza un pago de F29 y comprueba que la revisión no lo lee
+como descuadre.
 
 ## 3. Calce automático del banco
 
@@ -220,7 +237,7 @@ correr el día según el huso.
 ```
 cd backend
 DATABASE_URL=<staging> node --test test/asistentesContables.test.js
-DATABASE_URL=<staging> npm test          # 165 pruebas
+DATABASE_URL=<staging> npm test          # 166 pruebas
 DATABASE_URL=<staging> npm run smoke:api # 47 endpoints
 ```
 
@@ -229,9 +246,15 @@ DATABASE_URL=<staging> npm run smoke:api # 47 endpoints
 Corriendo el cierre mensual sobre `servcontable_staging`, que es una copia de los
 datos de producción, para ESTRUCTURAS JYJ en enero de 2026:
 
-- **El IVA de los libros no coincide con el IVA contabilizado.** Es un error que
-  nadie había visto porque nada comparaba las dos cifras.
-- **Falta un folio en la serie de ventas.** Puede ser un documento sin registrar.
+- **Falta un folio en la serie de ventas.** Puede ser un documento sin registrar, y
+  conviene revisarlo antes de declarar.
+- Y algo que no era un hallazgo sino un defecto de la revisión: el descuadre de IVA
+  que denunció resultó ser el asiento de pago del F29. Eso llevó a corregir cómo se
+  compara el IVA, descrito más arriba.
 
-Y el flujo de caja informa 4.043.479 pesos por cobrar, **todos con más de noventa
+El flujo de caja informa 4.043.479 pesos por cobrar, **todos con más de noventa
 días**. El sistema tenía el dato; no tenía dónde mostrarlo.
+
+La lección vale registrarla: una revisión automática que denuncia lo que no
+corresponde se vuelve ruido, y una vez que alguien aprende a ignorarla ya no sirve
+para el caso en que sí tenía razón.

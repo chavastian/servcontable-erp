@@ -311,9 +311,9 @@ test("el panel y el cierre mensual no se contradicen", async () => {
   );
 });
 
-test("el panel mira el IVA del libro contra lo contabilizado", async () => {
-  // Con las cuentas de IVA sin configurar no se puede comparar, y eso se avisa
-  // en lugar de dar por bueno lo que no se reviso.
+test("el panel mira el IVA de los documentos contra el de sus asientos", async () => {
+  // Sin cuentas de IVA configuradas no se puede comparar, y eso se avisa en lugar
+  // de dar por bueno lo que no se reviso.
   const { datos } = await pedir(`/api/panel-estudio?periodo=${PERIODO}`);
   const fila = datos.empresas.find((e) => e.empresa_id === ctx.empresa);
 
@@ -321,8 +321,6 @@ test("el panel mira el IVA del libro contra lo contabilizado", async () => {
   assert.equal(fila.pendientes.cuentas_de_iva_sin_configurar, 1);
   assert.equal(fila.iva.cuadra_con_contabilidad, null);
 
-  // Ahora con las cuentas configuradas: el libro tiene 38.000 de debito y la
-  // contabilidad no tiene nada, asi que no cuadra y es un error.
   await pool.query(
     `INSERT INTO configuracion_contable
        (empresa_id, cuenta_iva_debito_id, cuenta_iva_credito_id)
@@ -332,14 +330,34 @@ test("el panel mira el IVA del libro contra lo contabilizado", async () => {
     [ctx.empresa, ctx.ivaDebito, ctx.ivaCredito]
   );
 
-  const despues = await pedir(`/api/panel-estudio?periodo=${PERIODO}`);
-  const filaDespues = despues.datos.empresas.find((e) => e.empresa_id === ctx.empresa);
+  // Con las cuentas configuradas pero la venta sin asiento, esta revision no
+  // reclama: un documento sin contabilizar lo informa la revision que le
+  // corresponde, y contarlo dos veces volveria esta de ruido.
+  const configurado = await pedir(`/api/panel-estudio?periodo=${PERIODO}`);
+  const filaConfigurada = configurado.datos.empresas.find(
+    (e) => e.empresa_id === ctx.empresa
+  );
 
-  assert.equal(filaDespues.iva.comparable_con_contabilidad, true);
-  assert.equal(filaDespues.iva.debito_contabilizado, 0);
-  assert.equal(filaDespues.iva.cuadra_con_contabilidad, false);
-  assert.equal(filaDespues.pendientes.iva_descuadrado, 1);
-  assert.equal(filaDespues.estado, "error");
+  assert.equal(filaConfigurada.iva.comparable_con_contabilidad, true);
+  assert.equal(filaConfigurada.iva.cuadra_con_contabilidad, true);
+  assert.equal(filaConfigurada.pendientes.iva_descuadrado, 0);
+
+  // Ahora la venta si tiene asiento, y ese asiento no lleva el IVA que la venta
+  // declara: 38.000 en el libro contra nada contabilizado. Eso si es un error.
+  await pool.query(`UPDATE ventas SET comprobante_id = $1 WHERE id = $2`, [
+    ctx.comprobanteMalo,
+    ctx.venta,
+  ]);
+
+  const descuadrado = await pedir(`/api/panel-estudio?periodo=${PERIODO}`);
+  const filaDescuadrada = descuadrado.datos.empresas.find(
+    (e) => e.empresa_id === ctx.empresa
+  );
+
+  assert.equal(filaDescuadrada.iva.debito_contabilizado, 0);
+  assert.equal(filaDescuadrada.iva.cuadra_con_contabilidad, false);
+  assert.equal(filaDescuadrada.pendientes.iva_descuadrado, 1);
+  assert.equal(filaDescuadrada.estado, "error");
 
   // Y el cierre mensual dice lo mismo.
   const cierre = await pedir(
@@ -350,6 +368,43 @@ test("el panel mira el IVA del libro contra lo contabilizado", async () => {
   );
 
   assert.equal(revision.estado, "error");
+
+  // Se deja como estaba, para no arrastrar este cambio a las otras pruebas.
+  await pool.query(`UPDATE ventas SET comprobante_id = NULL WHERE id = $1`, [ctx.venta]);
+});
+
+test("el asiento que paga el F29 no se cuenta como descuadre de IVA", async () => {
+  // Es el falso positivo que aparecio en los datos reales: contabilizar el pago
+  // del F29 debita la cuenta de IVA debito para dejarla en cero, asi que mirar
+  // todo el movimiento del mes en esa cuenta daba un neto negativo y la revision
+  // gritaba un descuadre que no existia.
+  const pago = (
+    await pool.query(
+      `INSERT INTO comprobantes (empresa_id, periodo, fecha, tipo, numero, glosa, estado)
+       VALUES ($1, $2, '2026-04-20', 'Egreso', 9200, 'Pago F29 del periodo anterior', 'vigente')
+       RETURNING id`,
+      [ctx.empresa, PERIODO]
+    )
+  ).rows[0].id;
+
+  await pool.query(
+    `INSERT INTO comprobante_detalle (comprobante_id, cuenta_id, debe, haber)
+     VALUES ($1, $2, 500000, 0), ($1, $3, 0, 500000)`,
+    [pago, ctx.ivaDebito, ctx.caja]
+  );
+
+  const { datos } = await pedir(
+    `/api/cierre-mensual?empresa_id=${ctx.empresa}&periodo=${PERIODO}`
+  );
+
+  const revision = datos.revisiones.find((r) => r.codigo === "iva_libro_contabilidad");
+
+  assert.equal(
+    revision.estado,
+    "ok",
+    "el pago del F29 no es un descuadre entre documentos y asientos"
+  );
+  assert.equal(revision.cifras.debito_contable, 0);
 });
 
 // ---------------------------------------------------------------------------

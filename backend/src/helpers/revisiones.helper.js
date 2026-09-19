@@ -185,13 +185,20 @@ async function documentosSinAsiento(cliente, empresaId, { desde, hasta }) {
  * antes de presentar.
  */
 async function ivaLibroContraContabilidad(cliente, empresaId, periodo) {
+  // Solo los documentos que tienen asiento.
+  //
+  // Un documento sin asiento ya lo informa la revisión de documentos sin
+  // contabilizar; contarlo también acá haría que el mismo problema apareciera
+  // dos veces y volvería esta revisión ruido que nadie mira.
   const libro = await cliente.query(
     `
     SELECT
       (SELECT ${sumaConSigno("iva")} FROM ventas
-        WHERE empresa_id = $1 AND periodo = $2 AND estado = 'vigente') AS debito,
+        WHERE empresa_id = $1 AND periodo = $2 AND estado = 'vigente'
+          AND comprobante_id IS NOT NULL) AS debito,
       (SELECT ${sumaConSigno("iva_credito")} FROM compras
-        WHERE empresa_id = $1 AND periodo = $2 AND estado = 'vigente') AS credito
+        WHERE empresa_id = $1 AND periodo = $2 AND estado = 'vigente'
+          AND comprobante_id IS NOT NULL) AS credito
     `,
     [empresaId, periodo]
   );
@@ -213,6 +220,15 @@ async function ivaLibroContraContabilidad(cliente, empresaId, periodo) {
     );
   }
 
+  // Solo los asientos de esos mismos documentos, no todo el movimiento del mes
+  // en las cuentas de IVA.
+  //
+  // Mirar la cuenta completa daba falsas alarmas: el asiento que paga el F29
+  // debita la cuenta de IVA débito para dejarla en cero, así que en una empresa
+  // que contabiliza el pago el movimiento neto del mes quedaba negativo y la
+  // revisión gritaba un descuadre que no existía. Lo que esta revisión tiene que
+  // responder es si el asiento de cada documento lleva el IVA que el documento
+  // declara.
   const contable = await cliente.query(
     `
     SELECT
@@ -221,8 +237,19 @@ async function ivaLibroContraContabilidad(cliente, empresaId, periodo) {
     FROM comprobante_detalle cd
     JOIN comprobantes c ON c.id = cd.comprobante_id
     WHERE c.empresa_id = $1
-      AND c.periodo = $2
       AND c.estado = 'vigente'
+      AND (
+        c.id IN (
+          SELECT comprobante_id FROM ventas
+          WHERE empresa_id = $1 AND periodo = $2 AND estado = 'vigente'
+            AND comprobante_id IS NOT NULL
+        )
+        OR c.id IN (
+          SELECT comprobante_id FROM compras
+          WHERE empresa_id = $1 AND periodo = $2 AND estado = 'vigente'
+            AND comprobante_id IS NOT NULL
+        )
+      )
     `,
     [empresaId, periodo, config.cuenta_iva_debito_id, config.cuenta_iva_credito_id]
   );
@@ -250,7 +277,7 @@ async function ivaLibroContraContabilidad(cliente, empresaId, periodo) {
       "iva_libro_contabilidad",
       "IVA del libro contra contabilidad",
       ESTADOS.OK,
-      "El IVA de los libros coincide con lo contabilizado.",
+      "El IVA de los documentos coincide con el de sus asientos.",
       { cifras }
     );
   }
@@ -259,7 +286,7 @@ async function ivaLibroContraContabilidad(cliente, empresaId, periodo) {
     "iva_libro_contabilidad",
     "IVA del libro contra contabilidad",
     ESTADOS.ERROR,
-    "El IVA de los libros no coincide con lo contabilizado. Revisar antes de declarar el F29.",
+    "El IVA que declaran los documentos no coincide con el de sus asientos. Revisar antes de declarar el F29.",
     { cifras }
   );
 }

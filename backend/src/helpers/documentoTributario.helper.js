@@ -93,10 +93,24 @@ function sumaNotasCredito(columna, alias = "") {
   ), 0)`;
 }
 
+/**
+ * Igual que sumaConSigno, pero sumando solo las filas que cumplen una condicion.
+ *
+ * Existe porque FILTER va pegado a SUM y no al COALESCE que lo envuelve:
+ * `COALESCE(SUM(x), 0) FILTER (WHERE ...)` no es SQL valido. Escribirlo a mano en
+ * cada consulta invitaba a equivocarse justo en el signo de las notas de credito.
+ */
+function sumaConSignoSi(columna, condicion, alias = "") {
+  const prefijo = alias ? `${alias}.` : "";
+
+  return `COALESCE(SUM((${expresionSigno(alias)}) * COALESCE(${prefijo}${columna}, 0)) FILTER (WHERE ${condicion}), 0)`;
+}
+
 module.exports = {
   CODIGOS_QUE_RESTAN,
   signoDocumento,
   expresionSigno,
   sumaConSigno,
+  sumaConSignoSi,
   sumaNotasCredito,
 };

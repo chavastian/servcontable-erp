@@ -16,7 +16,10 @@
 const pool = require("../database/db");
 const { obtenerEmpresasPermitidas } = require("../helpers/auth.helper");
 const { normalizarRolEmpresa } = require("../helpers/roles.helper");
-const { sumaConSigno } = require("../helpers/documentoTributario.helper");
+const {
+  sumaConSigno,
+  sumaConSignoSi,
+} = require("../helpers/documentoTributario.helper");
 
 function periodoActual() {
   return new Date().toISOString().slice(0, 7);
@@ -135,6 +138,8 @@ async function obtenerPanelEstudio(req, res) {
         `
         SELECT v.empresa_id,
                ${sumaConSigno("iva", "v")} AS debito,
+               ${sumaConSignoSi("iva", "v.comprobante_id IS NOT NULL", "v")}
+                 AS debito_con_asiento,
                0 AS credito
         FROM ventas v
         WHERE v.empresa_id = ANY($1::int[]) AND v.periodo = $2 AND v.estado = 'vigente'
@@ -211,11 +216,26 @@ async function obtenerPanelEstudio(req, res) {
     // panel no lo miraba. Un semáforo que contradice al detalle no se vuelve a
     // mirar. Siguen siendo una consulta por concepto para todas las empresas.
     const [ivaContable, folios, atipicos] = await Promise.all([
-      // IVA contabilizado en las cuentas que cada empresa declaró como sus
-      // cuentas de IVA. Las cuentas salen de la configuración de cada una, así
-      // que el CASE compara contra la columna, no contra un parámetro.
+      // IVA de los asientos de los documentos del período, en las cuentas que
+      // cada empresa declaró como sus cuentas de IVA. Las cuentas salen de la
+      // configuración de cada una, así que el CASE compara contra la columna, no
+      // contra un parámetro.
+      //
+      // Solo los asientos de esos documentos, igual que en el cierre mensual:
+      // mirar todo el movimiento del mes en las cuentas de IVA daba falsas
+      // alarmas, porque el asiento que paga el F29 debita la cuenta de IVA
+      // débito para dejarla en cero.
       pool.query(
         `
+        WITH asientos_de_documentos AS (
+          SELECT empresa_id, comprobante_id FROM ventas
+          WHERE empresa_id = ANY($1::int[]) AND periodo = $2 AND estado = 'vigente'
+            AND comprobante_id IS NOT NULL
+          UNION
+          SELECT empresa_id, comprobante_id FROM compras
+          WHERE empresa_id = ANY($1::int[]) AND periodo = $2 AND estado = 'vigente'
+            AND comprobante_id IS NOT NULL
+        )
         SELECT cc.empresa_id,
                (cc.cuenta_iva_debito_id IS NOT NULL
                 AND cc.cuenta_iva_credito_id IS NOT NULL) AS configurado,
@@ -224,9 +244,9 @@ async function obtenerPanelEstudio(req, res) {
                COALESCE(SUM(CASE WHEN cd.cuenta_id = cc.cuenta_iva_credito_id
                                  THEN cd.debe - cd.haber ELSE 0 END), 0) AS credito_contable
         FROM configuracion_contable cc
+        LEFT JOIN asientos_de_documentos ad ON ad.empresa_id = cc.empresa_id
         LEFT JOIN comprobantes c
-          ON c.empresa_id = cc.empresa_id
-         AND c.periodo = $2
+          ON c.id = ad.comprobante_id
          AND c.estado = 'vigente'
         LEFT JOIN comprobante_detalle cd ON cd.comprobante_id = c.id
         WHERE cc.empresa_id = ANY($1::int[])
@@ -293,7 +313,10 @@ async function obtenerPanelEstudio(req, res) {
     // El crédito va aparte: viene de compras, no de ventas.
     const credito = await pool.query(
       `
-      SELECT c.empresa_id, ${sumaConSigno("iva_credito", "c")} AS credito
+      SELECT c.empresa_id,
+             ${sumaConSigno("iva_credito", "c")} AS credito,
+             ${sumaConSignoSi("iva_credito", "c.comprobante_id IS NOT NULL", "c")}
+               AS credito_con_asiento
       FROM compras c
       WHERE c.empresa_id = ANY($1::int[]) AND c.periodo = $2 AND c.estado = 'vigente'
       GROUP BY c.empresa_id
@@ -341,8 +364,16 @@ async function obtenerPanelEstudio(req, res) {
       const ivaComparable = contable?.configurado === true;
       const debitoContable = Math.round(Number(contable?.debito_contable || 0));
       const creditoContable = Math.round(Number(contable?.credito_contable || 0));
+
+      // Se compara lo mismo contra lo mismo: el IVA de los documentos que tienen
+      // asiento, contra el IVA de esos asientos. Un documento sin asiento ya lo
+      // informa otra revisión.
+      const debitoConAsiento = Math.round(Number(mapaDebito[id]?.debito_con_asiento || 0));
+      const creditoConAsiento = Math.round(Number(mapaCredito[id]?.credito_con_asiento || 0));
+
       const ivaDescuadrado =
-        ivaComparable && (debito !== debitoContable || creditoFiscal !== creditoContable);
+        ivaComparable &&
+        (debitoConAsiento !== debitoContable || creditoConAsiento !== creditoContable);
 
       const foliosFaltantes = Number(mapaFolios[id]?.faltan || 0);
       const montosAtipicos = Number(mapaAtipicos[id]?.atipicos || 0);
