@@ -440,7 +440,13 @@ export default function PanelPrincipal({
       : moduloActivo === "remuneraciones"
       ? HEROES_REMUNERACIONES[vistaActiva] || HEROES_CONTABLE[vistaActiva]
       : HEROES_CONTABLE[vistaActiva];
+  // Vistas cuya página ya dibuja su propio encabezado. Si no están acá, el
+  // encabezado sale dos veces: el del panel y el de la página. Le pasaba al
+  // dashboard financiero, que además del título necesita el selector de período
+  // dentro de su propio encabezado.
   const vistasConHeroPropio = [
+    "inicio",
+    "dashboardContable",
     "remConfiguracion",
     "remConfiguracionPrevisional",
     "remConfiguracionContable",

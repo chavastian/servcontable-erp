@@ -5,7 +5,8 @@ import {
   importarCartolaBancaria,
   listarMovimientosConciliacion,
 } from "../services/conciliacionBancariaService";
-import { obtenerRangoAnualTrabajo } from "../services/periodoTrabajoService";
+import { obtenerPeriodoTrabajo, obtenerRangoPeriodoTrabajo } from "../services/periodoTrabajoService";
+import PeriodoMesSelector from "../components/PeriodoMesSelector";
 import { EstadoCargando } from "../components/EstadoPantalla";
 
 function moneda(valor) {
@@ -22,7 +23,12 @@ function fechaCorta(fecha) {
 
 export default function ConciliacionBancaria() {
   const empresa = obtenerEmpresaActiva();
-  const rangoInicial = obtenerRangoAnualTrabajo();
+  // La cartola es de una empresa y de un mes. Antes esta pantalla abría con el
+  // año completo, así que la cartola de cualquier mes aparecía siempre y daba la
+  // impresión de venir precargada. Se conciliaba contra movimientos de meses que
+  // no eran el que se estaba revisando.
+  const [periodo, setPeriodo] = useState(obtenerPeriodoTrabajo());
+  const rangoInicial = obtenerRangoPeriodoTrabajo(periodo);
   const [fechaDesde, setFechaDesde] = useState(rangoInicial.fechaDesde);
   const [fechaHasta, setFechaHasta] = useState(rangoInicial.fechaHasta);
   const [archivo, setArchivo] = useState(null);
@@ -45,9 +51,18 @@ export default function ConciliacionBancaria() {
     }
   }
 
+  // Cambiar de mes cambia el rango y vuelve a consultar. Antes solo se recargaba
+  // al cambiar de empresa, así que mover las fechas no hacía nada hasta apretar
+  // "Buscar".
+  useEffect(() => {
+    const rango = obtenerRangoPeriodoTrabajo(periodo);
+    setFechaDesde(rango.fechaDesde);
+    setFechaHasta(rango.fechaHasta);
+  }, [periodo]);
+
   useEffect(() => {
     cargarDatos();
-  }, [empresa?.id]);
+  }, [empresa?.id, fechaDesde, fechaHasta]);
 
   const totales = useMemo(
     () => ({
@@ -108,6 +123,10 @@ export default function ConciliacionBancaria() {
         </p>
         <form style={formGrid} onSubmit={importarArchivo}>
           <label style={field}>
+            Mes
+            <PeriodoMesSelector value={periodo} onChange={setPeriodo} />
+          </label>
+          <label style={field}>
             Fecha desde
             <input style={input} type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
           </label>
@@ -155,7 +174,8 @@ export default function ConciliacionBancaria() {
               {movimientos.length === 0 ? (
                 <tr>
                   <td style={td} colSpan="8">
-                    No hay movimientos bancarios en el rango seleccionado.
+                    No hay cartola cargada para este mes. Importa el archivo del
+                    banco con el formulario de arriba.
                   </td>
                 </tr>
               ) : (
