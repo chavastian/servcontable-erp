@@ -178,6 +178,77 @@ async function documentosSinAsiento(cliente, empresaId, { desde, hasta }) {
 }
 
 /**
+ * Documentos cuyo monto no coincide con el de su propio asiento.
+ *
+ * Esta revisión nace de la factura 79386404 de enero de 2026, encontrada el
+ * 19-09-2026. Entró en cero junto con su asiento, y al día siguiente alguien
+ * corrigió el asiento a mano leyendo la factura, poniéndole los 177.248 que
+ * correspondían. La fila del documento nunca se tocó. Durante meses el libro de
+ * compras mostró cero para esa factura mientras el balance cargaba los 177.248,
+ * y nadie lo vio porque ninguna revisión comparaba las dos cosas.
+ *
+ * Es `error` y no `aviso` a propósito: si el documento y su asiento dicen cifras
+ * distintas, el F29 y el balance no pueden cuadrar entre sí. Uno de los dos está
+ * mal y hay que saber cuál antes de declarar.
+ *
+ * Se compara contra `total_debe` del asiento porque en compras el debe reúne
+ * neto, IVA y otros impuestos, que es justo el total del documento. Se tolera un
+ * peso de diferencia, que es redondeo y no un error de captura.
+ */
+async function documentosContraAsiento(cliente, empresaId, { desde, hasta }) {
+  const { rows } = await cliente.query(
+    `
+    SELECT 'compra' AS origen, d.id, d.folio, d.fecha, d.total,
+           c.numero AS comprobante, c.total_debe
+    FROM compras d
+    JOIN comprobantes c ON c.id = d.comprobante_id
+    WHERE d.empresa_id = $1 AND d.estado = 'vigente' AND c.estado = 'vigente'
+      AND d.fecha BETWEEN $2 AND $3
+      AND ABS(COALESCE(d.total, 0) - COALESCE(c.total_debe, 0)) > 1
+    UNION ALL
+    SELECT 'venta', d.id, d.folio, d.fecha, d.total,
+           c.numero, c.total_debe
+    FROM ventas d
+    JOIN comprobantes c ON c.id = d.comprobante_id
+    WHERE d.empresa_id = $1 AND d.estado = 'vigente' AND c.estado = 'vigente'
+      AND d.fecha BETWEEN $2 AND $3
+      AND ABS(COALESCE(d.total, 0) - COALESCE(c.total_debe, 0)) > 1
+    ORDER BY 1, 3
+    `,
+    [empresaId, desde, hasta]
+  );
+
+  if (rows.length === 0) {
+    return resultado(
+      "documentos_contra_asiento",
+      "Documentos y asientos coinciden",
+      ESTADOS.OK,
+      "Cada documento del período dice lo mismo que su asiento."
+    );
+  }
+
+  return resultado(
+    "documentos_contra_asiento",
+    "Documentos que no coinciden con su asiento",
+    ESTADOS.ERROR,
+    `${rows.length} documento(s) con un monto distinto al de su asiento. El libro y el balance no pueden cuadrar mientras sea así.`,
+    {
+      cantidad: rows.length,
+      afectados: rows.map((f) => ({
+        origen: f.origen,
+        id: f.id,
+        folio: f.folio,
+        fecha: f.fecha,
+        total_documento: Number(f.total),
+        comprobante: f.comprobante,
+        total_asiento: Number(f.total_debe),
+        diferencia: Number(f.total_debe) - Number(f.total),
+      })),
+    }
+  );
+}
+
+/**
  * El IVA del libro contra el IVA contabilizado.
  *
  * Es la revisión que evita declarar un F29 que no coincide con la contabilidad.
@@ -728,6 +799,7 @@ async function revisarPeriodo(cliente, empresaId, periodo) {
     asientosDescuadrados(cliente, empresaId, rango),
     documentosSinCuenta(cliente, empresaId, rango),
     documentosSinAsiento(cliente, empresaId, rango),
+    documentosContraAsiento(cliente, empresaId, rango),
     documentosDuplicados(cliente, empresaId, periodo),
     ivaLibroContraContabilidad(cliente, empresaId, periodo),
     conciliacionPendiente(cliente, empresaId, periodo),
@@ -765,6 +837,7 @@ module.exports = {
   asientosDescuadrados,
   documentosSinCuenta,
   documentosSinAsiento,
+  documentosContraAsiento,
   documentosDuplicados,
   ivaLibroContraContabilidad,
   conciliacionPendiente,
