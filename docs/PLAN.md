@@ -524,6 +524,50 @@ artefacto y sus bloques se cierran en este orden.
   reconoce son los que vienen. Mientras no exista, el mapeo manual cubre el caso.
 - El IPC mensual publicado por el INE, que lo carga quien administra el sistema.
 
+**Producción, 19-09-2026 ✅ desplegado**
+- [x] Respaldo verificado con restauración completa antes de tocar nada: 38 tablas,
+  2756 filas, 37 comparadas con huella idéntica, las migraciones aplicadas sobre
+  la copia y 67 endpoints respondiendo encima.
+- [x] Las 18 migraciones aplicadas a `servcontable_pro`. Los 2 comprobantes que
+  estaban en `eliminado` pasaron a `anulado`.
+- [x] Código desplegado. `GET /api/salud` responde `sano`. Los tres sitios de
+  Cloudflare reconstruidos del mismo commit.
+- [x] **Producción migra sola al desplegar**, con `npm install && npm run migrate`
+  como comando de construcción. Probado antes en staging dejando una migración
+  pendiente a propósito y viendo que el despliegue la aplicaba.
+- [x] La red de la base ya no acepta conexiones del mundo. Queda temporalmente en
+  el rango del proveedor de Carlos, porque las pruebas se corren desde ahí; **falta
+  vaciarla del todo al cerrar la revisión**. La IP fija no sirvió: cambió sola en
+  veinte minutos.
+
+**Defectos encontrados y corregidos el día del despliegue**
+- [x] **Los importadores de compras y ventas adivinaban las columnas del SII.** Es
+  el hallazgo C-10, que hasta ahora solo estaba resuelto en el de boletas. Leían
+  `fila["Monto Neto"]` por nombre exacto y la conversión devolvía cero en
+  silencio. Ventas además tenía tres escrituras de «RUT Cliente» parchadas a mano,
+  y peor: el documento leía su RUT de una columna y el tercero de otra, así que
+  sobre el mismo archivo podían discrepar.
+- [x] **`migrate:status` escribía en la base.** Era `node-pg-migrate --dry-run up`,
+  y `--dry-run` no frena las sentencias que las migraciones corren con
+  `pgm.db.query`. Corrido contra producción llegó al bloque 6 y falló ahí, dentro
+  de la transacción. No dejó nada aplicado, pero escribió. Ahora apunta a
+  `scripts/estado-migraciones.js`, que solo consulta.
+- [x] **La prueba de restauración fallaba sola**, porque comparaba `pgmigrations`
+  contra el manifiesto. Con un origen sin migraciones registradas —producción,
+  antes del primer despliegue— no podía pasar nunca.
+- [x] **Faltaba la revisión que compara un documento con su asiento.** Por ahí se
+  coló la factura 79386404: entró en cero junto con su asiento y al día siguiente
+  alguien corrigió el asiento a mano sin corregir el documento. Meses con el libro
+  en cero y el balance en 177.248. Es la revisión quince del cierre mensual, y va
+  como error: el período no se declara tranquilo mientras haya uno.
+- [x] **La corrección monetaria deducía los factores del IPC.** Ahora usa los que
+  publica el SII, cargados para 2024 y 2025 con su fuente. El factor del capital
+  propio inicial no es el de enero: en 2024 va 4,2 % contra 4,7 %.
+- [x] **Una boleta de honorarios anulada entraba como vigente.** El SII marca el
+  estado con `S` o `N`, no con la palabra. También se corrigió el RUT partido en
+  dos columnas y la deducción de quién retuvo a partir de las dos columnas de
+  retención, porque no existe una columna que lo diga.
+
 ## Flujo de trabajo
 
 - Ramas `feat/*`, `fix/*`, `security/*`, `chore/*` → PR a `main` de `chavastian/servcontable-erp` → revisión → merge.

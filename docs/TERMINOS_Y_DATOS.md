@@ -2,6 +2,12 @@
 
 Borrador del 2026-09-19. **REQUIERE REVISIÓN LEGAL antes de publicarse.**
 
+Antes de llevárselo a un abogado, lee `docs/REVISION_LEGAL.md`: revisa este texto
+contra la ley chilena verificada en la fuente y encontró cosas que cambian el
+contrato, entre ellas que la mayoría de los clientes son consumidores por ley
+aunque sean empresas, y que el sistema guarda datos sensibles de salud que este
+borrador no declara.
+
 Este documento existe porque no se puede cobrar por un servicio que maneja datos
 contables de terceros sin decir por escrito qué se hace con ellos. Lo que sigue
 describe con exactitud cómo funciona el sistema hoy, para que un abogado lo
@@ -101,8 +107,12 @@ Resumido; el detalle está en `docs/SEGURIDAD.md`.
 - Auditoría que el propio sistema no puede alterar.
 - Respaldos, con restauración verificada antes de cada despliegue.
 
-Lo que falta también se dice: no hay segundo factor, y la base de datos acepta
-conexiones desde cualquier dirección, protegida por usuario y contraseña.
+Lo que falta también se dice: no hay segundo factor de autenticación.
+
+La base de datos dejó de aceptar conexiones desde cualquier dirección el
+19-09-2026. Hoy la lista está restringida al rango desde donde se administra, y
+la aplicación no depende de ella porque se conecta por la red interna del
+proveedor. La intención es dejarla vacía al cerrar la revisión.
 
 ## Derechos del cliente
 

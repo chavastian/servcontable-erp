@@ -4,6 +4,41 @@ Los cambios están agrupados por lo que significan para quien usa el sistema, no
 por commit. Los códigos entre paréntesis remiten a los hallazgos de
 `docs/AUDIT-2026-09.md`.
 
+## Publicado en producción — 19-09-2026
+
+La revisión completa salió a producción: base de datos migrada con respaldo
+verificado antes, y después el código. `api.servcontablepro.cl` responde `sano`.
+
+### Lo que se corrigió el mismo día del despliegue
+
+- **Los importadores de compras y ventas ya no adivinan las columnas del SII.**
+  Leían los montos por nombre exacto, y una columna con el encabezado apenas
+  distinto entraba como cero sin avisar. Ahora reconocen los nombres que el SII
+  ha usado, sin distinguir tildes ni mayúsculas, y si falta una columna esencial
+  no importan nada y muestran los encabezados del archivo para asignarlos a mano.
+- **Se avisa cuando un documento no dice lo mismo que su asiento.** Había
+  revisiones para asientos descuadrados y para documentos sin asiento, pero
+  ninguna para un documento cuyo asiento existe y dice otra cifra. Por ahí se
+  coló una factura que durante meses figuró en cero en el libro de compras
+  mientras el balance cargaba su monto real.
+- **La corrección monetaria usa los factores que publica el SII**, ya no los
+  deduce del IPC. La diferencia llegaba a una décima en los meses intermedios, y
+  en una corrección monetaria esa décima es dinero. Cargados 2024 y 2025, con la
+  fuente y el enlace de cada cifra.
+- **Una boleta de honorarios anulada ya no entra como vigente.** El archivo del
+  SII marca el estado con una letra, `S` o `N`, no con la palabra «anulada». Se
+  reconoce además el RUT partido en dos columnas y las dos columnas de retención,
+  que son las que dicen quién retuvo.
+
+### Y lo que queda dicho con todas sus letras
+
+- Sin los factores del año publicados por el SII, la corrección monetaria no se
+  calcula. El año en curso nunca los tiene: el SII los publica cuando el
+  ejercicio ya cerró.
+- La renta líquida imponible marca cada partida según si la calculó el sistema o
+  la escribió una persona, y los registros del artículo 14 dicen cuáles necesitan
+  datos que el sistema no tiene.
+
 ## Sin publicar — rama `staging`
 
 Nada de esto está en producción todavía. Se puede revisar en
