@@ -85,43 +85,109 @@ avisar cuando cambien.
 
 ## Datos personales
 
-### La ley nueva entra en vigencia en poco más de dos meses
+Esta es la parte más seria del documento y conviene leerla entera.
 
-La Ley 21.719, que reforma el régimen de datos personales y crea la Agencia, se
-publicó el 13 de diciembre de 2024 y **entra en vigencia el 1 de diciembre de
-2026**. Hoy, 19 de septiembre de 2026, todavía no rige. Verificado.
+### Qué rige hoy y qué viene
 
-Eso significa que un contrato que se publique ahora nace con menos de tres meses
-de vida útil si se escribe solo para la ley vigente. Hay que escribirlo para la
-ley nueva desde el principio.
+Hoy, 19 de septiembre de 2026, rige la **Ley 19.628 en su versión de 1999**. Su
+techo de sanción son **50 UTM**, unos dos millones de pesos.
 
-### El sistema guarda datos sensibles y el borrador no lo dice
+La **Ley 21.719** la reescribe por completo y **entra en vigencia el 1 de
+diciembre de 2026**. Verificado en el Diario Oficial. No la deroga: la reescribe,
+así que la ley seguirá llamándose 19.628 con contenido nuevo.
 
-Esto es lo que más me preocupa del documento. El módulo de remuneraciones
-registra **licencias médicas** por trabajador, con sus días. Eso es información de
-salud de una persona identificada, y los datos de salud son datos sensibles bajo
-la ley chilena, con un régimen más estricto que el resto.
+Dos cosas que cambian el panorama y que conviene saber:
 
-El borrador enumera los datos de trabajadores sin distinguir. Hay que:
+- **Hay un proyecto para postergarla un año**, hasta el 1 de diciembre de 2027,
+  ingresado al Senado el 1 de septiembre de 2026. **No está aprobado.** La fecha
+  legal sigue siendo diciembre de este año. No conviene planificar suponiendo la
+  prórroga.
+- **La Agencia de Protección de Datos todavía no existe.** El Senado rechazó la
+  propuesta de consejeros por falta de quórum. Eso significa que hoy no hay lista
+  de países adecuados, no hay cláusulas modelo aprobadas por ella, y no hay a
+  quién notificar una brecha bajo el régimen nuevo.
 
-- Decir expresamente que se tratan datos sensibles y cuáles son.
-- Revisar si el acceso a esos datos dentro del sistema está restringido por rol,
-  o si cualquier usuario con permiso de remuneraciones los ve.
-- Incluirlos en la cláusula de tratamiento por encargo con mención específica.
+Y el salto de sanciones: de 50 UTM a **hasta 20.000 UTM**, que con la UTM de
+septiembre de 2026 son unos **1.434 millones de pesos**. Para empresas que no
+sean de menor tamaño y reincidan, puede llegar al 2 % o 4 % de los ingresos
+anuales.
 
-### Lo que falta del régimen de datos, para preguntarle al abogado
+### El riesgo mayor: las licencias médicas podrían obligar a cambiar el producto
 
-- **Contenido obligatorio del contrato entre responsable y encargado** bajo la ley
-  nueva. **Por confirmar.**
-- **Transferencia internacional a Estados Unidos.** Los datos están en Oregón. La
-  ley nueva regula esto y hay que saber bajo qué mecanismo se ampara.
-  **Por confirmar.**
-- **Notificación de brechas de seguridad.** El borrador no la menciona en
-  absoluto, y la ley nueva la exige. Hay que definir a quién se avisa, en qué
-  plazo y con qué contenido, y escribirlo en el contrato y en el procedimiento
-  interno. **Por confirmar el plazo exacto.**
+Esto no es un problema de redacción del contrato. El inciso final del artículo
+16 bis de la ley reformada dice, textualmente, que **se prohíbe el tratamiento de
+datos relativos a la salud cuando han sido recolectados en el ámbito laboral**,
+salvo que la ley expresamente lo autorice en casos calificados y se encuadre en
+alguno de los casos del mismo artículo.
 
----
+El sistema guarda licencias médicas por trabajador. La tramitación de licencias
+tiene base legal sectorial en Chile, así que lo más probable es que encuadre en
+la excepción. Pero esa articulación **es la pregunta jurídica más delicada de todo
+el producto** y no se resuelve con una cláusula ni con el consentimiento del
+trabajador: el consentimiento no levanta esta prohibición.
+
+Es lo primero que le preguntaría a un abogado, porque es lo único de esta lista
+que podría obligar a cambiar cómo funciona el sistema y no solo qué dice el
+contrato.
+
+### Y algo que amplía el perímetro más de lo que parece
+
+La definición de dato sensible de la ley reformada incluye **la situación
+socioeconómica**. Eso alcanza a las remuneraciones, no solo a las licencias. O
+sea que buena parte del módulo de remuneraciones trata datos sensibles, con el
+régimen más estricto, la obligación de evaluación de impacto previa y la
+calificación de infracción gravísima si se vulnera el secreto.
+
+### La transferencia a Estados Unidos es la exposición más grande
+
+Alojar en Oregón es una transferencia internacional y la ley nueva la regula en
+su Título V. Estados Unidos no tiene decisión de adecuación, y hoy no puede
+tenerla porque la Agencia que debe dictarla no existe.
+
+La vía que queda es la del artículo 27 letra b): **cláusulas contractuales con
+garantías adecuadas**. Hay unas cláusulas modelo aprobadas por el Ministerio de
+Economía en diciembre de 2025, pero su validez está cuestionada públicamente
+porque la ley dice que las aprueba la Agencia, no el Ministerio. **Por confirmar**
+si sirven como único fundamento.
+
+Acá hay un detalle que quiero que veas con claridad, porque es incómodo. Hacer
+una transferencia internacional en contravención a la ley es infracción grave; si
+se hace **«a sabiendas»**, es gravísima. Si los términos dicen que los datos se
+alojan en Oregón y no existe el mecanismo del artículo 27, ese «a sabiendas»
+queda documentado por escrito y por ti mismo. Decirlo con honestidad, que es lo
+correcto, exige tener resuelto el amparo.
+
+### Lo que el contrato con cada cliente tiene que contener
+
+La ley reformada, en su artículo 15 bis, fija **seis elementos obligatorios** para
+el contrato entre el responsable, que es tu cliente, y el encargado, que eres tú:
+objeto del encargo, duración, finalidad del tratamiento, tipo de datos tratados,
+categorías de titulares a quienes conciernen, y derechos y obligaciones de las
+partes. Ninguno es opcional y hoy el borrador no tiene ninguno.
+
+Tres reglas más del mismo artículo, todas relevantes:
+
+- **Si tratas los datos para algo distinto del encargo, pasas a ser responsable**
+  para todos los efectos legales, con responsabilidad personal por las
+  infracciones y solidaria por los daños.
+- **No puedes subcontratar sin autorización específica y por escrito** del
+  cliente, y aunque la tengas sigues siendo solidariamente responsable. Esto
+  aplica de lleno a Render, Cloudflare, el correo y Flow.
+- **Al terminar el servicio tienes que devolver o suprimir** los datos.
+
+### Brechas de seguridad
+
+El borrador no las menciona y la ley nueva las exige. Dos precisiones:
+
+- **No existe la regla de las 72 horas en Chile.** La ley dice «sin dilaciones
+  indebidas». Si lo viste en algún artículo, viene del reglamento europeo.
+- **Una brecha sobre licencias médicas obliga a notificar a cada trabajador
+  afectado**, en lenguaje claro, diciendo qué datos se vieron afectados y qué
+  consecuencias puede tener.
+
+Tú, como encargado, no notificas a la Agencia: notificas a tu cliente. La ley no
+te fija plazo para eso, así que **el plazo tiene que quedar en el contrato**, y lo
+bastante corto para que tu cliente alcance a cumplir el suyo.
 
 ## Suscripción, renovación y término
 
@@ -215,11 +281,21 @@ El borrador ya los identificaba y siguen abiertos, pero ahora con contexto legal
 
 Si solo se leen cinco líneas de este documento, que sean estas:
 
-1. Los clientes micro y pequeños son consumidores por ley y no pueden renunciar a
-   esa protección.
-2. El sistema trata datos sensibles de salud de trabajadores y el borrador no lo
-   declara.
-3. La ley nueva de datos personales entra en vigencia el 1 de diciembre de 2026.
-4. Los datos salen de Chile hacia Estados Unidos y falta definir bajo qué amparo.
-5. Falta identificar al proveedor, la ley aplicable, el límite de responsabilidad
-   y la propiedad de los datos.
+1. **Las licencias médicas.** El artículo 16 bis prohíbe expresamente tratar datos
+   de salud recolectados en el ámbito laboral, salvo autorización legal en casos
+   calificados. Es lo único de esta lista que podría obligar a cambiar el producto
+   y no solo el contrato.
+2. **La transferencia a Estados Unidos.** Sin mecanismo del artículo 27, y con los
+   términos diciendo dónde está alojado, el «a sabiendas» de la infracción
+   gravísima queda documentado por escrito.
+3. **Los clientes micro y pequeños son consumidores por ley** y no pueden
+   renunciar a esa protección. El supuesto de contrato entre empresas es falso.
+4. **Faltan los seis elementos obligatorios del contrato de encargo** del artículo
+   15 bis, y el plazo para avisarle al cliente de una brecha.
+5. **Falta lo básico:** identificar al proveedor, ley aplicable, límite de
+   responsabilidad y propiedad de los datos.
+
+Fechas: la ley nueva entra en vigencia el **1 de diciembre de 2026**, con un
+proyecto de prórroga a 2027 sin aprobar. Las sanciones pasan de 50 UTM a hasta
+20.000 UTM. Y la Agencia todavía no existe, así que varias definiciones que la ley
+le encarga no están disponibles.
