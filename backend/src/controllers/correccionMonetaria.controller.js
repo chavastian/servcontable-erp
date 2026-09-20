@@ -339,7 +339,7 @@ async function contabilizarCorreccion(req, res) {
         propuesta.correccion_activos,
         propuesta.correccion_pasivos,
         propuesta.resultado_correccion,
-        JSON.stringify({ lineas: propuesta.lineas, variaciones: propuesta.variaciones_mensuales }),
+        JSON.stringify({ lineas: propuesta.lineas, porcentajes: propuesta.porcentajes_mensuales, fuente: propuesta.fuente }),
         criterioLimpio,
         comprobante.id,
       ]

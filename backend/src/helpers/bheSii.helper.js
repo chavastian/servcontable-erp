@@ -42,6 +42,8 @@ const CAMPOS = [
       "RUT Contribuyente",
       "RUT",
       "Rut",
+      // Clave real del informe del SII. El RUT viene SIN digito verificador.
+      "rutemisor",
     ],
   },
   {
@@ -56,13 +58,22 @@ const CAMPOS = [
       "Nombre o Razon Social",
       "Nombre",
       "Razon Social",
+      "nombre_emisor",
     ],
+  },
+  {
+    campo: "dv_prestador",
+    etiqueta: "Dígito verificador del prestador",
+    obligatorio: false,
+    // El informe del SII parte el RUT en dos columnas. Sin esta, el RUT queda
+    // sin dígito verificador y no calza con nada del sistema.
+    alias: ["dvemisor", "DV Emisor", "Digito Verificador", "Dígito Verificador", "DV"],
   },
   {
     campo: "folio",
     etiqueta: "Folio o número de la boleta",
     obligatorio: true,
-    alias: ["Folio", "Numero Boleta", "Número Boleta", "N Boleta", "Nro Boleta", "Numero", "Número"],
+    alias: ["Folio", "Numero Boleta", "Número Boleta", "N Boleta", "Nro Boleta", "Numero", "Número", "nroboleta"],
   },
   {
     campo: "fecha_emision",
@@ -75,6 +86,8 @@ const CAMPOS = [
       "Fecha Boleta",
       "Fecha Docto",
       "Fecha",
+      "fecha_boleta",
+      "fechaemision",
     ],
   },
   {
@@ -88,6 +101,7 @@ const CAMPOS = [
       "Monto Honorarios",
       "Bruto",
       "Monto Total Bruto",
+      "totalhonorarios",
     ],
   },
   {
@@ -100,34 +114,59 @@ const CAMPOS = [
     campo: "liquido",
     etiqueta: "Monto líquido",
     obligatorio: false,
-    alias: ["Monto Liquido", "Monto Líquido", "Liquido", "Líquido", "Total a Pagar", "Neto Pagado"],
+    alias: ["Monto Liquido", "Monto Líquido", "Liquido", "Líquido", "Total a Pagar", "Neto Pagado", "honorariosliquidos"],
   },
   {
     campo: "fecha_pago",
     etiqueta: "Fecha de pago",
     obligatorio: false,
+    // El informe del SII NO trae fecha de pago: solo emisión y anulación. Se
+    // deja por si el archivo viene de otro origen, pero con el del SII esta
+    // columna queda vacía y la fecha de pago hay que registrarla después. Importa
+    // porque la declaración jurada 1879 va por fecha de pago, no de emisión.
     alias: ["Fecha Pago", "Fecha de Pago"],
   },
   {
     campo: "estado",
     etiqueta: "Estado de la boleta",
     obligatorio: false,
-    alias: ["Estado", "Situacion", "Situación", "Estado Boleta"],
+    alias: ["Estado", "Situacion", "Situación", "Estado Boleta", "estado"],
+  },
+  {
+    campo: "retencion_emisor",
+    etiqueta: "Retención de cargo del emisor",
+    obligatorio: false,
+    // El informe del SII trae DOS columnas de retención, no una. Cuál de las
+    // dos tiene monto es lo que dice quién retuvo: no hay columna "retenedor".
+    alias: ["retencion_emisor", "Retencion Emisor", "Retención Emisor"],
+  },
+  {
+    campo: "retencion_receptor",
+    etiqueta: "Retención de cargo del receptor",
+    obligatorio: false,
+    alias: ["retencion_receptor", "Retencion Receptor", "Retención Receptor"],
+  },
+  {
+    campo: "sociedad_profesional",
+    etiqueta: "Sociedad de profesionales",
+    obligatorio: false,
+    // Una sociedad de profesionales de primera categoría emite sin retención:
+    // es el caso legítimo de boleta con retención cero.
+    alias: ["es_soc_profesional", "Sociedad Profesional", "Soc Profesional"],
+  },
+  {
+    campo: "fecha_anulacion",
+    etiqueta: "Fecha de anulación",
+    obligatorio: false,
+    alias: ["fechaanulacion", "Fecha Anulacion", "Fecha Anulación"],
   },
   {
     campo: "retenedor",
     etiqueta: "Quién retiene",
     obligatorio: false,
-    // Una boleta puede tener la retención de cargo del propio emisor: en ese
-    // caso el pagador no retiene nada y no hay retención que declarar.
-    alias: [
-      "Codigo Retencion",
-      "Código Retención",
-      "Tipo Retencion",
-      "Tipo Retención",
-      "Retenedor",
-      "Quien Retiene",
-    ],
+    // Se conserva por si un archivo de otro origen sí trae la columna, pero el
+    // informe del SII no la tiene: ahí se deduce de las dos de retención.
+    alias: ["Retenedor", "Quien Retiene", "Tipo Retencion", "Tipo Retención"],
   },
 ];
 
@@ -253,10 +292,36 @@ function retieneElEmisor(valor) {
   );
 }
 
-function estaAnulada(valor) {
+/**
+ * Si la boleta está anulada.
+ *
+ * Ojo con esto, porque es la diferencia entre descontar una boleta y no
+ * descontarla: **el informe del SII no dice "anulada", dice `S` o `N`.** `S` es
+ * anulada y `N` es vigente. Leyendo solo texto, una boleta anulada entraba como
+ * vigente y se contabilizaba un honorario que no existe.
+ *
+ * `fechaAnulacion` es la segunda señal: si el archivo trae fecha de anulación,
+ * la boleta está anulada aunque la columna de estado no se haya reconocido.
+ */
+function estaAnulada(valor, fechaAnulacion) {
+  if (fechaAnulacion) return true;
+
   const texto = normalizarClave(valor);
 
+  if (!texto) return false;
+
+  // La forma del SII: S = anulada, N = vigente.
+  if (texto === "s" || texto === "si") return true;
+  if (texto === "n" || texto === "no") return false;
+
   return texto.includes("anulad") || texto.includes("nula");
+}
+
+/** Si el valor de una columna de sí/no está en verdadero. */
+function esAfirmativo(valor) {
+  const texto = normalizarClave(valor);
+
+  return texto === "s" || texto === "si" || texto === "1" || texto === "true";
 }
 
 /**
@@ -266,7 +331,12 @@ function leerFila(fila, mapeo, indice) {
   const valor = (campo) => (mapeo[campo] ? fila[mapeo[campo]] : undefined);
   const nombreFila = `Fila ${indice + 1}`;
 
-  const rut = normalizarRut(valor("rut_prestador"));
+  // El informe del SII parte el RUT en dos columnas: el número por un lado y el
+  // dígito verificador por otro. Si vienen separadas, se juntan; si el archivo
+  // ya trae el RUT completo, se usa tal cual.
+  const rutCrudo = String(valor("rut_prestador") || "").trim();
+  const dv = String(valor("dv_prestador") || "").trim();
+  const rut = normalizarRut(dv && !rutCrudo.includes("-") ? `${rutCrudo}-${dv}` : rutCrudo);
 
   if (!rut.valido) {
     return { error: `${nombreFila}: ${rut.error || "RUT del prestador no válido"}` };
@@ -293,14 +363,39 @@ function leerFila(fila, mapeo, indice) {
     };
   }
 
-  const anulada = estaAnulada(valor("estado"));
-  const emisorRetiene = retieneElEmisor(valor("retenedor"));
-  const retencionArchivo = mapeo.retencion ? Math.round(numeroChileno(valor("retencion"))) : null;
+  const fechaAnulacion = fechaChilena(valor("fecha_anulacion"));
+  const anulada = estaAnulada(valor("estado"), fechaAnulacion);
+  const sociedadProfesional = esAfirmativo(valor("sociedad_profesional"));
+
+  // En el informe del SII no hay una columna que diga quién retuvo: hay dos
+  // columnas de retención, y quien retuvo es el dueño de la que trae monto.
+  const retencionEmisor = mapeo.retencion_emisor
+    ? Math.round(numeroChileno(valor("retencion_emisor")))
+    : null;
+  const retencionReceptor = mapeo.retencion_receptor
+    ? Math.round(numeroChileno(valor("retencion_receptor")))
+    : null;
+
+  const emisorRetiene =
+    retencionEmisor !== null || retencionReceptor !== null
+      ? retencionEmisor > 0 && !(retencionReceptor > 0)
+      : retieneElEmisor(valor("retenedor"));
+
+  // La retención única, para archivos que no separan las dos columnas.
+  const retencionArchivo =
+    retencionEmisor !== null || retencionReceptor !== null
+      ? Math.max(retencionEmisor || 0, retencionReceptor || 0)
+      : mapeo.retencion
+      ? Math.round(numeroChileno(valor("retencion")))
+      : null;
+
   const tasa = tasaRetencionVigente(fechaEmision);
 
   // La retención del archivo manda; si no viene, se calcula con la tasa
   // vigente a la fecha de emisión, salvo que retenga el emisor.
-  const retencion = emisorRetiene
+  const retencion = sociedadProfesional
+    ? 0
+    : emisorRetiene
     ? 0
     : retencionArchivo !== null
     ? retencionArchivo
@@ -319,6 +414,12 @@ function leerFila(fila, mapeo, indice) {
         `${nombreFila}: la retención del archivo (${retencionArchivo}) no coincide con el ${tasa}% vigente a la fecha (${esperada}). Se usó la del archivo.`
       );
     }
+  }
+
+  if (sociedadProfesional) {
+    avisos.push(
+      `${nombreFila}: viene marcada como sociedad de profesionales, que emite sin retención. REQUIERE VALIDACIÓN TRIBUTARIA.`
+    );
   }
 
   if (emisorRetiene) {
@@ -344,6 +445,7 @@ function leerFila(fila, mapeo, indice) {
       liquido,
       anulada,
       emisor_retiene: emisorRetiene,
+      sociedad_profesional: sociedadProfesional,
     },
     avisos,
   };

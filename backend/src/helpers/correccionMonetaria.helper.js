@@ -9,7 +9,7 @@
  *
  * Tres reglas que este módulo respeta y que conviene tener a la vista:
  *
- * 1. **Sin IPC no hay cálculo.** Los factores los publica el INE y los fija el
+ * 1. **Sin los factores del SII no hay cálculo.** Los publica el SII y los fija el
  *    SII. Si un mes del año no tiene su variación cargada, el cálculo se niega
  *    y dice cuáles faltan. No se interpola ni se asume cero.
  * 2. **Cada partida se corrige desde su fecha,** no desde enero: el capital
@@ -82,61 +82,66 @@ function mesesDelAnio(anio) {
 }
 
 /**
- * Factores acumulados de corrección para un año, a partir de las variaciones
- * mensuales del IPC.
+ * Factores de corrección del año, tomados de los que publica el SII.
  *
  * Devuelve, para cada mes, el factor con que se corrige una partida nacida en
- * ese mes hasta el cierre de diciembre. Una partida de diciembre no se corrige
- * (factor 1).
+ * ese mes hasta el cierre de diciembre. Una partida de diciembre no se corrige:
+ * su factor es 1.
  *
- * `faltantes` lista los meses sin dato: si hay alguno, el cálculo no puede
- * continuar.
+ * Antes estos factores se derivaban acumulando el IPC mensual. Daba un número
+ * muy parecido y no idéntico: el SII redondea sobre los índices y no sobre las
+ * variaciones, y en los meses intermedios la diferencia llega a una décima. Ante
+ * el SII la cifra correcta es la que el SII publicó, así que se lee y no se
+ * deduce.
+ *
+ * `faltantes` lista los meses sin dato. Si hay alguno, el cálculo no continúa.
+ * El año en curso nunca los tiene: el SII los publica cuando el ejercicio cerró.
  */
 async function factoresDelAnio(cliente, anio) {
   const meses = mesesDelAnio(anio);
 
   const { rows } = await cliente.query(
-    `SELECT periodo, variacion_ipc FROM parametros_nacionales
-     WHERE periodo = ANY($1::text[])`,
-    [meses]
+    `SELECT mes, porcentaje, factor, fuente, url
+     FROM factores_correccion_monetaria
+     WHERE anio = $1
+     ORDER BY mes`,
+    [anio]
   );
 
-  const porMes = new Map(rows.map((f) => [f.periodo, f.variacion_ipc]));
-  const faltantes = meses.filter(
-    (mes) => porMes.get(mes) === undefined || porMes.get(mes) === null
-  );
+  const porMes = new Map(rows.map((f) => [Number(f.mes), f]));
 
-  if (faltantes.length > 0) {
-    return { faltantes, factores: {}, factorAnual: null };
+  // Faltan los meses del 1 al 12; el 0 es el capital propio, aparte.
+  const faltantes = meses.filter((periodo, indice) => !porMes.has(indice + 1));
+
+  if (faltantes.length > 0 || !porMes.has(0)) {
+    return {
+      faltantes: faltantes.length > 0 ? faltantes : meses,
+      factores: {},
+      factorAnual: null,
+      fuente: null,
+    };
   }
 
-  // El factor de un mes acumula las variaciones de los meses siguientes: lo
-  // que nace en enero sufre la inflación de febrero a diciembre.
   const factores = {};
+  const porcentajes = {};
 
-  for (let indice = 0; indice < meses.length; indice += 1) {
-    let acumulado = 1;
+  meses.forEach((periodo, indice) => {
+    const fila = porMes.get(indice + 1);
+    factores[periodo] = Number(fila.factor);
+    porcentajes[periodo] = Number(fila.porcentaje);
+  });
 
-    for (let siguiente = indice + 1; siguiente < meses.length; siguiente += 1) {
-      acumulado *= 1 + numero(porMes.get(meses[siguiente])) / 100;
-    }
-
-    factores[meses[indice]] = Number(acumulado.toFixed(6));
-  }
-
-  // El del capital propio inicial: la inflación del año completo, que es la de
-  // enero a diciembre, es decir el factor de la partida nacida antes del año.
-  let anual = 1;
-
-  for (const mes of meses) {
-    anual *= 1 + numero(porMes.get(mes)) / 100;
-  }
+  const capitalPropio = porMes.get(0);
 
   return {
     faltantes: [],
     factores,
-    factorAnual: Number(anual.toFixed(6)),
-    variaciones: Object.fromEntries(meses.map((mes) => [mes, numero(porMes.get(mes))])),
+    // El del capital propio inicial, que el SII publica aparte y que no
+    // coincide con el de enero: en 2024 va 4,2 % contra 4,7 % de enero.
+    factorAnual: Number(capitalPropio.factor),
+    porcentajes,
+    porcentaje_capital_propio: Number(capitalPropio.porcentaje),
+    fuente: { texto: capitalPropio.fuente, url: capitalPropio.url },
   };
 }
 
@@ -254,7 +259,7 @@ async function proponerCorreccion(cliente, empresaId, anio) {
       puede_calcular: false,
       meses_sin_ipc: calculo.faltantes,
       motivo:
-        "Faltan las variaciones del IPC de algunos meses del año. Cárgalas en los parámetros nacionales: sin ese dato la corrección monetaria no se puede calcular y no se va a inventar.",
+        "No están cargados los factores de actualización que publica el SII para este año. El SII los publica cuando el ejercicio ya cerró, alrededor de enero del año siguiente, así que el año en curso nunca los tiene. Sin ellos la corrección monetaria no se calcula y no se va a inventar.",
     };
   }
 
@@ -330,7 +335,9 @@ async function proponerCorreccion(cliente, empresaId, anio) {
     puede_calcular: true,
     factor_anual: factor,
     variacion_anual_porcentaje: variacionAnual,
-    variaciones_mensuales: calculo.variaciones,
+    porcentajes_mensuales: calculo.porcentajes,
+    porcentaje_capital_propio: calculo.porcentaje_capital_propio,
+    fuente: calculo.fuente,
     capital_propio_inicial: inicial,
     correccion_capital_propio: correccionCapital,
     correccion_activos: redondear(correccionActivos),

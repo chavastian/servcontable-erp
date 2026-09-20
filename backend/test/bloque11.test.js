@@ -5,8 +5,9 @@
  * Estos dos son los que el informe marcaba como imposibles sin definir criterio
  * tributario. Lo que estas pruebas fijan es justamente dónde está el límite:
  *
- * - **Sin IPC cargado no hay cálculo.** No se interpola, no se asume cero: se
- *   dice qué meses faltan.
+ * - **Sin los factores del SII no hay cálculo.** No se derivan del IPC ni se
+ *   interpolan: se dice qué falta. El año en curso nunca los tiene, porque el
+ *   SII los publica cuando el ejercicio ya cerró.
  * - **Sin clasificación confirmada no se contabiliza.** Una propuesta del
  *   sistema no basta para tocar la contabilidad.
  * - **Sin criterio escrito no se contabiliza.** Una corrección monetaria que no
@@ -97,13 +98,11 @@ test.before(async () => {
     throw new Error(`La base "${base}" no es de pruebas.`);
   }
 
-  // El IPC vive en una tabla nacional compartida. Se limpia al empezar y no solo
-  // al terminar: si una corrida anterior se cortó, el año quedaría con IPC y la
-  // prueba de "sin IPC no se calcula" pasaría a verde por el motivo equivocado.
-  await pool.query(
-    `UPDATE parametros_nacionales SET variacion_ipc = NULL WHERE periodo LIKE $1`,
-    [`${ANIO}-%`]
-  );
+  // Los factores son un dato nacional compartido. Se limpian al empezar y no
+  // solo al terminar: si una corrida anterior se cortó, el año quedaría cargado
+  // y la prueba de "sin factores no se calcula" pasaría a verde por el motivo
+  // equivocado.
+  await pool.query(`DELETE FROM factores_correccion_monetaria WHERE anio = $1`, [ANIO]);
 
   ctx.empresa = (
     await pool.query(
@@ -196,13 +195,10 @@ test.before(async () => {
 });
 
 test.after(async () => {
-  // El IPC es un dato nacional compartido: se limpia para no afectar a otras
-  // pruebas ni dejar datos inventados en la tabla. Va ANTES de detener el
-  // servidor, porque detenerlo cierra el pool y la consulta ya no corre.
-  await pool.query(
-    `UPDATE parametros_nacionales SET variacion_ipc = NULL WHERE periodo LIKE $1`,
-    [`${ANIO}-%`]
-  );
+  // Los factores del año sintético se borran para no dejar datos inventados en
+  // una tabla que es nacional. Va ANTES de detener el servidor, porque detenerlo
+  // cierra el pool y la consulta ya no corre.
+  await pool.query(`DELETE FROM factores_correccion_monetaria WHERE anio = $1`, [ANIO]);
   if (ctx.server) await detenerServidor(ctx.server);
 });
 
@@ -219,7 +215,7 @@ test("la clasificación sugerida distingue lo monetario de lo que no lo es", () 
   assert.equal(clasificacionSugerida({ tipo: "Gasto", nombre: "Arriendos" }), null);
 });
 
-test("sin el IPC del año cargado la corrección no se calcula ni se inventa", async () => {
+test("sin los factores del SII la corrección no se calcula ni se inventa", async () => {
   const { status, datos } = await pedir(
     `/api/correccion-monetaria?empresa_id=${ctx.empresa}&anio=${ANIO}`
   );
@@ -228,6 +224,7 @@ test("sin el IPC del año cargado la corrección no se calcula ni se inventa", a
   assert.equal(datos.puede_calcular, false);
   assert.equal(datos.meses_sin_ipc.length, 12, "los doce meses faltan");
   assert.match(datos.motivo, /no se va a inventar/i);
+  assert.match(datos.motivo, /SII/, "dice de quién es el dato que falta");
 
   // Y tampoco se contabiliza.
   const contabilizar = await enviar("/api/correccion-monetaria/contabilizar", {
@@ -236,45 +233,61 @@ test("sin el IPC del año cargado la corrección no se calcula ni se inventa", a
     criterio: "Corrección monetaria del artículo 41 sobre partidas no monetarias",
   });
   assert.equal(contabilizar.status, 400);
-  assert.match(contabilizar.datos.error, /IPC/i);
+  assert.match(contabilizar.datos.error, /factores de actualizaci[óo]n/i);
 });
 
-test("el IPC se carga por período y los factores se acumulan hacia diciembre", async () => {
-  // 1% mensual durante los doce meses.
-  for (let mes = 1; mes <= 12; mes += 1) {
-    const periodo = `${ANIO}-${String(mes).padStart(2, "0")}`;
-    const { status } = await enviar("/api/correccion-monetaria/ipc", {
-      periodo,
-      variacion_ipc: 1,
-    });
+test("los factores se leen tal como los publica el SII, no se derivan del IPC", async () => {
+  // Se cargan los factores reales de 2024, publicados por el SII, sobre el año
+  // sintético de la prueba. Son los de
+  // https://www.sii.cl/valores_y_fechas/correccion_monetaria/correccion2024.htm
+  //
+  // El mes 0 no es un mes: es el capital propio inicial, que el SII publica
+  // aparte. Nótese que va 4,2 % mientras enero va 4,7 %. Derivar uno del otro,
+  // que es lo que hacía la versión anterior, da un número distinto.
+  const OFICIALES = [
+    [0, 4.2], [1, 4.7], [2, 4.0], [3, 3.4], [4, 3.0], [5, 2.5], [6, 2.2],
+    [7, 2.3], [8, 1.6], [9, 1.3], [10, 1.2], [11, 0.3], [12, 0.0],
+  ];
 
-    // El usuario de prueba no es administrador del sistema: el IPC es nacional.
-    assert.ok([200, 403].includes(status), `estado inesperado al cargar ${periodo}: ${status}`);
+  for (const [mes, porcentaje] of OFICIALES) {
+    await pool.query(
+      `INSERT INTO factores_correccion_monetaria (anio, mes, porcentaje, factor, fuente, url)
+       VALUES ($1, $2, $3, $4, 'Prueba: tabla SII 2024', 'https://www.sii.cl')
+       ON CONFLICT (anio, mes) DO UPDATE SET porcentaje = EXCLUDED.porcentaje, factor = EXCLUDED.factor`,
+      [ANIO, mes, porcentaje, 1 + porcentaje / 100]
+    );
   }
-
-  // Si la ruta está restringida, se carga directo: lo que se prueba acá es el
-  // cálculo, no el permiso.
-  await pool.query(
-    `INSERT INTO parametros_nacionales (periodo, variacion_ipc, fuente)
-     SELECT $1 || '-' || LPAD(g::text, 2, '0'), 1, 'prueba'
-     FROM generate_series(1, 12) g
-     ON CONFLICT (periodo) DO UPDATE SET variacion_ipc = 1`,
-    [String(ANIO)]
-  );
 
   const calculo = await factoresDelAnio(pool, ANIO);
 
   assert.equal(calculo.faltantes.length, 0);
-  // Doce meses al 1%: 1,01^12 = 1,126825.
-  assert.equal(calculo.factorAnual, 1.126825);
-  // Lo que nace en diciembre no se corrige.
+  // El del capital propio, que NO es el de enero.
+  assert.equal(calculo.factorAnual, 1.042);
+  assert.equal(calculo.porcentaje_capital_propio, 4.2);
+  assert.notEqual(calculo.factorAnual, calculo.factores[`${ANIO}-01`]);
+  // Enero, tal cual lo publica el SII.
+  assert.equal(calculo.factores[`${ANIO}-01`], 1.047);
+  // Diciembre no se corrige.
   assert.equal(calculo.factores[`${ANIO}-12`], 1);
-  // Lo de enero sufre once meses: 1,01^11.
-  assert.equal(calculo.factores[`${ANIO}-01`], 1.115668);
+  // Queda registrado de dónde salió la cifra.
+  assert.match(calculo.fuente.texto, /SII/);
 
-  // Una partida anterior al año usa el factor anual completo.
-  assert.equal(factorParaFecha(`${ANIO - 1}-06-10`, ANIO, calculo), 1.126825);
+  // Una partida anterior al año usa el factor del capital propio.
+  assert.equal(factorParaFecha(`${ANIO - 1}-06-10`, ANIO, calculo), 1.042);
   assert.equal(factorParaFecha(`${ANIO}-12-20`, ANIO, calculo), 1);
+});
+
+test("un porcentaje negativo no puede entrar: el SII lo iguala a cero", async () => {
+  // Regla textual del SII. Si entrara negativo, la corrección restaría en vez
+  // de sumar y el resultado tributario quedaría mal.
+  await assert.rejects(
+    pool.query(
+      `INSERT INTO factores_correccion_monetaria (anio, mes, porcentaje, factor, fuente)
+       VALUES ($1, 6, -0.4, 0.996, 'prueba')`,
+      [ANIO + 50]
+    ),
+    /violates check constraint|restricci/i
+  );
 });
 
 test("la corrección se calcula sobre lo no monetario y el capital propio", async () => {
@@ -284,18 +297,18 @@ test("la corrección se calcula sobre lo no monetario y el capital propio", asyn
 
   assert.equal(status, 200, JSON.stringify(datos).slice(0, 300));
   assert.equal(datos.puede_calcular, true);
-  assert.equal(datos.factor_anual, 1.126825);
+  assert.equal(datos.factor_anual, 1.042);
 
   // Capital propio inicial: 10.000.000 de activos (6 en caja + 4 en
   // maquinarias) menos 0 de pasivos.
   assert.equal(datos.capital_propio_inicial.capital_propio, 10000000);
-  assert.equal(datos.correccion_capital_propio, Math.round(10000000 * 0.126825));
+  assert.equal(datos.correccion_capital_propio, Math.round(10000000 * 0.042));
 
   // La maquinaria es la única no monetaria con saldo.
   const lineaMaquinaria = datos.lineas.find((l) => l.cuenta_id === ctx.maquinarias);
   assert.ok(lineaMaquinaria, "la maquinaria se corrige");
   assert.equal(lineaMaquinaria.base, 4000000);
-  assert.equal(lineaMaquinaria.correccion, Math.round(4000000 * 0.126825));
+  assert.equal(lineaMaquinaria.correccion, Math.round(4000000 * 0.042));
 
   // La caja es monetaria: no aparece.
   assert.equal(datos.lineas.find((l) => l.cuenta_id === ctx.caja), undefined);
@@ -352,7 +365,7 @@ test("la corrección monetaria se contabiliza cuadrada y queda con su criterio",
   });
 
   assert.equal(status, 201, JSON.stringify(datos).slice(0, 400));
-  assert.equal(Number(datos.correccion.factor_anual), 1.126825);
+  assert.equal(Number(datos.correccion.factor_anual), 1.042);
   assert.match(datos.correccion.criterio, /Art[íi]culo 41/);
 
   const { rows } = await pool.query(
@@ -391,12 +404,12 @@ test("la RLI parte del balance y suma lo que el sistema sabe", async () => {
   assert.equal(status, 200, JSON.stringify(datos).slice(0, 400));
 
   // Ventas 8.000.000, gastos 3.000.000, multas 500.000 y el gasto por
-  // corrección monetaria que se contabilizó recién: 507.300 de corrección de
-  // activos contra 1.268.250 de revalorización del capital, o sea 760.950 de
-  // pérdida.
+  // corrección monetaria que se contabilizó recién: con el factor del SII de
+  // 4,2 %, son 168.000 de corrección de las maquinarias contra 420.000 de
+  // revalorización del capital propio, o sea 252.000 de pérdida.
   assert.equal(datos.balance.ingresos, 8000000);
-  assert.equal(datos.balance.gastos, 3500000 + 760950);
-  assert.equal(datos.balance.resultado, 8000000 - 3500000 - 760950);
+  assert.equal(datos.balance.gastos, 3500000 + 252000);
+  assert.equal(datos.balance.resultado, 8000000 - 3500000 - 252000);
 
   // Y justamente por eso la corrección NO vuelve a entrar como partida: ya está
   // dentro del resultado según balance. Contarla dos veces dejaría la RLI mal
